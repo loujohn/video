@@ -36,7 +36,10 @@ export function useAuth() {
     user.value = res.data.user
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await $fetch('/api/auth/logout', { method: 'POST' })
+    } catch {}
     token.value = null
     user.value = null
     navigateTo('/login')

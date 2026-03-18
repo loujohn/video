@@ -1,4 +1,5 @@
 import { TeamModel } from '../models/team.model'
+import { notFoundError, forbiddenError } from '../errors'
 import type { CreateTeamInput, AddMemberInput, Team, TeamMember } from '../types'
 
 export const TeamService = {
@@ -8,10 +9,10 @@ export const TeamService = {
 
   async getTeam(teamId: string, userId: string): Promise<Team> {
     const isMember = await TeamModel.isMember(teamId, userId)
-    if (!isMember) throw new Error('无权访问该团队')
+    if (!isMember) forbiddenError('无权访问该团队')
 
     const team = await TeamModel.findById(teamId)
-    if (!team) throw new Error('团队不存在')
+    if (!team) notFoundError('团队不存在')
     return team
   },
 
@@ -21,22 +22,22 @@ export const TeamService = {
 
   async updateTeam(teamId: string, data: Partial<Pick<Team, 'name' | 'description'>>, userId: string): Promise<Team> {
     const role = await TeamModel.getMemberRole(teamId, userId)
-    if (role !== 'owner') throw new Error('仅团队所有者可修改团队信息')
+    if (role !== 'owner') forbiddenError('仅团队所有者可修改团队信息')
 
     const team = await TeamModel.update(teamId, data)
-    if (!team) throw new Error('团队不存在')
+    if (!team) notFoundError('团队不存在')
     return team
   },
 
   async getMembers(teamId: string, userId: string) {
     const isMember = await TeamModel.isMember(teamId, userId)
-    if (!isMember) throw new Error('无权访问该团队')
+    if (!isMember) forbiddenError('无权访问该团队')
     return TeamModel.getMembers(teamId)
   },
 
   async addMember(teamId: string, input: AddMemberInput, userId: string): Promise<TeamMember> {
     const role = await TeamModel.getMemberRole(teamId, userId)
-    if (role !== 'owner') throw new Error('仅团队所有者可添加成员')
+    if (role !== 'owner') forbiddenError('仅团队所有者可添加成员')
     return TeamModel.addMember(teamId, input)
   },
 }

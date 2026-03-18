@@ -1,5 +1,6 @@
 import { hash, compare } from 'bcryptjs'
 import { UserModel } from '../models/user.model'
+import { badRequestError } from '../errors'
 import type { CreateUserInput, LoginInput, UserPublic } from '../types'
 
 function toPublic(user: { id: string; email: string; name: string; avatar: string | null; created_at: Date; updated_at: Date }): UserPublic {
@@ -15,9 +16,13 @@ function toPublic(user: { id: string; email: string; name: string; avatar: strin
 
 export const AuthService = {
   async register(input: CreateUserInput): Promise<UserPublic> {
+    if (input.password.length < 6) {
+      badRequestError('密码至少 6 个字符')
+    }
+
     const existing = await UserModel.findByEmail(input.email)
     if (existing) {
-      throw new Error('邮箱已被注册')
+      badRequestError('邮箱已被注册')
     }
 
     const password_hash = await hash(input.password, 12)
@@ -32,12 +37,12 @@ export const AuthService = {
   async login(input: LoginInput): Promise<UserPublic> {
     const user = await UserModel.findByEmail(input.email)
     if (!user) {
-      throw new Error('邮箱或密码错误')
+      badRequestError('邮箱或密码错误')
     }
 
     const valid = await compare(input.password, user.password_hash)
     if (!valid) {
-      throw new Error('邮箱或密码错误')
+      badRequestError('邮箱或密码错误')
     }
 
     return toPublic(user)

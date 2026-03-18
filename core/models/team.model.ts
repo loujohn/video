@@ -1,5 +1,5 @@
 import { getDb } from '../db'
-import type { Team, TeamMember, TeamWithMembers, CreateTeamInput, AddMemberInput } from '../types'
+import type { Team, TeamMember, CreateTeamInput, AddMemberInput } from '../types'
 
 const TEAMS = 'teams'
 const MEMBERS = 'team_members'
