@@ -10,6 +10,19 @@ export interface Asset {
   metadata: Record<string, unknown>
   linked_entity_type: string | null
   linked_entity_id: string | null
+  created_by: string | null
   is_active: boolean
   created_at: Date
+}
+
+export interface CreateAssetInput {
+  type: 'image' | 'audio' | 'video'
+  category: string
+  file_path: string
+  file_name?: string
+  file_size?: number
+  mime_type?: string
+  metadata?: Record<string, unknown>
+  linked_entity_type?: string
+  linked_entity_id?: string
 }

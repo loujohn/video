@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, ListOrdered, Pencil, Trash2, FileText } from 'lucide-vue-next'
+import { Plus, ListOrdered, Pencil, Trash2, FileText, Film } from 'lucide-vue-next'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -154,6 +154,13 @@ const rhythmPhases = ['起势', '攀升', '风暴', '决战']
                     title="编辑剧本"
                   >
                     <FileText class="h-3 w-3" />
+                  </NuxtLink>
+                  <NuxtLink
+                    :to="`/projects/${projectId}/episodes/${ep.episode_number}/storyboards`"
+                    class="inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-100 hover:text-indigo-600"
+                    title="分镜管理"
+                  >
+                    <Film class="h-3 w-3" />
                   </NuxtLink>
                   <Button variant="ghost" size="sm" class="h-7 w-7 p-0 text-zinc-400" @click="openEdit(ep)">
                     <Pencil class="h-3 w-3" />
