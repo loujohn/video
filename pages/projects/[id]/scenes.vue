@@ -128,7 +128,9 @@ async function handleDelete() {
     }
     showDeleteConfirm.value = false
     deleteTarget.value = null
-  } catch (_) {}
+  } catch (e: any) {
+    sceneError.value = e.data?.statusMessage || '删除失败'
+  }
 }
 
 const locationMap: Record<string, string> = { int: '室内', ext: '室外' }

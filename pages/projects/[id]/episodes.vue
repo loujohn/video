@@ -84,7 +84,9 @@ async function handleDeleteEpisode() {
     showDeleteConfirm.value = false
     deleteTarget.value = null
     refresh()
-  } catch (_) {}
+  } catch (e: any) {
+    error.value = e.data?.statusMessage || '删除失败'
+  }
 }
 
 const statusMap: Record<string, { label: string; color: string }> = {

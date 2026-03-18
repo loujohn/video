@@ -32,9 +32,9 @@ const { data: planData, pending: loading, refresh } = useAsyncData(
     const res = await $api<PlanResponse | null>(`/api/projects/${projectId}/plan`)
     if (!res) return { id: '', content: {} as CreativePlanContent, version: 0 }
     return {
-      id: (res as any).id ?? '',
-      content: (res as any).content || {},
-      version: (res as any).version ?? 0,
+      id: res.id ?? '',
+      content: res.content || ({} as CreativePlanContent),
+      version: res.version ?? 0,
     }
   },
 )
@@ -134,7 +134,7 @@ async function handleSave() {
 
       <template v-else>
         <div class="bg-white rounded-2xl border border-zinc-200/60 p-6 shadow-sm">
-          <form class="space-y-6">
+          <form class="space-y-6" @submit.prevent>
             <div
               v-for="f in fields"
               :key="f.key"

@@ -12,5 +12,5 @@ export default defineApiHandler(async (event) => {
   const entityId = query.entity_id as string
   if (!entityType || !entityId) badRequest('entity_type 和 entity_id 必填')
 
-  return ok(await VersionService.getHistory(entityType, entityId))
+  return ok(await VersionService.getHistory(entityType, entityId, projectId))
 })

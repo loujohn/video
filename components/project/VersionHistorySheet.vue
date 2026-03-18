@@ -25,19 +25,22 @@ const { $api } = useApi()
 
 const versions = ref<EntityVersion[]>([])
 const loading = ref(false)
+const fetchError = ref('')
 const expandedId = ref<string | null>(null)
 
 async function fetchVersions() {
   if (!props.projectId || !props.entityType || !props.entityId) return
   loading.value = true
+  fetchError.value = ''
   try {
     const result = await $api<EntityVersion[]>(
       `/api/projects/${props.projectId}/versions?entity_type=${encodeURIComponent(props.entityType)}&entity_id=${encodeURIComponent(props.entityId)}`,
     )
     versions.value = result ?? []
     expandedId.value = null
-  } catch {
+  } catch (e: any) {
     versions.value = []
+    fetchError.value = e.data?.statusMessage || '加载版本历史失败'
   } finally {
     loading.value = false
   }
@@ -77,7 +80,9 @@ function formatDate(dateStr: string) {
 
 function operatorName(version: EntityVersion) {
   if (!version.created_by) return '—'
-  return version.created_by.slice(0, 8) + '...'
+  return version.created_by.length > 12
+    ? version.created_by.slice(0, 8) + '...'
+    : version.created_by
 }
 </script>
 
@@ -93,6 +98,10 @@ function operatorName(version: EntityVersion) {
 
       <div v-if="loading" class="flex items-center justify-center py-12">
         <span class="text-sm text-zinc-500">加载中...</span>
+      </div>
+
+      <div v-else-if="fetchError" class="py-12 text-center text-sm text-red-500">
+        {{ fetchError }}
       </div>
 
       <div v-else-if="!versions.length" class="py-12 text-center text-sm text-zinc-500">

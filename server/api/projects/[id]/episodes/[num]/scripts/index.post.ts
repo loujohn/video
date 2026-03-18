@@ -5,7 +5,8 @@ export default defineApiHandler(async (event) => {
   const userId = event.context.userId
   const projectId = getRouterParam(event, 'id')!
   const num = Number(getRouterParam(event, 'num'))
+  if (!Number.isInteger(num) || num < 1) badRequest('无效的集号')
   const body = await readBody(event)
-  if (!body.content) badRequest('content 必填')
+  if (!body?.content || typeof body.content !== 'string') badRequest('content 必填')
   return ok(await EpisodeService.saveScript(projectId, num, body.content, userId, body.change_summary))
 })

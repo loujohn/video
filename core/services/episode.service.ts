@@ -66,6 +66,7 @@ export const EpisodeService = {
     await ProjectService.getProject(projectId, userId)
     const episode = await EpisodeModel.findByNumber(projectId, episodeNumber)
     if (!episode) notFoundError('分集')
+    await getDb()('entity_versions').where({ entity_type: 'episode_script', entity_id: episode.id }).del()
     await getDb()('episode_scripts').where({ episode_id: episode.id }).del()
     await EpisodeModel.delete(episode.id)
   },
