@@ -185,30 +185,42 @@ async function handleDelete() {
         <div
           v-for="c in characters"
           :key="c.id"
-          class="bg-white rounded-xl border border-zinc-200/60 p-4 shadow-sm hover:shadow-md transition-shadow"
+          class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
         >
-          <div class="flex items-start gap-3">
-            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center shrink-0">
-              <User class="h-5 w-5 text-indigo-600" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <h3 class="text-sm font-semibold text-zinc-900 truncate">{{ c.name }}</h3>
-                <Badge v-if="!c.is_active" variant="secondary" class="bg-zinc-100 text-zinc-400 text-[10px]">已禁用</Badge>
+          <div class="p-4">
+            <div class="flex items-start gap-3">
+              <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center shrink-0">
+                <User class="h-5 w-5 text-indigo-600" />
               </div>
-              <p class="text-xs text-zinc-500 mt-0.5">{{ c.public_identity || '未设置身份' }}</p>
-              <div v-if="c.personality_tags?.length" class="flex flex-wrap gap-1 mt-2">
-                <span
-                  v-for="tag in c.personality_tags.slice(0, 4)"
-                  :key="tag"
-                  class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600"
-                >
-                  {{ tag }}
-                </span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-semibold text-zinc-900 truncate">{{ c.name }}</h3>
+                  <Badge v-if="!c.is_active" variant="secondary" class="bg-zinc-100 text-zinc-400 text-[10px]">已禁用</Badge>
+                </div>
+                <p class="text-xs text-zinc-500 mt-0.5">{{ c.public_identity || '未设置身份' }}</p>
+                <div v-if="c.personality_tags?.length" class="flex flex-wrap gap-1 mt-2">
+                  <span
+                    v-for="tag in c.personality_tags.slice(0, 4)"
+                    :key="tag"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-          <div class="flex gap-1 mt-3 pt-3 border-t border-zinc-100">
+
+          <div class="px-4 pb-3">
+            <ProjectEntityImageGallery
+              :project-id="projectId"
+              entity-type="character"
+              :entity-id="c.id"
+              :image-prompt="c.image_prompt"
+            />
+          </div>
+
+          <div class="flex gap-1 px-4 pb-3 pt-2 border-t border-zinc-100">
             <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-indigo-600" @click="openEdit(c)">
               <Pencil class="h-3 w-3 mr-1" /> 编辑
             </Button>

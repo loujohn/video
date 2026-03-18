@@ -198,6 +198,14 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
                 </Button>
               </div>
             </div>
+            <div class="px-4 pb-3">
+              <ProjectEntityImageGallery
+                :project-id="projectId"
+                entity-type="scene"
+                :entity-id="s.id"
+                :image-prompt="s.image_prompt"
+              />
+            </div>
           </div>
         </div>
         <CommonEmptyState v-else :icon="MapPin" title="暂无场景" description="添加拍摄场景">
@@ -230,6 +238,14 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
                   <Trash2 class="h-3 w-3" />
                 </Button>
               </div>
+            </div>
+            <div class="px-4 pb-3">
+              <ProjectEntityImageGallery
+                :project-id="projectId"
+                entity-type="prop"
+                :entity-id="p.id"
+                :image-prompt="p.image_prompt"
+              />
             </div>
           </div>
         </div>
