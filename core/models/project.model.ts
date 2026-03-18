@@ -25,7 +25,7 @@ export const ProjectModel = {
       .insert({
         team_id: input.team_id,
         title: input.title,
-        genre: input.genre || [],
+        genre: JSON.stringify(input.genre || []),
         audience: input.audience || null,
         tone: input.tone || null,
         ending_type: input.ending_type || null,
@@ -41,7 +41,7 @@ export const ProjectModel = {
   async update(id: string, data: UpdateProjectInput): Promise<Project | undefined> {
     const updateData: Record<string, unknown> = { updated_at: new Date() }
     if (data.title !== undefined) updateData.title = data.title
-    if (data.genre !== undefined) updateData.genre = data.genre
+    if (data.genre !== undefined) updateData.genre = JSON.stringify(data.genre)
     if (data.audience !== undefined) updateData.audience = data.audience
     if (data.tone !== undefined) updateData.tone = data.tone
     if (data.ending_type !== undefined) updateData.ending_type = data.ending_type
