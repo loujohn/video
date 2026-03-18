@@ -12,6 +12,7 @@ export interface Character {
   catchphrase: string | null
   arc_description: string | null
   villain_level: number | null
+  image_prompt: string | null
   sort_order: number
   is_active: boolean
   created_at: Date
@@ -39,5 +40,6 @@ export interface CreateCharacterInput {
   catchphrase?: string
   arc_description?: string
   villain_level?: number
+  image_prompt?: string
   sort_order?: number
 }

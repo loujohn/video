@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Storyboard } from '~/core/types/storyboard'
-import { Pencil, Trash2 } from 'lucide-vue-next'
+import { Pencil, Trash2, Image as ImageIcon } from 'lucide-vue-next'
 
 defineProps<{
   storyboard: Storyboard
@@ -89,6 +89,10 @@ function safeImageUrl(url: string | null): string {
         <p v-if="storyboard.duration_seconds != null" class="text-xs text-zinc-400 mt-1">
           {{ storyboard.duration_seconds }}秒
         </p>
+        <div v-if="storyboard.image_prompt" class="mt-2 rounded bg-amber-50 px-2 py-1">
+          <p class="text-[10px] font-medium text-amber-600 mb-0.5">提示词</p>
+          <p class="text-xs text-amber-800 line-clamp-2">{{ storyboard.image_prompt }}</p>
+        </div>
       </div>
     </div>
 

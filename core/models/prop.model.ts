@@ -19,6 +19,7 @@ export const PropModel = {
         name: input.name,
         description: input.description ?? null,
         tags: JSON.stringify(input.tags || []),
+        image_prompt: input.image_prompt ?? null,
       })
       .returning('*')
     return prop
@@ -29,6 +30,7 @@ export const PropModel = {
     if (data.name !== undefined) updateData.name = data.name
     if (data.description !== undefined) updateData.description = data.description
     if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags)
+    if (data.image_prompt !== undefined) updateData.image_prompt = data.image_prompt
     if (data.is_active !== undefined) updateData.is_active = data.is_active
 
     const [prop] = await getDb()(TABLE).where({ id }).update(updateData).returning('*')

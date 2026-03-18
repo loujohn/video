@@ -38,6 +38,7 @@ export const StoryboardModel = {
         reference_image_url: input.reference_image_url ?? null,
         camera_movement: input.camera_movement ?? null,
         transition_type: input.transition_type ?? null,
+        image_prompt: input.image_prompt ?? null,
       })
       .returning('*')
     return row
@@ -56,6 +57,7 @@ export const StoryboardModel = {
     if (data.reference_image_url !== undefined) updateData.reference_image_url = data.reference_image_url
     if (data.camera_movement !== undefined) updateData.camera_movement = data.camera_movement
     if (data.transition_type !== undefined) updateData.transition_type = data.transition_type
+    if (data.image_prompt !== undefined) updateData.image_prompt = data.image_prompt
     if (data.is_active !== undefined) updateData.is_active = data.is_active
 
     const [row] = await getDb()(TABLE).where({ id }).update(updateData).returning('*')

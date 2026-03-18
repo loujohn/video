@@ -8,6 +8,7 @@ export interface Asset {
   file_size: number | null
   mime_type: string | null
   metadata: Record<string, unknown>
+  tags: string[]
   linked_entity_type: string | null
   linked_entity_id: string | null
   created_by: string | null
@@ -23,6 +24,7 @@ export interface CreateAssetInput {
   file_size?: number
   mime_type?: string
   metadata?: Record<string, unknown>
+  tags?: string[]
   linked_entity_type?: string
   linked_entity_id?: string
 }

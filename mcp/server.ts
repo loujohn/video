@@ -11,6 +11,7 @@ import { scenePropTools, handleScenePropTool } from './tools/scene-prop-tools.js
 import { episodeTools, handleEpisodeTool } from './tools/episode-tools.js'
 import { storyboardTools, handleStoryboardTool } from './tools/storyboard-tools.js'
 import { assetTools, handleAssetTool } from './tools/asset-tools.js'
+import { imageTools, handleImageTool } from './tools/image-tools.js'
 import { versionTools, handleVersionTool } from './tools/version-tools.js'
 
 const allTools = [
@@ -20,6 +21,7 @@ const allTools = [
   ...episodeTools,
   ...storyboardTools,
   ...assetTools,
+  ...imageTools,
   ...versionTools,
 ]
 
@@ -30,6 +32,7 @@ for (const t of scenePropTools) toolHandlers[t.name] = handleScenePropTool
 for (const t of episodeTools) toolHandlers[t.name] = handleEpisodeTool
 for (const t of storyboardTools) toolHandlers[t.name] = handleStoryboardTool
 for (const t of assetTools) toolHandlers[t.name] = handleAssetTool
+for (const t of imageTools) toolHandlers[t.name] = handleImageTool
 for (const t of versionTools) toolHandlers[t.name] = handleVersionTool
 
 const server = new Server(

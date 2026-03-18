@@ -6,6 +6,7 @@ export interface Scene {
   time_of_day: string | null
   description: string | null
   tags: string[]
+  image_prompt: string | null
   is_active: boolean
   created_at: Date
   updated_at: Date
@@ -17,4 +18,5 @@ export interface CreateSceneInput {
   time_of_day?: string
   description?: string
   tags?: string[]
+  image_prompt?: string
 }

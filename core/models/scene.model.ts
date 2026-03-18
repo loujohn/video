@@ -21,6 +21,7 @@ export const SceneModel = {
         time_of_day: input.time_of_day ?? null,
         description: input.description ?? null,
         tags: JSON.stringify(input.tags || []),
+        image_prompt: input.image_prompt ?? null,
       })
       .returning('*')
     return scene
@@ -33,6 +34,7 @@ export const SceneModel = {
     if (data.time_of_day !== undefined) updateData.time_of_day = data.time_of_day
     if (data.description !== undefined) updateData.description = data.description
     if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags)
+    if (data.image_prompt !== undefined) updateData.image_prompt = data.image_prompt
     if (data.is_active !== undefined) updateData.is_active = data.is_active
 
     const [scene] = await getDb()(TABLE).where({ id }).update(updateData).returning('*')

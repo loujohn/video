@@ -4,6 +4,7 @@ export interface Prop {
   name: string
   description: string | null
   tags: string[]
+  image_prompt: string | null
   is_active: boolean
   created_at: Date
   updated_at: Date
@@ -13,4 +14,5 @@ export interface CreatePropInput {
   name: string
   description?: string
   tags?: string[]
+  image_prompt?: string
 }

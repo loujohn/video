@@ -12,6 +12,7 @@ export interface Storyboard {
   reference_image_url: string | null
   camera_movement: string | null
   transition_type: string | null
+  image_prompt: string | null
   is_active: boolean
   created_at: Date
   updated_at: Date
@@ -29,4 +30,5 @@ export interface CreateStoryboardInput {
   reference_image_url?: string
   camera_movement?: string
   transition_type?: string
+  image_prompt?: string
 }

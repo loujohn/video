@@ -34,6 +34,7 @@ export const CharacterModel = {
         catchphrase: input.catchphrase ?? null,
         arc_description: input.arc_description ?? null,
         villain_level: input.villain_level ?? null,
+        image_prompt: input.image_prompt ?? null,
         sort_order: input.sort_order ?? ((maxOrder?.max || 0) + 1),
       })
       .returning('*')
@@ -53,6 +54,7 @@ export const CharacterModel = {
     if (data.catchphrase !== undefined) updateData.catchphrase = data.catchphrase
     if (data.arc_description !== undefined) updateData.arc_description = data.arc_description
     if (data.villain_level !== undefined) updateData.villain_level = data.villain_level
+    if (data.image_prompt !== undefined) updateData.image_prompt = data.image_prompt
     if (data.sort_order !== undefined) updateData.sort_order = data.sort_order
     if (data.is_active !== undefined) updateData.is_active = data.is_active
 

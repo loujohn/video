@@ -105,13 +105,14 @@ const form = reactive({
   real_identity: '',
   motivation: '',
   catchphrase: '',
+  image_prompt: '',
 })
 const loading = ref(false)
 const error = ref('')
 
 function openCreate() {
   editing.value = null
-  Object.assign(form, { name: '', age: null, appearance: '', personality_tags: '', public_identity: '', real_identity: '', motivation: '', catchphrase: '' })
+  Object.assign(form, { name: '', age: null, appearance: '', personality_tags: '', public_identity: '', real_identity: '', motivation: '', catchphrase: '', image_prompt: '' })
   error.value = ''
   showForm.value = true
 }
@@ -127,6 +128,7 @@ function openEdit(c: any) {
     real_identity: c.real_identity || '',
     motivation: c.motivation || '',
     catchphrase: c.catchphrase || '',
+    image_prompt: c.image_prompt || '',
   })
   error.value = ''
   showForm.value = true
@@ -213,6 +215,14 @@ async function handleDelete() {
             <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-red-600" @click="confirmDelete = c">
               <Trash2 class="h-3 w-3 mr-1" /> 删除
             </Button>
+          </div>
+          <div class="mt-3 pt-3 border-t border-zinc-100">
+            <ProjectEntityImageGallery
+              :project-id="projectId"
+              entity-type="character"
+              :entity-id="c.id"
+              :image-prompt="c.image_prompt"
+            />
           </div>
         </div>
       </div>
@@ -336,6 +346,10 @@ async function handleDelete() {
           <div class="space-y-2">
             <Label>口头禅</Label>
             <Input v-model="form.catchphrase" placeholder="角色的口头禅" />
+          </div>
+          <div class="space-y-2">
+            <Label>图像提示词</Label>
+            <Textarea v-model="form.image_prompt" placeholder="用于 AI 生成角色肖像的提示词（英文效果更佳）" rows="3" />
           </div>
 
           <div v-if="error" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">

@@ -38,6 +38,7 @@ const form = reactive({
   camera_movement: '',
   transition_type: '',
   reference_image_url: '',
+  image_prompt: '',
 })
 
 watch(
@@ -55,6 +56,7 @@ watch(
         form.camera_movement = sb.camera_movement ?? ''
         form.transition_type = sb.transition_type ?? ''
         form.reference_image_url = sb.reference_image_url ?? ''
+        form.image_prompt = sb.image_prompt ?? ''
       } else {
         form.shot_type = ''
         form.scene_id = ''
@@ -66,6 +68,7 @@ watch(
         form.camera_movement = ''
         form.transition_type = ''
         form.reference_image_url = ''
+        form.image_prompt = ''
       }
     }
   },
@@ -84,6 +87,7 @@ function handleSubmit() {
     camera_movement: form.camera_movement || undefined,
     transition_type: form.transition_type || undefined,
     reference_image_url: form.reference_image_url || undefined,
+    image_prompt: form.image_prompt || undefined,
   }
   emit('submit', data)
 }
@@ -144,6 +148,10 @@ function handleSubmit() {
         <div class="space-y-2">
           <Label>参考图URL</Label>
           <Input v-model="form.reference_image_url" placeholder="参考图URL" />
+        </div>
+        <div class="space-y-2">
+          <Label>图像提示词</Label>
+          <Textarea v-model="form.image_prompt" placeholder="用于 AI 生成分镜参考图的提示词" rows="3" />
         </div>
         <div class="flex gap-2 pt-2">
           <Button type="button" variant="outline" @click="emit('close')" class="flex-1">取消</Button>
