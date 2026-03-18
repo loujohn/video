@@ -9,6 +9,7 @@ export interface AssetFilters {
   tags?: string
   linked_entity_type?: string
   linked_entity_id?: string
+  is_active?: boolean | 'all'
 }
 
 export const AssetModel = {
@@ -17,7 +18,10 @@ export const AssetModel = {
   },
 
   async findByProject(projectId: string, filters?: AssetFilters): Promise<Asset[]> {
-    const query = getDb()(TABLE).where({ project_id: projectId, is_active: true })
+    const query = getDb()(TABLE).where({ project_id: projectId })
+    if (filters?.is_active === 'all') { /* no filter */ }
+    else if (filters?.is_active === false) query.andWhere('is_active', false)
+    else query.andWhere('is_active', true)
     if (filters?.type) query.andWhere('type', filters.type)
     if (filters?.category) query.andWhere('category', filters.category)
     if (filters?.tags) query.andWhereRaw("tags @> ?::jsonb", [JSON.stringify([filters.tags])])
@@ -46,13 +50,14 @@ export const AssetModel = {
     return row
   },
 
-  async update(id: string, data: Partial<Pick<Asset, 'linked_entity_type' | 'linked_entity_id' | 'category' | 'tags' | 'is_active'>>): Promise<Asset | undefined> {
+  async update(id: string, data: Partial<Pick<Asset, 'linked_entity_type' | 'linked_entity_id' | 'category' | 'tags' | 'is_active' | 'metadata'>>): Promise<Asset | undefined> {
     const updateData: Record<string, unknown> = {}
     if (data.linked_entity_type !== undefined) updateData.linked_entity_type = data.linked_entity_type
     if (data.linked_entity_id !== undefined) updateData.linked_entity_id = data.linked_entity_id
     if (data.category !== undefined) updateData.category = data.category
     if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags)
     if (data.is_active !== undefined) updateData.is_active = data.is_active
+    if (data.metadata !== undefined) updateData.metadata = JSON.stringify(data.metadata)
 
     if (Object.keys(updateData).length === 0) return this.findById(id)
     const [row] = await getDb()(TABLE).where({ id }).update(updateData).returning('*')

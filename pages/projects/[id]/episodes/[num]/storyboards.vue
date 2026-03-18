@@ -270,6 +270,7 @@ async function exportPDF() {
           <template #item="{ element }">
             <ProjectStoryboardCard
               :storyboard="element"
+              :project-id="projectId"
               @edit="openEdit(element)"
               @delete="openDelete(element)"
             />
@@ -315,8 +316,14 @@ async function exportPDF() {
             <div class="p-3">
               <p v-if="sb.description" class="text-xs text-zinc-700 line-clamp-2 mb-1">{{ sb.description }}</p>
               <p v-if="sb.dialogue" class="text-xs text-zinc-500 italic line-clamp-1">「{{ sb.dialogue }}」</p>
-              <div v-if="sb.image_prompt" class="mt-2 rounded bg-amber-50 px-2 py-1">
-                <p class="text-[10px] text-amber-700 line-clamp-1">{{ sb.image_prompt }}</p>
+              <div class="mt-2">
+                <ProjectEntityImageGallery
+                  :project-id="projectId"
+                  entity-type="storyboard"
+                  :entity-id="sb.id"
+                  :image-prompt="sb.image_prompt"
+                  compact
+                />
               </div>
               <div class="flex items-center justify-between mt-2">
                 <span v-if="sb.duration_seconds" class="text-[10px] text-zinc-400">{{ sb.duration_seconds }}秒</span>

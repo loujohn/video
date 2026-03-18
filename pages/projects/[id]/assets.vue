@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { Asset } from '~/core/types/asset'
-import { Image, Music, Video, FolderOpen, Plus, CheckSquare, X, Columns2 } from 'lucide-vue-next'
+import { Image, Music, Video, FolderOpen, Plus, CheckSquare, X, Columns2, Ban, RotateCcw } from 'lucide-vue-next'
 
 const route = useRoute()
 const projectId = route.params.id as string
 const { $api } = useApi()
 
 const typeFilter = ref<string>('')
+const statusFilter = ref<'active' | 'discarded' | 'all'>('active')
 const showUploadZone = ref(true)
 const batchMode = ref(false)
 const selectedIds = ref<Set<string>>(new Set())
@@ -19,11 +20,14 @@ const { data: project } = useAsyncData(`project-${projectId}`, () =>
 const { data: assets, refresh } = useAsyncData(
   `assets-${projectId}`,
   () => {
-    const base = `/api/projects/${projectId}/assets`
-    const url = typeFilter.value ? `${base}?type=${typeFilter.value}` : base
-    return $api<Asset[]>(url)
+    const params = new URLSearchParams()
+    if (typeFilter.value) params.set('type', typeFilter.value)
+    if (statusFilter.value === 'discarded') params.set('is_active', 'false')
+    else if (statusFilter.value === 'all') params.set('is_active', 'all')
+    const qs = params.toString()
+    return $api<Asset[]>(`/api/projects/${projectId}/assets${qs ? '?' + qs : ''}`)
   },
-  { watch: [typeFilter] },
+  { watch: [typeFilter, statusFilter] },
 )
 
 const previewAsset = ref<Asset | null>(null)
@@ -112,6 +116,31 @@ async function batchDelete() {
   refresh()
 }
 
+async function toggleAssetActive(asset: Asset) {
+  try {
+    await $api(`/api/projects/${projectId}/assets/${asset.id}`, {
+      method: 'PUT',
+      body: { is_active: !asset.is_active },
+    })
+    refresh()
+  } catch {}
+}
+
+async function batchToggleActive(active: boolean) {
+  const ids = Array.from(selectedIds.value)
+  for (const id of ids) {
+    try {
+      await $api(`/api/projects/${projectId}/assets/${id}`, {
+        method: 'PUT',
+        body: { is_active: active },
+      })
+    } catch {}
+  }
+  selectedIds.value = new Set()
+  batchMode.value = false
+  refresh()
+}
+
 function openCompare() {
   if (selectedImages.value.length >= 2) {
     compareOpen.value = true
@@ -159,6 +188,24 @@ function openCompare() {
           <Columns2 class="h-3 w-3" />
           对比图片
         </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          class="h-7 text-xs gap-1"
+          @click="batchToggleActive(false)"
+        >
+          <Ban class="h-3 w-3" />
+          批量废弃
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          class="h-7 text-xs gap-1"
+          @click="batchToggleActive(true)"
+        >
+          <RotateCcw class="h-3 w-3" />
+          批量恢复
+        </Button>
         <div class="flex-1" />
         <Button size="sm" variant="destructive" class="h-7 text-xs" @click="batchDelete">
           删除选中 ({{ selectedIds.size }})
@@ -173,21 +220,39 @@ function openCompare() {
         <ProjectAssetUploadZone :project-id="projectId" @uploaded="onUploaded" />
       </div>
 
-      <div class="flex gap-1 border-b border-zinc-200 mb-6">
-        <button
-          v-for="tab in typeTabs"
-          :key="tab.key"
-          @click="typeFilter = tab.key"
-          :class="[
-            'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-            typeFilter === tab.key
-              ? 'border-indigo-600 text-indigo-700'
-              : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300',
-          ]"
-        >
-          <component :is="tab.icon" class="h-4 w-4" />
-          {{ tab.label }}
-        </button>
+      <div class="flex items-center gap-4 border-b border-zinc-200 mb-6">
+        <div class="flex gap-1">
+          <button
+            v-for="tab in typeTabs"
+            :key="tab.key"
+            @click="typeFilter = tab.key"
+            :class="[
+              'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+              typeFilter === tab.key
+                ? 'border-indigo-600 text-indigo-700'
+                : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300',
+            ]"
+          >
+            <component :is="tab.icon" class="h-4 w-4" />
+            {{ tab.label }}
+          </button>
+        </div>
+        <div class="flex-1" />
+        <div class="flex items-center gap-1 pb-px">
+          <button
+            v-for="s in [{ key: 'active', label: '启用中' }, { key: 'discarded', label: '已废弃' }, { key: 'all', label: '全部' }] as const"
+            :key="s.key"
+            @click="statusFilter = s.key"
+            :class="[
+              'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+              statusFilter === s.key
+                ? 'bg-zinc-900 text-white'
+                : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100',
+            ]"
+          >
+            {{ s.label }}
+          </button>
+        </div>
       </div>
 
       <div v-if="error" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">
@@ -201,7 +266,7 @@ function openCompare() {
         <div
           v-for="a in assets"
           :key="a.id"
-          class="relative"
+          class="relative group"
         >
           <!-- Batch checkbox -->
           <div
@@ -232,11 +297,33 @@ function openCompare() {
               {{ entityTypeLabels[a.linked_entity_type] || a.linked_entity_type }}
             </Badge>
           </div>
-          <ProjectAssetCard
-            :asset="a"
-            @click="openPreview"
-            @delete="openDelete"
-          />
+          <!-- Discarded overlay -->
+          <div
+            v-if="!a.is_active"
+            class="absolute top-2 z-10"
+            :class="batchMode ? (a.linked_entity_type ? 'right-2' : 'right-2') : 'right-2'"
+          >
+            <Badge variant="secondary" class="text-[10px] bg-zinc-800/70 text-zinc-200 border-0 px-1.5">废弃</Badge>
+          </div>
+          <div :class="{ 'opacity-40 grayscale': !a.is_active }">
+            <ProjectAssetCard
+              :asset="a"
+              @click="openPreview"
+              @delete="openDelete"
+            />
+          </div>
+          <!-- Quick status toggle -->
+          <button
+            v-if="!batchMode"
+            type="button"
+            class="absolute bottom-2 right-2 z-10 h-6 w-6 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+            :class="a.is_active ? 'bg-amber-500/80 hover:bg-amber-600' : 'bg-green-500/80 hover:bg-green-600'"
+            :title="a.is_active ? '废弃' : '恢复'"
+            @click.stop="toggleAssetActive(a)"
+          >
+            <Ban v-if="a.is_active" class="h-3 w-3 text-white" />
+            <RotateCcw v-else class="h-3 w-3 text-white" />
+          </button>
         </div>
       </div>
 

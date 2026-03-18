@@ -25,7 +25,7 @@ export const AssetService = {
   async update(
     projectId: string,
     assetId: string,
-    data: Partial<Pick<Asset, 'linked_entity_type' | 'linked_entity_id' | 'category' | 'is_active'>>,
+    data: Partial<Pick<Asset, 'linked_entity_type' | 'linked_entity_id' | 'category' | 'is_active' | 'metadata'>>,
     userId: string,
   ): Promise<Asset> {
     await ProjectService.getProject(projectId, userId)

@@ -2,8 +2,9 @@
 import type { Storyboard } from '~/core/types/storyboard'
 import { Pencil, Trash2, Image as ImageIcon } from 'lucide-vue-next'
 
-defineProps<{
+const props = defineProps<{
   storyboard: Storyboard
+  projectId?: string
 }>()
 
 const emit = defineEmits<{
@@ -89,11 +90,21 @@ function safeImageUrl(url: string | null): string {
         <p v-if="storyboard.duration_seconds != null" class="text-xs text-zinc-400 mt-1">
           {{ storyboard.duration_seconds }}秒
         </p>
-        <div v-if="storyboard.image_prompt" class="mt-2 rounded bg-amber-50 px-2 py-1">
+        <div v-if="storyboard.image_prompt && !projectId" class="mt-2 rounded bg-amber-50 px-2 py-1">
           <p class="text-[10px] font-medium text-amber-600 mb-0.5">提示词</p>
           <p class="text-xs text-amber-800 line-clamp-2">{{ storyboard.image_prompt }}</p>
         </div>
       </div>
+    </div>
+
+    <div v-if="projectId" class="mt-3 px-0">
+      <ProjectEntityImageGallery
+        :project-id="projectId"
+        entity-type="storyboard"
+        :entity-id="storyboard.id"
+        :image-prompt="storyboard.image_prompt"
+        compact
+      />
     </div>
 
     <div class="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-zinc-100 opacity-0 group-hover:opacity-100 transition-opacity">
