@@ -7,5 +7,5 @@ export default defineApiHandler(async (event) => {
   const num = Number(getRouterParam(event, 'num'))
   const body = await readBody(event)
   if (!body.content) badRequest('content 必填')
-  return ok(await EpisodeService.saveScript(projectId, num, body.content, userId))
+  return ok(await EpisodeService.saveScript(projectId, num, body.content, userId, body.change_summary))
 })

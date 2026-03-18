@@ -1,6 +1,7 @@
 import { getDb } from '../db'
 import { EpisodeModel } from '../models/episode.model'
 import { EpisodeScriptModel } from '../models/episode-script.model'
+import { EntityVersionModel } from '../models/entity-version.model'
 import { ProjectService } from './project.service'
 import { notFoundError, badRequestError } from '../errors'
 import type { Episode, EpisodeScript, CreateEpisodeInput } from '../types'
@@ -42,10 +43,22 @@ export const EpisodeService = {
     return script || null
   },
 
-  async saveScript(projectId: string, episodeNumber: number, content: string, userId: string): Promise<EpisodeScript> {
+  async saveScript(projectId: string, episodeNumber: number, content: string, userId: string, changeSummary?: string): Promise<EpisodeScript> {
     await ProjectService.getProject(projectId, userId)
     const episode = await EpisodeModel.findByNumber(projectId, episodeNumber)
     if (!episode) notFoundError('分集不存在')
+
+    const existing = await EpisodeScriptModel.findLatest(episode.id)
+    if (existing) {
+      await EntityVersionModel.create(
+        'episode_script',
+        episode.id,
+        { content: existing.content, version: existing.version, word_count: existing.word_count },
+        userId,
+        changeSummary,
+      )
+    }
+
     return EpisodeScriptModel.create(episode.id, content, userId)
   },
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, User, Pencil, Trash2 } from 'lucide-vue-next'
+import { Plus, User, Pencil, Trash2, Link, ArrowRight } from 'lucide-vue-next'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -12,6 +12,86 @@ const { data: project } = useAsyncData(`project-${projectId}`, () =>
 const { data: characters, refresh } = useAsyncData(`chars-${projectId}`, () =>
   $api<any[]>(`/api/projects/${projectId}/characters`),
 )
+
+const { data: relations, refresh: refreshRelations } = useAsyncData(
+  `relations-${projectId}`,
+  () => $api<any[]>(`/api/projects/${projectId}/character-relations`),
+)
+
+const showRelationForm = ref(false)
+const relationForm = reactive({
+  from_character_id: '',
+  to_character_id: '',
+  relation_type: '',
+  description: '',
+})
+const relationLoading = ref(false)
+const relationError = ref('')
+
+function getCharacterName(id: string) {
+  return characters.value?.find((c) => c.id === id)?.name ?? '—'
+}
+
+function toRelationPayload(r: any) {
+  return {
+    from_character_id: r.from_character_id,
+    to_character_id: r.to_character_id,
+    relation_type: r.relation_type,
+    description: r.description ?? undefined,
+  }
+}
+
+function openAddRelation() {
+  relationForm.from_character_id = ''
+  relationForm.to_character_id = ''
+  relationForm.relation_type = ''
+  relationForm.description = ''
+  relationError.value = ''
+  showRelationForm.value = true
+}
+
+async function saveRelations() {
+  const current = relations.value ?? []
+  const payload = current.map(toRelationPayload)
+  if (relationForm.from_character_id && relationForm.to_character_id && relationForm.relation_type) {
+    payload.push({
+      from_character_id: relationForm.from_character_id,
+      to_character_id: relationForm.to_character_id,
+      relation_type: relationForm.relation_type,
+      description: relationForm.description || undefined,
+    })
+  }
+  relationLoading.value = true
+  relationError.value = ''
+  try {
+    await $api(`/api/projects/${projectId}/character-relations`, {
+      method: 'PUT',
+      body: { relations: payload },
+    })
+    showRelationForm.value = false
+    refreshRelations()
+  } catch (e: any) {
+    relationError.value = e.data?.statusMessage || '保存失败'
+  } finally {
+    relationLoading.value = false
+  }
+}
+
+async function removeRelation(index: number) {
+  const current = relations.value ?? []
+  const updated = current
+    .filter((_, i) => i !== index)
+    .map(toRelationPayload)
+  try {
+    await $api(`/api/projects/${projectId}/character-relations`, {
+      method: 'PUT',
+      body: { relations: updated },
+    })
+    refreshRelations()
+  } catch (e: any) {
+    relationError.value = e.data?.statusMessage || '删除失败'
+  }
+}
 
 const editing = ref<any>(null)
 const showForm = ref(false)
@@ -142,6 +222,79 @@ async function handleDelete() {
           <Plus class="h-3.5 w-3.5" /> 新建角色
         </Button>
       </CommonEmptyState>
+
+      <Separator class="my-8" />
+
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-zinc-900 flex items-center gap-2">
+          <Link class="h-5 w-5 text-indigo-600" />
+          角色关系
+        </h2>
+        <Button
+          size="sm"
+          variant="outline"
+          class="gap-2"
+          :disabled="!characters?.length"
+          @click="openAddRelation"
+        >
+          <Plus class="h-3.5 w-3.5" />
+          添加关系
+        </Button>
+      </div>
+
+      <div
+        v-if="relations?.length"
+        class="rounded-xl border border-zinc-200/60 overflow-hidden bg-white"
+      >
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-zinc-200/60 bg-zinc-50/50">
+              <th class="px-4 py-3 text-left font-medium text-zinc-600">角色 A</th>
+              <th class="px-4 py-3 text-left font-medium text-zinc-600">关系类型</th>
+              <th class="px-4 py-3 text-left font-medium text-zinc-600">角色 B</th>
+              <th class="px-4 py-3 text-left font-medium text-zinc-600">描述</th>
+              <th class="px-4 py-3 w-16" />
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(r, i) in relations"
+              :key="r.id"
+              class="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/30"
+            >
+              <td class="px-4 py-3 font-medium text-zinc-900">
+                {{ getCharacterName(r.from_character_id) }}
+              </td>
+              <td class="px-4 py-3 text-zinc-600">
+                <span class="inline-flex items-center gap-1">
+                  <ArrowRight class="h-3.5 w-3.5 text-zinc-400" />
+                  {{ r.relation_type || '—' }}
+                </span>
+              </td>
+              <td class="px-4 py-3 font-medium text-zinc-900">
+                {{ getCharacterName(r.to_character_id) }}
+              </td>
+              <td class="px-4 py-3 text-zinc-500 max-w-[200px] truncate">
+                {{ r.description || '—' }}
+              </td>
+              <td class="px-4 py-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="h-7 text-xs text-zinc-500 hover:text-red-600"
+                  @click="removeRelation(i)"
+                >
+                  <Trash2 class="h-3 w-3" /> 删除
+                </Button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p v-else class="text-sm text-zinc-500 py-4">
+        暂无角色关系。添加角色后，可在此管理角色之间的关系。
+      </p>
     </div>
 
     <Sheet :open="showForm" @update:open="(v: boolean) => { if (!v) showForm = false }">
@@ -193,6 +346,69 @@ async function handleDelete() {
             <Button type="button" variant="outline" @click="showForm = false" class="flex-1">取消</Button>
             <Button type="submit" :disabled="loading || !form.name" class="flex-1">
               {{ loading ? '保存中...' : (editing ? '保存修改' : '创建角色') }}
+            </Button>
+          </div>
+        </form>
+      </SheetContent>
+    </Sheet>
+
+    <Sheet :open="showRelationForm" @update:open="(v: boolean) => { if (!v) showRelationForm = false }">
+      <SheetContent class="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>添加角色关系</SheetTitle>
+        </SheetHeader>
+        <form @submit.prevent="saveRelations" class="space-y-4 mt-4">
+          <div class="space-y-2">
+            <Label>角色 A</Label>
+            <select
+              v-model="relationForm.from_character_id"
+              required
+              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">请选择</option>
+              <option
+                v-for="c in characters"
+                :key="c.id"
+                :value="c.id"
+              >
+                {{ c.name }}
+              </option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <Label>角色 B</Label>
+            <select
+              v-model="relationForm.to_character_id"
+              required
+              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">请选择</option>
+              <option
+                v-for="c in characters"
+                :key="c.id"
+                :value="c.id"
+              >
+                {{ c.name }}
+              </option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <Label>关系类型</Label>
+            <Input v-model="relationForm.relation_type" required placeholder="如 兄妹、恋人、对手" />
+          </div>
+          <div class="space-y-2">
+            <Label>描述</Label>
+            <Input v-model="relationForm.description" placeholder="可选，补充说明" />
+          </div>
+
+          <div v-if="relationError" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+            {{ relationError }}
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <Button type="button" variant="outline" @click="showRelationForm = false" class="flex-1">取消</Button>
+            <Button type="submit" :disabled="relationLoading" class="flex-1">
+              {{ relationLoading ? '保存中...' : '添加' }}
             </Button>
           </div>
         </form>

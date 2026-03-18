@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Clapperboard, Users as UsersIcon, MapPin, ListOrdered } from 'lucide-vue-next'
+import { Clapperboard, Users as UsersIcon, MapPin, ListOrdered, FileText } from 'lucide-vue-next'
 
 const props = defineProps<{ projectId: string }>()
 const route = useRoute()
@@ -9,6 +9,7 @@ const navItems = computed(() => [
   { label: '角色', icon: UsersIcon, to: `/projects/${props.projectId}/characters` },
   { label: '场景与道具', icon: MapPin, to: `/projects/${props.projectId}/scenes` },
   { label: '分集', icon: ListOrdered, to: `/projects/${props.projectId}/episodes` },
+  { label: '创作方案', icon: FileText, to: `/projects/${props.projectId}/plan` },
 ])
 
 function isActive(to: string) {
