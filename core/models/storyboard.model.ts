@@ -68,6 +68,14 @@ export const StoryboardModel = {
   },
 
   async reorder(episodeId: string, orderedIds: string[]): Promise<void> {
+    const existing = await getDb()(TABLE)
+      .where({ episode_id: episodeId, is_active: true })
+      .select('id')
+    const existingIds = new Set(existing.map((r) => r.id))
+    if (orderedIds.length !== existingIds.size || orderedIds.some((id) => !existingIds.has(id))) {
+      throw new Error('ids 必须包含该分集的全部分镜')
+    }
+
     const trx = await getDb().transaction()
     try {
       for (let i = 0; i < orderedIds.length; i++) {

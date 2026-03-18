@@ -32,13 +32,15 @@ export const StorageService = {
   },
 
   async deleteFile(relativePath: string): Promise<void> {
+    if (relativePath.includes('..') || !relativePath.startsWith('projects/')) return
     const root = getStorageRoot()
     const fullPath = join(root, relativePath)
+    if (!fullPath.startsWith(root)) return
     try {
       await access(fullPath)
       await unlink(fullPath)
     } catch {
-      // file already gone — ignore
+      console.warn(`Failed to delete file: ${relativePath}`)
     }
   },
 }

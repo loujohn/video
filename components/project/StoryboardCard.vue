@@ -30,6 +30,12 @@ function truncate(str: string | null | undefined, maxLen: number): string {
   if (!str) return ''
   return str.length > maxLen ? str.slice(0, maxLen) + '…' : str
 }
+
+function safeImageUrl(url: string | null): string {
+  if (!url) return ''
+  if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) return url
+  return ''
+}
 </script>
 
 <template>
@@ -43,9 +49,9 @@ function truncate(str: string | null | undefined, maxLen: number): string {
     </div>
 
     <div class="flex gap-3 pl-10">
-      <div v-if="storyboard.reference_image_url" class="shrink-0">
+      <div v-if="safeImageUrl(storyboard.reference_image_url)" class="shrink-0">
         <img
-          :src="storyboard.reference_image_url"
+          :src="safeImageUrl(storyboard.reference_image_url)"
           alt="参考图"
           class="h-16 w-24 rounded-lg object-cover border border-zinc-100"
         />

@@ -14,7 +14,14 @@ export default defineApiHandler(async (event) => {
 
   const getField = (name: string) => formData.find((f) => f.name === name)?.data?.toString()
 
+  const ALLOWED_MIME = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+    'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4',
+    'video/mp4', 'video/webm', 'video/quicktime',
+  ]
   const mimetype = fileField.type || 'application/octet-stream'
+  if (!ALLOWED_MIME.includes(mimetype)) badRequest('不支持的文件类型')
+
   const saved = await StorageService.saveFile(projectId, {
     buffer: fileField.data,
     originalFilename: fileField.filename,
