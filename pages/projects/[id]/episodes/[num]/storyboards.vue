@@ -268,21 +268,11 @@ async function exportPDF() {
           @end="onDragEnd"
         >
           <template #item="{ element }">
-            <div>
-              <ProjectStoryboardCard
-                :storyboard="element"
-                @edit="openEdit(element)"
-                @delete="openDelete(element)"
-              />
-              <div class="mt-2">
-                <ProjectEntityImageGallery
-                  :project-id="projectId"
-                  entity-type="storyboard"
-                  :entity-id="element.id"
-                  :image-prompt="element.image_prompt"
-                />
-              </div>
-            </div>
+            <ProjectStoryboardCard
+              :storyboard="element"
+              @edit="openEdit(element)"
+              @delete="openDelete(element)"
+            />
           </template>
         </draggable>
       </ClientOnly>
@@ -338,14 +328,6 @@ async function exportPDF() {
                 </button>
               </div>
             </div>
-            <div class="px-3 pb-3 border-t border-zinc-100" @click.stop>
-              <ProjectEntityImageGallery
-                :project-id="projectId"
-                entity-type="storyboard"
-                :entity-id="sb.id"
-                :image-prompt="sb.image_prompt"
-              />
-            </div>
           </div>
         </div>
       </div>
@@ -367,6 +349,7 @@ async function exportPDF() {
       :open="showForm"
       :storyboard="editingStoryboard"
       :scenes="sceneOptions"
+      :project-id="projectId"
       @close="showForm = false; editingStoryboard = null"
       @submit="handleFormSubmit"
     />

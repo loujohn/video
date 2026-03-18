@@ -5,6 +5,7 @@ const props = defineProps<{
   open: boolean
   storyboard?: Storyboard | null
   scenes: Array<{ id: string; name: string }>
+  projectId?: string
 }>()
 
 const emit = defineEmits<{
@@ -149,10 +150,22 @@ function handleSubmit() {
           <Label>参考图URL</Label>
           <Input v-model="form.reference_image_url" placeholder="参考图URL" />
         </div>
+        <Separator />
+
         <div class="space-y-2">
           <Label>图像提示词</Label>
           <Textarea v-model="form.image_prompt" placeholder="用于 AI 生成分镜参考图的提示词" rows="3" />
         </div>
+
+        <div v-if="storyboard && projectId" class="space-y-2">
+          <Label>关联图片</Label>
+          <ProjectEntityImageGallery
+            :project-id="projectId"
+            entity-type="storyboard"
+            :entity-id="storyboard.id"
+          />
+        </div>
+
         <div class="flex gap-2 pt-2">
           <Button type="button" variant="outline" @click="emit('close')" class="flex-1">取消</Button>
           <Button type="submit" class="flex-1">保存</Button>

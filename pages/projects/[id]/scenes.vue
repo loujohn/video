@@ -198,14 +198,6 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
                 </Button>
               </div>
             </div>
-            <div class="px-4 pb-4 border-t border-zinc-100">
-              <ProjectEntityImageGallery
-                :project-id="projectId"
-                entity-type="scene"
-                :entity-id="s.id"
-                :image-prompt="s.image_prompt"
-              />
-            </div>
           </div>
         </div>
         <CommonEmptyState v-else :icon="MapPin" title="暂无场景" description="添加拍摄场景">
@@ -239,14 +231,6 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
                 </Button>
               </div>
             </div>
-            <div class="px-4 pb-4 border-t border-zinc-100">
-              <ProjectEntityImageGallery
-                :project-id="projectId"
-                entity-type="prop"
-                :entity-id="p.id"
-                :image-prompt="p.image_prompt"
-              />
-            </div>
           </div>
         </div>
         <CommonEmptyState v-else :icon="Box" title="暂无道具" description="添加关键道具">
@@ -278,10 +262,22 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
           </div>
           <div class="space-y-2"><Label>描述</Label><Textarea v-model="sceneForm.description" rows="3" placeholder="场景描述" /></div>
           <div class="space-y-2"><Label>标签</Label><Input v-model="sceneForm.tags" placeholder="温馨, 浪漫（逗号分隔）" /></div>
+          <Separator />
+
           <div class="space-y-2">
             <Label>图像提示词</Label>
             <Textarea v-model="sceneForm.image_prompt" placeholder="用于 AI 生成场景图的提示词" rows="3" />
           </div>
+
+          <div v-if="editingScene" class="space-y-2">
+            <Label>关联图片</Label>
+            <ProjectEntityImageGallery
+              :project-id="projectId"
+              entity-type="scene"
+              :entity-id="editingScene.id"
+            />
+          </div>
+
           <div v-if="sceneError" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{{ sceneError }}</div>
           <div class="flex gap-2 pt-2">
             <Button type="button" variant="outline" @click="showSceneForm = false" class="flex-1">取消</Button>
@@ -300,10 +296,22 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
           <div class="space-y-2"><Label>道具名 *</Label><Input v-model="propForm.name" required placeholder="如 家族戒指" /></div>
           <div class="space-y-2"><Label>描述</Label><Textarea v-model="propForm.description" rows="3" placeholder="道具描述和用途" /></div>
           <div class="space-y-2"><Label>标签</Label><Input v-model="propForm.tags" placeholder="关键道具, 剧情推动（逗号分隔）" /></div>
+          <Separator />
+
           <div class="space-y-2">
             <Label>图像提示词</Label>
             <Textarea v-model="propForm.image_prompt" placeholder="用于 AI 生成道具图的提示词" rows="3" />
           </div>
+
+          <div v-if="editingProp" class="space-y-2">
+            <Label>关联图片</Label>
+            <ProjectEntityImageGallery
+              :project-id="projectId"
+              entity-type="prop"
+              :entity-id="editingProp.id"
+            />
+          </div>
+
           <div v-if="propError" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{{ propError }}</div>
           <div class="flex gap-2 pt-2">
             <Button type="button" variant="outline" @click="showPropForm = false" class="flex-1">取消</Button>
