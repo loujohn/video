@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import type { Storyboard } from '~/core/types/storyboard'
 import { ArrowLeft, Plus, Film, LayoutGrid, GalleryHorizontal, Trash2, Download } from 'lucide-vue-next'
-import draggable from 'vuedraggable'
 import jsPDF from 'jspdf'
+
+const draggable = defineAsyncComponent(() => import('vuedraggable'))
 
 // Note: jsPDF has limited Chinese character support by default. Chinese text may not render correctly.
 
@@ -228,6 +229,20 @@ async function exportPDF() {
           <h2 class="text-lg font-bold text-zinc-900">第{{ episodeNum }}集 — 分镜管理</h2>
         </div>
         <div class="flex items-center gap-2">
+          <div class="flex items-center rounded-lg border border-zinc-200 p-0.5">
+            <button
+              :class="['px-2 py-1 rounded-md text-xs font-medium transition-colors', viewMode === 'grid' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-700']"
+              @click="viewMode = 'grid'"
+            >
+              <LayoutGrid class="h-3.5 w-3.5" />
+            </button>
+            <button
+              :class="['px-2 py-1 rounded-md text-xs font-medium transition-colors', viewMode === 'timeline' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-700']"
+              @click="viewMode = 'timeline'"
+            >
+              <GalleryHorizontal class="h-3.5 w-3.5" />
+            </button>
+          </div>
           <Button variant="outline" size="sm" class="gap-2" @click="exportPDF">
             <Download class="h-3.5 w-3.5" />
             导出PDF
@@ -243,22 +258,34 @@ async function exportPDF() {
         {{ error }}
       </div>
 
-      <draggable
-        v-if="storyboards?.length && viewMode === 'grid'"
-        v-model="localList"
-        item-key="id"
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-        :disabled="reordering"
-        @end="onDragEnd"
-      >
-        <template #item="{ element }">
-          <ProjectStoryboardCard
-            :storyboard="element"
-            @edit="openEdit(element)"
-            @delete="openDelete(element)"
-          />
-        </template>
-      </draggable>
+      <ClientOnly>
+        <draggable
+          v-if="storyboards?.length && viewMode === 'grid'"
+          v-model="localList"
+          item-key="id"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          :disabled="reordering"
+          @end="onDragEnd"
+        >
+          <template #item="{ element }">
+            <div>
+              <ProjectStoryboardCard
+                :storyboard="element"
+                @edit="openEdit(element)"
+                @delete="openDelete(element)"
+              />
+              <div class="mt-2">
+                <ProjectEntityImageGallery
+                  :project-id="projectId"
+                  entity-type="storyboard"
+                  :entity-id="element.id"
+                  :image-prompt="element.image_prompt"
+                />
+              </div>
+            </div>
+          </template>
+        </draggable>
+      </ClientOnly>
 
       <!-- Timeline horizontal view -->
       <div
@@ -311,12 +338,20 @@ async function exportPDF() {
                 </button>
               </div>
             </div>
+            <div class="px-3 pb-3 border-t border-zinc-100" @click.stop>
+              <ProjectEntityImageGallery
+                :project-id="projectId"
+                entity-type="storyboard"
+                :entity-id="sb.id"
+                :image-prompt="sb.image_prompt"
+              />
+            </div>
           </div>
         </div>
       </div>
 
       <CommonEmptyState
-        v-else
+        v-if="!storyboards?.length"
         :icon="Film"
         title="暂无分镜"
         description="添加分镜开始规划镜头"
