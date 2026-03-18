@@ -1,0 +1,20 @@
+export interface Scene {
+  id: string
+  project_id: string
+  name: string
+  location_type: string | null
+  time_of_day: string | null
+  description: string | null
+  tags: string[]
+  is_active: boolean
+  created_at: Date
+  updated_at: Date
+}
+
+export interface CreateSceneInput {
+  name: string
+  location_type?: string
+  time_of_day?: string
+  description?: string
+  tags?: string[]
+}
