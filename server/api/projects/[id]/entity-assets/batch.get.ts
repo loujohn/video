@@ -1,4 +1,3 @@
-import { defineApiHandler } from '~/server/utils/api'
 import { AssetModel } from '~/core/models/asset.model'
 import { ProjectService } from '~/core/services/project.service'
 import { ok } from '~/server/utils/response'
