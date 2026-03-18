@@ -104,12 +104,12 @@ async delete(projectId: string, episodeNum: number, userId: string): Promise<voi
 }
 ```
 
-- [ ] **Step 1:** 在 `core/models/scene.model.ts` 增加 `delete` 方法
-- [ ] **Step 2:** 在 `core/models/prop.model.ts` 增加 `delete` 方法
-- [ ] **Step 3:** 在 `core/models/episode.model.ts` 增加 `delete` 方法
-- [ ] **Step 4:** 在 `core/services/scene.service.ts` 增加 `delete` 方法
-- [ ] **Step 5:** 在 `core/services/prop.service.ts` 增加 `delete` 方法
-- [ ] **Step 6:** 在 `core/services/episode.service.ts` 增加 `delete` 方法（含级联删除 scripts）
+- [x] **Step 1:** 在 `core/models/scene.model.ts` 增加 `delete` 方法
+- [x] **Step 2:** 在 `core/models/prop.model.ts` 增加 `delete` 方法
+- [x] **Step 3:** 在 `core/models/episode.model.ts` 增加 `delete` 方法
+- [x] **Step 4:** 在 `core/services/scene.service.ts` 增加 `delete` 方法
+- [x] **Step 5:** 在 `core/services/prop.service.ts` 增加 `delete` 方法
+- [x] **Step 6:** 在 `core/services/episode.service.ts` 增加 `delete` 方法（含级联删除 scripts）
 
 ### Task 1.2: DELETE API 路由
 
@@ -139,9 +139,9 @@ Episode DELETE 使用 `num` 参数（数字），需要 `parseInt`:
 const episodeNum = parseInt(getRouterParam(event, 'num')!, 10)
 ```
 
-- [ ] **Step 1:** 创建 `server/api/projects/[id]/scenes/[sid]/index.delete.ts`
-- [ ] **Step 2:** 创建 `server/api/projects/[id]/props/[pid]/index.delete.ts`
-- [ ] **Step 3:** 创建 `server/api/projects/[id]/episodes/[num]/index.delete.ts`
+- [x] **Step 1:** 创建 `server/api/projects/[id]/scenes/[sid]/index.delete.ts`
+- [x] **Step 2:** 创建 `server/api/projects/[id]/props/[pid]/index.delete.ts`
+- [x] **Step 3:** 创建 `server/api/projects/[id]/episodes/[num]/index.delete.ts`
 
 ---
 
@@ -160,8 +160,8 @@ const episodeNum = parseInt(getRouterParam(event, 'num')!, 10)
 - 确认后调用 `$api('/api/projects/:id/scenes/:sid', { method: 'DELETE' })` 或 props 等价
 - 删除成功后 refresh 列表
 
-- [ ] **Step 1:** 在 scenes.vue 增加场景删除功能（按钮 + 确认弹窗 + API 调用）
-- [ ] **Step 2:** 在 scenes.vue 增加道具删除功能（按钮 + 确认弹窗 + API 调用）
+- [x] **Step 1:** 在 scenes.vue 增加场景删除功能（按钮 + 确认弹窗 + API 调用）
+- [x] **Step 2:** 在 scenes.vue 增加道具删除功能（按钮 + 确认弹窗 + API 调用）
 
 ### Task 2.2: 分集删除功能
 
@@ -170,7 +170,7 @@ const episodeNum = parseInt(getRouterParam(event, 'num')!, 10)
 
 在分集列表表格中增加删除按钮。
 
-- [ ] **Step 1:** 在 episodes.vue 增加分集删除功能（按钮 + 确认弹窗 + API 调用）
+- [x] **Step 1:** 在 episodes.vue 增加分集删除功能（按钮 + 确认弹窗 + API 调用）
 
 ### Task 2.3: 项目编辑功能
 
@@ -188,8 +188,8 @@ const episodeNum = parseInt(getRouterParam(event, 'num')!, 10)
 - 点击打开 EditProjectDialog
 - 编辑成功后 refresh 项目数据
 
-- [ ] **Step 1:** 创建 `components/project/EditProjectDialog.vue`
-- [ ] **Step 2:** 修改 `pages/projects/[id]/index.vue` 增加编辑入口
+- [x] **Step 1:** 创建 `components/project/EditProjectDialog.vue`
+- [x] **Step 2:** 修改 `pages/projects/[id]/index.vue` 增加编辑入口
 
 ### Task 2.4: 团队编辑功能
 
@@ -198,7 +198,7 @@ const episodeNum = parseInt(getRouterParam(event, 'num')!, 10)
 
 在团队卡片增加编辑按钮，弹出编辑弹窗（复用 Dialog 模式），调用 `PUT /api/teams/:id`。
 
-- [ ] **Step 1:** 在 `pages/teams/index.vue` 增加团队编辑功能
+- [x] **Step 1:** 在 `pages/teams/index.vue` 增加团队编辑功能
 
 ---
 
@@ -238,8 +238,8 @@ interface CreativePlanContent {
 - 保存时弹出输入 change_summary 的小弹窗
 - 保存成功后刷新版本号
 
-- [ ] **Step 1:** 修改 `ProjectSubNav.vue` 增加"创作方案"链接
-- [ ] **Step 2:** 创建 `pages/projects/[id]/plan.vue`
+- [x] **Step 1:** 修改 `ProjectSubNav.vue` 增加"创作方案"链接
+- [x] **Step 2:** 创建 `pages/projects/[id]/plan.vue`
 
 ---
 
@@ -264,8 +264,8 @@ interface CreativePlanContent {
 **Episodes 页面修改：**
 - 在分集列表中每行增加"编辑剧本"按钮/链接，点击导航到 `/projects/:id/episodes/:num/script`
 
-- [ ] **Step 1:** 修改 `pages/projects/[id]/episodes.vue` 增加剧本编辑链接
-- [ ] **Step 2:** 创建 `pages/projects/[id]/episodes/[num]/script.vue`
+- [x] **Step 1:** 修改 `pages/projects/[id]/episodes.vue` 增加剧本编辑链接
+- [x] **Step 2:** 创建 `pages/projects/[id]/episodes/[num]/script.vue`
 
 ---
 
@@ -290,9 +290,9 @@ interface CreativePlanContent {
 - 显示版本列表：版本号、变更摘要、时间、操作人
 - 点击某个版本可查看该版本的 snapshot（展开 JSON）
 
-- [ ] **Step 1:** 创建 `components/project/VersionHistorySheet.vue`
-- [ ] **Step 2:** 在 `pages/projects/[id]/plan.vue` 集成版本历史按钮
-- [ ] **Step 3:** 在 `pages/projects/[id]/episodes/[num]/script.vue` 集成版本历史按钮
+- [x] **Step 1:** 创建 `components/project/VersionHistorySheet.vue`
+- [x] **Step 2:** 在 `pages/projects/[id]/plan.vue` 集成版本历史按钮
+- [x] **Step 3:** 在 `pages/projects/[id]/episodes/[num]/script.vue` 集成版本历史按钮
 
 ### Task 5.2: 角色关系管理
 
@@ -313,7 +313,7 @@ interface CreativePlanContent {
   - 描述（输入）
 - 保存时将全部关系作为数组 PUT 到 API
 
-- [ ] **Step 1:** 在 `pages/projects/[id]/characters.vue` 增加角色关系管理区域
+- [x] **Step 1:** 在 `pages/projects/[id]/characters.vue` 增加角色关系管理区域
 
 ---
 
