@@ -22,37 +22,41 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50">
-    <Card class="w-full max-w-md">
-      <template #title>
-        <h2 class="text-2xl font-bold text-center">Drama Studio</h2>
-      </template>
-      <template #subtitle>
-        <p class="text-center">登录到你的账户</p>
-      </template>
-      <template #content>
-        <form @submit.prevent="handleLogin" class="space-y-4">
-          <div class="flex flex-col gap-2">
-            <label for="email">邮箱</label>
-            <InputText id="email" v-model="email" type="email" placeholder="your@email.com" required class="w-full" />
-          </div>
+  <div class="min-h-screen flex items-center justify-center bg-zinc-50">
+    <div class="w-full max-w-sm mx-auto">
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-semibold tracking-tight">Drama Studio</h1>
+        <p class="text-sm text-zinc-500 mt-2">登录到你的账户</p>
+      </div>
 
-          <div class="flex flex-col gap-2">
-            <label for="password">密码</label>
-            <Password id="password" v-model="password" placeholder="输入密码" :feedback="false" toggleMask class="w-full" inputClass="w-full" />
-          </div>
+      <Card>
+        <CardContent class="pt-6">
+          <form @submit.prevent="handleLogin" class="space-y-4">
+            <div class="space-y-2">
+              <Label for="email">邮箱</Label>
+              <Input id="email" v-model="email" type="email" placeholder="your@email.com" required />
+            </div>
 
-          <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+            <div class="space-y-2">
+              <Label for="password">密码</Label>
+              <Input id="password" v-model="password" type="password" placeholder="输入密码" required />
+            </div>
 
-          <Button type="submit" label="登录" :loading="loading" class="w-full" />
-        </form>
-      </template>
-      <template #footer>
-        <p class="text-center text-sm text-gray-500">
-          还没有账户？
-          <NuxtLink to="/register" class="text-primary-500 hover:underline">注册</NuxtLink>
-        </p>
-      </template>
-    </Card>
+            <div v-if="error" class="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {{ error }}
+            </div>
+
+            <Button type="submit" class="w-full" :disabled="loading">
+              {{ loading ? '登录中...' : '登录' }}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <p class="text-center text-sm text-zinc-500 mt-6">
+        还没有账户？
+        <NuxtLink to="/register" class="text-zinc-900 font-medium hover:underline">注册</NuxtLink>
+      </p>
+    </div>
   </div>
 </template>

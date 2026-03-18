@@ -1,31 +1,35 @@
 <script setup lang="ts">
+import { Home, Film, Users, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+
 const collapsed = ref(false)
 const route = useRoute()
 
 const navItems = [
-  { label: '仪表盘', icon: 'pi pi-home', to: '/' },
-  { label: '项目', icon: 'pi pi-video', to: '/projects' },
-  { label: '团队', icon: 'pi pi-users', to: '/teams' },
+  { label: '仪表盘', icon: Home, to: '/' },
+  { label: '项目', icon: Film, to: '/projects' },
+  { label: '团队', icon: Users, to: '/teams' },
 ]
+
+function isActive(to: string) {
+  return route.path === to || (to !== '/' && route.path.startsWith(to + '/'))
+}
 </script>
 
 <template>
   <aside
     :class="[
-      'h-screen bg-gray-900 text-white transition-all duration-300 flex flex-col',
+      'h-screen border-r border-zinc-200 bg-white transition-all duration-300 flex flex-col',
       collapsed ? 'w-16' : 'w-60',
     ]"
   >
-    <div class="flex items-center justify-between p-4 border-b border-gray-700">
-      <span v-if="!collapsed" class="text-lg font-bold">Drama Studio</span>
-      <Button
-        :icon="collapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-left'"
-        text
-        severity="secondary"
-        size="small"
-        class="!text-white"
+    <div class="flex items-center justify-between p-4 border-b border-zinc-100">
+      <span v-if="!collapsed" class="text-lg font-semibold tracking-tight">Drama Studio</span>
+      <button
+        class="p-1.5 rounded-md hover:bg-zinc-100 text-zinc-500 transition-colors"
         @click="collapsed = !collapsed"
-      />
+      >
+        <component :is="collapsed ? ChevronRight : ChevronLeft" class="h-4 w-4" />
+      </button>
     </div>
 
     <nav class="flex-1 p-2 space-y-1">
@@ -34,13 +38,13 @@ const navItems = [
         :key="item.to"
         :to="item.to"
         :class="[
-          'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors',
-          route.path === item.to || route.path.startsWith(item.to + '/')
-            ? 'bg-gray-700 text-white'
-            : 'text-gray-400 hover:text-white hover:bg-gray-800',
+          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+          isActive(item.to)
+            ? 'bg-zinc-900 text-white'
+            : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100',
         ]"
       >
-        <i :class="[item.icon, 'text-sm']" />
+        <component :is="item.icon" class="h-4 w-4 shrink-0" />
         <span v-if="!collapsed">{{ item.label }}</span>
       </NuxtLink>
     </nav>

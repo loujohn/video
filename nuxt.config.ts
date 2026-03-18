@@ -1,20 +1,21 @@
-import Aura from '@primevue/themes/aura'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
   devtools: { enabled: true },
   modules: [
-    '@primevue/nuxt-module',
-    '@nuxtjs/tailwindcss',
+    'shadcn-nuxt',
   ],
-  primevue: {
-    options: {
-      theme: {
-        preset: Aura,
-      },
-    },
+  shadcn: {
+    prefix: '',
+    componentDir: './components/ui',
   },
-  css: ['primeicons/primeicons.css'],
+  css: ['~/app/assets/css/tailwind.css'],
+  vite: {
+    plugins: [
+      tailwindcss(),
+    ],
+  },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/drama_studio',
     jwtSecret: process.env.JWT_SECRET || 'dev-secret',

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen bg-gray-50">
+  <div class="flex h-screen bg-zinc-50">
     <LayoutAppSidebar />
     <div class="flex-1 flex flex-col overflow-hidden">
       <LayoutAppHeader>
