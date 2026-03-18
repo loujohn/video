@@ -64,6 +64,14 @@ export const AssetModel = {
     return row
   },
 
+  async findByEntities(projectId: string, entityType: string, entityIds: string[], activeOnly = true): Promise<Asset[]> {
+    const query = getDb()(TABLE)
+      .where({ project_id: projectId, linked_entity_type: entityType, type: 'image' })
+      .whereIn('linked_entity_id', entityIds)
+    if (activeOnly) query.andWhere('is_active', true)
+    return query.orderBy('created_at', 'desc')
+  },
+
   async delete(id: string): Promise<boolean> {
     const count = await getDb()(TABLE).where({ id }).del()
     return count > 0

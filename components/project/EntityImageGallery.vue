@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Upload, ZoomIn, Trash2, Ban, RotateCcw, Star } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import type { Asset } from '~/core/types/asset'
 
 const props = defineProps<{
@@ -46,14 +47,36 @@ watch(coverUrl, (url) => {
   emit('cover-change', url)
 }, { immediate: true })
 
-const previewUrl = ref('')
+const previewIndex = ref(0)
 const showPreview = ref(false)
 const inputRef = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
+const uploadProgress = ref(0)
+const totalFiles = ref(0)
+const dragOver = ref(false)
+
+const previewUrl = computed(() => {
+  const img = activeImages.value[previewIndex.value]
+  return img ? `/uploads/${img.file_path}` : ''
+})
+
+const previewInfo = computed(() => {
+  const img = activeImages.value[previewIndex.value]
+  return img ? { name: img.file_name || '未命名', index: previewIndex.value + 1, total: activeImages.value.length } : null
+})
 
 function openPreview(url: string) {
-  previewUrl.value = url
+  const idx = activeImages.value.findIndex(i => `/uploads/${i.file_path}` === url)
+  previewIndex.value = idx >= 0 ? idx : 0
   showPreview.value = true
+}
+
+function prevImage() {
+  if (previewIndex.value > 0) previewIndex.value--
+}
+
+function nextImage() {
+  if (previewIndex.value < activeImages.value.length - 1) previewIndex.value++
 }
 
 function isCover(asset: Asset): boolean {
@@ -78,38 +101,54 @@ async function setCover(asset: Asset) {
       method: 'PUT',
       body: { metadata: newMeta },
     })
-  } catch {}
+    toast.success('已设为封面')
+  } catch {
+    toast.error('设置封面失败')
+  }
   await refresh()
   emit('refresh')
 }
 
 async function toggleActive(asset: Asset) {
+  const newState = !asset.is_active
   try {
     await $api(`/api/projects/${props.projectId}/assets/${asset.id}`, {
       method: 'PUT',
-      body: { is_active: !asset.is_active },
+      body: { is_active: newState },
     })
+    toast.success(newState ? '已恢复启用' : '已废弃')
     await refresh()
     emit('refresh')
-  } catch {}
+  } catch {
+    toast.error('操作失败')
+  }
 }
 
 async function deleteImage(assetId: string) {
   try {
     await $api(`/api/projects/${props.projectId}/assets/${assetId}`, { method: 'DELETE' })
+    toast.success('已删除')
     await refresh()
     emit('refresh')
-  } catch {}
+  } catch {
+    toast.error('删除失败')
+  }
 }
 
-async function onFileSelect(e: Event) {
-  const input = e.target as HTMLInputElement
-  const files = Array.from(input.files ?? [])
-  input.value = ''
+async function uploadFiles(files: File[]) {
   if (!files.length) return
+  const imageFiles = files.filter(f => f.type.startsWith('image/'))
+  if (!imageFiles.length) {
+    toast.error('请选择图片文件')
+    return
+  }
 
   uploading.value = true
-  for (const file of files) {
+  totalFiles.value = imageFiles.length
+  uploadProgress.value = 0
+
+  let successCount = 0
+  for (const file of imageFiles) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('category', 'reference')
@@ -122,16 +161,70 @@ async function onFileSelect(e: Event) {
         body: formData,
         headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
       })
+      successCount++
     } catch {}
+    uploadProgress.value++
   }
   uploading.value = false
+  uploadProgress.value = 0
+  totalFiles.value = 0
+  if (successCount > 0) toast.success(`已上传 ${successCount} 张图片`)
+  else toast.error('上传失败')
   await refresh()
   emit('refresh')
+}
+
+async function onFileSelect(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  input.value = ''
+  await uploadFiles(files)
+}
+
+function onDrop(e: DragEvent) {
+  e.preventDefault()
+  dragOver.value = false
+  const files = Array.from(e.dataTransfer?.files ?? [])
+  uploadFiles(files)
+}
+
+function onDragOver(e: DragEvent) {
+  e.preventDefault()
+  dragOver.value = true
+}
+
+function onDragLeave() {
+  dragOver.value = false
 }
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div
+    class="space-y-2 relative rounded-lg transition-all"
+    :class="dragOver ? 'ring-2 ring-indigo-400 ring-offset-2 bg-indigo-50/50' : ''"
+    @drop="onDrop"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+  >
+    <!-- Drag overlay -->
+    <div
+      v-if="dragOver"
+      class="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-indigo-50/80 border-2 border-dashed border-indigo-400 pointer-events-none"
+    >
+      <div class="text-center">
+        <Upload class="h-6 w-6 text-indigo-500 mx-auto mb-1" />
+        <p class="text-xs text-indigo-600 font-medium">拖放图片到此处</p>
+      </div>
+    </div>
+
+    <!-- Upload progress -->
+    <div v-if="uploading && totalFiles > 0" class="flex items-center gap-2 px-2 py-1.5 rounded bg-indigo-50 border border-indigo-200/60">
+      <div class="flex-1 h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+        <div class="h-full bg-indigo-500 rounded-full transition-all duration-300" :style="{ width: `${(uploadProgress / totalFiles) * 100}%` }" />
+      </div>
+      <span class="text-[10px] text-indigo-600 font-medium whitespace-nowrap">{{ uploadProgress }}/{{ totalFiles }}</span>
+    </div>
+
     <!-- Image prompt display -->
     <div v-if="imagePrompt" class="rounded-lg bg-amber-50 border border-amber-200/60 px-3 py-2">
       <p class="text-[10px] font-medium text-amber-600 uppercase tracking-wider mb-0.5">提示词 Prompt</p>
@@ -248,10 +341,34 @@ async function onFileSelect(e: Event) {
       <span v-if="!activeImages.length && !discardedCount" class="text-[10px] text-zinc-400">暂无图片</span>
     </div>
 
-    <!-- Preview dialog -->
+    <!-- Preview dialog with navigation -->
     <Dialog :open="showPreview" @update:open="(v: boolean) => { if (!v) showPreview = false }">
       <DialogContent class="max-w-3xl p-0 overflow-hidden">
-        <img :src="previewUrl" class="w-full h-auto max-h-[80vh] object-contain" alt="Preview" />
+        <div class="relative">
+          <img :src="previewUrl" class="w-full h-auto max-h-[80vh] object-contain" alt="Preview" />
+          <!-- Navigation arrows -->
+          <button
+            v-if="previewIndex > 0"
+            type="button"
+            class="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
+            @click="prevImage"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <button
+            v-if="previewIndex < activeImages.length - 1"
+            type="button"
+            class="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
+            @click="nextImage"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+        <!-- Info bar -->
+        <div v-if="previewInfo" class="flex items-center justify-between px-4 py-2 bg-zinc-50 text-xs text-zinc-500 border-t border-zinc-100">
+          <span class="truncate max-w-[60%]">{{ previewInfo.name }}</span>
+          <span>{{ previewInfo.index }} / {{ previewInfo.total }}</span>
+        </div>
       </DialogContent>
     </Dialog>
   </div>

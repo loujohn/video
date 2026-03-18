@@ -1,3 +1,4 @@
 <template>
   <NuxtPage />
+  <UiSonnerSonner />
 </template>
