@@ -1,6 +1,6 @@
 # Phase 4: AI 接口层 — 实施计划
 
-> **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 实现 MCP Server、Skill 文件、References 知识库和 API 文档，使 AI 助手能够通过 MCP 工具或 REST API 与短剧管理平台交互，完成从选题到剧本的完整创作流程。
 
@@ -111,9 +111,9 @@ docs/
 }
 ```
 
-- [ ] **Step 1:** 创建 `mcp/package.json`
-- [ ] **Step 2:** 创建 `mcp/tsconfig.json`
-- [ ] **Step 3:** 在项目根目录执行 `cd mcp && npm install`，确认依赖安装成功
+- [x] **Step 1:** 创建 `mcp/package.json`
+- [x] **Step 2:** 创建 `mcp/tsconfig.json`
+- [x] **Step 3:** 在项目根目录执行 `cd mcp && npm install`，确认依赖安装成功
 
 ### Task 1.2: API 客户端封装
 
@@ -129,9 +129,9 @@ docs/
 
 **mcp/lib/types.ts：** 定义工具参数的 Zod schema 及返回值类型（可后续逐步补充）
 
-- [ ] **Step 1:** 创建 `mcp/lib/types.ts`（导出空对象或基础类型占位）
-- [ ] **Step 2:** 创建 `mcp/lib/api-client.ts`，实现 `get/post/put` 及 Bearer 认证
-- [ ] **Step 3:** 在 `mcp/server.ts` 中 import api-client，写一行 `console.log` 验证可加载（后续会替换为真实 Server）
+- [x] **Step 1:** 创建 `mcp/lib/types.ts`（导出空对象或基础类型占位）
+- [x] **Step 2:** 创建 `mcp/lib/api-client.ts`，实现 `get/post/put` 及 Bearer 认证
+- [x] **Step 3:** 在 `mcp/server.ts` 中 import api-client，写一行 `console.log` 验证可加载（后续会替换为真实 Server）
 
 ### Task 1.3: MCP Server 入口骨架
 
@@ -165,9 +165,9 @@ console.error('Video Drama MCP Server running on stdio')
 
 **SDK 版本说明：** 若使用 `@modelcontextprotocol/sdk` 2.x 或 `@modelcontextprotocol/server`，API 为 `McpServer` + `registerTool(name, schema, handler)`，参考 <https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/server.md>。
 
-- [ ] **Step 1:** 创建 `mcp/server.ts`，实现最小 MCP Server（空工具列表）
-- [ ] **Step 2:** 运行 `cd mcp && npm run start`，确认进程启动无报错（stdio 模式下会等待输入，可 Ctrl+C 退出）
-- [ ] **Step 3:** 提交 Batch 1
+- [x] **Step 1:** 创建 `mcp/server.ts`，实现最小 MCP Server（空工具列表）
+- [x] **Step 2:** 运行 `cd mcp && npm run start`，确认进程启动无报错（stdio 模式下会等待输入，可 Ctrl+C 退出）
+- [x] **Step 3:** 提交 Batch 1
 
 ```bash
 git add mcp/
@@ -199,9 +199,9 @@ git commit -m "feat(mcp): add MCP server scaffold with api-client and stdio tran
 - 在 `tools/call` handler 中根据 `name` 分发到对应实现
 - 使用 api-client 发起 HTTP 请求，解析 `data` 返回
 
-- [ ] **Step 1:** 在 `mcp/tools/project-tools.ts` 实现 5 个工具的 schema 与调用逻辑
-- [ ] **Step 2:** 在 `mcp/server.ts` 中 import 并注册 project-tools 到 `tools/list` 和 `tools/call`
-- [ ] **Step 3:** 本地启动 Nuxt 平台 + 登录获取 token，设置 `DRAMA_API_TOKEN`，手动测试 `list_projects`（可用简单脚本或 MCP Inspector）
+- [x] **Step 1:** 在 `mcp/tools/project-tools.ts` 实现 5 个工具的 schema 与调用逻辑
+- [x] **Step 2:** 在 `mcp/server.ts` 中 import 并注册 project-tools 到 `tools/list` 和 `tools/call`
+- [x] **Step 3:** 本地启动 Nuxt 平台 + 登录获取 token，设置 `DRAMA_API_TOKEN`，手动测试 `list_projects`（可用简单脚本或 MCP Inspector）
 
 ### Task 2.2: 角色工具
 
@@ -218,8 +218,8 @@ git commit -m "feat(mcp): add MCP server scaffold with api-client and stdio tran
 | update_character | project_id, character_id, name?, age?, ... | PUT /api/projects/:id/characters/:cid |
 | set_character_relations | project_id, relations: [{ from_character_id, to_character_id, relation_type, description? }] | PUT /api/projects/:id/character-relations |
 
-- [ ] **Step 1:** 实现 `mcp/tools/character-tools.ts`
-- [ ] **Step 2:** 在 server.ts 中注册 character-tools
+- [x] **Step 1:** 实现 `mcp/tools/character-tools.ts`
+- [x] **Step 2:** 在 server.ts 中注册 character-tools
 
 ### Task 2.3: 场景与道具工具
 
@@ -236,8 +236,8 @@ git commit -m "feat(mcp): add MCP server scaffold with api-client and stdio tran
 | list_props | project_id | GET /api/projects/:id/props |
 | create_prop | project_id, name, description?, tags? | POST /api/projects/:id/props |
 
-- [ ] **Step 1:** 实现 `mcp/tools/scene-prop-tools.ts`
-- [ ] **Step 2:** 在 server.ts 中注册 scene-prop-tools
+- [x] **Step 1:** 实现 `mcp/tools/scene-prop-tools.ts`
+- [x] **Step 2:** 在 server.ts 中注册 scene-prop-tools
 
 ### Task 2.4: 分集与剧本工具
 
@@ -254,8 +254,8 @@ git commit -m "feat(mcp): add MCP server scaffold with api-client and stdio tran
 | save_episode_script | project_id, episode_number, content, change_summary? | POST /api/projects/:id/episodes/:num/scripts |
 | get_episode_script | project_id, episode_number | GET /api/projects/:id/episodes/:num/scripts |
 
-- [ ] **Step 1:** 实现 `mcp/tools/episode-tools.ts`
-- [ ] **Step 2:** 在 server.ts 中注册 episode-tools
+- [x] **Step 1:** 实现 `mcp/tools/episode-tools.ts`
+- [x] **Step 2:** 在 server.ts 中注册 episode-tools
 
 ### Task 2.5: 分镜与资源工具（依赖 Phase 3）
 
@@ -275,9 +275,9 @@ git commit -m "feat(mcp): add MCP server scaffold with api-client and stdio tran
 
 **说明：** Phase 3 未完成时，这些工具会返回 404。实现时按设计文档的预期路径编写，便于 Phase 3 完成后直接对接。
 
-- [ ] **Step 1:** 实现 `mcp/tools/storyboard-tools.ts`
-- [ ] **Step 2:** 实现 `mcp/tools/asset-tools.ts`（upload 需处理 multipart/form-data）
-- [ ] **Step 3:** 在 server.ts 中注册 storyboard-tools 和 asset-tools
+- [x] **Step 1:** 实现 `mcp/tools/storyboard-tools.ts`
+- [x] **Step 2:** 实现 `mcp/tools/asset-tools.ts`（upload 需处理 multipart/form-data）
+- [x] **Step 3:** 在 server.ts 中注册 storyboard-tools 和 asset-tools
 
 ### Task 2.6: 版本历史工具
 
@@ -293,9 +293,9 @@ git commit -m "feat(mcp): add MCP server scaffold with api-client and stdio tran
 
 **注意：** 实际 API 路径为 `GET /api/projects/:id/versions`，query 参数为 `entity_type` 和 `entity_id`。
 
-- [ ] **Step 1:** 实现 `mcp/tools/version-tools.ts`
-- [ ] **Step 2:** 在 server.ts 中注册 version-tools
-- [ ] **Step 3:** 提交 Batch 2
+- [x] **Step 1:** 实现 `mcp/tools/version-tools.ts`
+- [x] **Step 2:** 在 server.ts 中注册 version-tools
+- [x] **Step 3:** 提交 Batch 2
 
 ```bash
 git add mcp/
@@ -343,10 +343,10 @@ git commit -m "feat(mcp): implement all 22 MCP tools wrapping platform REST API"
    - 进入对应阶段时，加载 `skills/references/` 下指定文件
    - 表格列出：文件 | 用途 | 加载时机
 
-- [ ] **Step 1:** 创建 `skills/SKILL.md`，完成角色定义、API 配置、交互方式
-- [ ] **Step 2:** 编写 6 个命令的完整 I/O 规范（/开始、/创作方案、/角色开发、/目录、/分集 N、/出海）
-- [ ] **Step 3:** 编写 References 加载规则表格
-- [ ] **Step 4:** 提交 Batch 3
+- [x] **Step 1:** 创建 `skills/SKILL.md`，完成角色定义、API 配置、交互方式
+- [x] **Step 2:** 编写 6 个命令的完整 I/O 规范（/开始、/创作方案、/角色开发、/目录、/分集 N、/出海）
+- [x] **Step 3:** 编写 References 加载规则表格
+- [x] **Step 4:** 提交 Batch 3
 
 ```bash
 git add skills/SKILL.md
@@ -372,8 +372,8 @@ git commit -m "feat(skills): add SKILL.md with role, commands and API integratio
 - 开篇黄金法则：前 30 秒/前 3 段必须抓住观众
 - 6 种开场模板：冲突开场、悬念开场、反差开场、金句开场、画面冲击、身份揭秘
 
-- [ ] **Step 1:** 创建 `skills/references/genre-guide.md`
-- [ ] **Step 2:** 创建 `skills/references/opening-rules.md`
+- [x] **Step 1:** 创建 `skills/references/genre-guide.md`
+- [x] **Step 2:** 创建 `skills/references/opening-rules.md`
 
 ### Task 4.2: 节奏与钩子
 
@@ -390,8 +390,8 @@ git commit -m "feat(skills): add SKILL.md with role, commands and API integratio
 - 5 种钩子类型：悬念钩、反转钩、情绪钩、信息钩、危机钩
 - 每种的定义、适用场景、示例
 
-- [ ] **Step 1:** 创建 `skills/references/rhythm-curve.md`
-- [ ] **Step 2:** 创建 `skills/references/hook-design.md`
+- [x] **Step 1:** 创建 `skills/references/rhythm-curve.md`
+- [x] **Step 2:** 创建 `skills/references/hook-design.md`
 
 ### Task 4.3: 付费与爽感
 
@@ -408,8 +408,8 @@ git commit -m "feat(skills): add SKILL.md with role, commands and API integratio
 - 5 大爽点类型：打脸、逆袭、宠溺、复仇、身份
 - 每种的定义、强度分级、分布建议
 
-- [ ] **Step 1:** 创建 `skills/references/paywall-design.md`
-- [ ] **Step 2:** 创建 `skills/references/satisfaction-matrix.md`
+- [x] **Step 1:** 创建 `skills/references/paywall-design.md`
+- [x] **Step 2:** 创建 `skills/references/satisfaction-matrix.md`
 
 ### Task 4.4: 反派与视觉
 
@@ -430,10 +430,10 @@ git commit -m "feat(skills): add SKILL.md with role, commands and API integratio
 - 视觉风格指南：色调、光影、构图
 - 不同题材的视觉差异（甜宠 vs 悬疑 vs 战神）
 
-- [ ] **Step 1:** 创建 `skills/references/villain-design.md`
-- [ ] **Step 2:** 创建 `skills/references/storyboard-guide.md`
-- [ ] **Step 3:** 创建 `skills/references/visual-style-guide.md`
-- [ ] **Step 4:** 提交 Batch 4
+- [x] **Step 1:** 创建 `skills/references/villain-design.md`
+- [x] **Step 2:** 创建 `skills/references/storyboard-guide.md`
+- [x] **Step 3:** 创建 `skills/references/visual-style-guide.md`
+- [x] **Step 4:** 提交 Batch 4
 
 ```bash
 git add skills/references/
@@ -459,8 +459,8 @@ git commit -m "feat(skills): add 9 reference documents for drama creation method
 
 **建议：** 优先使用 Markdown（`api-docs.md`），便于与 Skill 文件交叉引用；若需自动化可补充 OpenAPI。
 
-- [ ] **Step 1:** 创建 `docs/api/api-docs.md`，覆盖 Phase 1–2b 已实现的全部 API
-- [ ] **Step 2:**（可选）创建 `docs/api/openapi.yaml` 基础结构
+- [x] **Step 1:** 创建 `docs/api/api-docs.md`，覆盖 Phase 1–2b 已实现的全部 API
+- [x] **Step 2:**（可选）创建 `docs/api/openapi.yaml` 基础结构
 
 ### Task 5.2: MCP README
 
@@ -475,8 +475,8 @@ git commit -m "feat(skills): add 9 reference documents for drama creation method
 - 在 Cursor 中配置 MCP：示例配置片段（stdio 模式）
 - 工具列表：22 个工具的简要说明与参数
 
-- [ ] **Step 1:** 创建 `mcp/README.md`
-- [ ] **Step 2:** 提交 Batch 5
+- [x] **Step 1:** 创建 `mcp/README.md`
+- [x] **Step 2:** 提交 Batch 5
 
 ```bash
 git add docs/api/ mcp/README.md
@@ -489,14 +489,14 @@ git commit -m "docs: add API documentation and MCP server README"
 
 完成所有 Batch 后验证：
 
-- [ ] **MCP Server 启动：** `cd mcp && npm run start` 无报错，进程保持运行
-- [ ] **认证：** 设置 `DRAMA_API_TOKEN` 后，`list_projects` 能正确返回项目列表
-- [ ] **项目 CRUD：** 通过 MCP 工具创建项目、获取详情、更新、保存创作方案
-- [ ] **角色流程：** 创建角色、更新角色、设置角色关系
-- [ ] **场景道具：** 创建场景、创建道具、列表查询
-- [ ] **分集剧本：** 创建分集、保存剧本、获取剧本
-- [ ] **版本历史：** `get_version_history` 能返回创作方案或剧本的版本列表
-- [ ] **Skill 文件：** SKILL.md 可被 AI 客户端加载，命令定义清晰
-- [ ] **References：** 9 个参考文档存在且内容完整
-- [ ] **API 文档：** api-docs.md 覆盖主要端点，便于人工查阅
-- [ ] **MCP README：** 按文档可完成安装、配置和 Cursor 集成
+- [x] **MCP Server 启动：** `cd mcp && npm run start` 无报错，进程保持运行
+- [x] **认证：** 设置 `DRAMA_API_TOKEN` 后，`list_projects` 能正确返回项目列表
+- [x] **项目 CRUD：** 通过 MCP 工具创建项目、获取详情、更新、保存创作方案
+- [x] **角色流程：** 创建角色、更新角色、设置角色关系
+- [x] **场景道具：** 创建场景、创建道具、列表查询
+- [x] **分集剧本：** 创建分集、保存剧本、获取剧本
+- [x] **版本历史：** `get_version_history` 能返回创作方案或剧本的版本列表
+- [x] **Skill 文件：** SKILL.md 可被 AI 客户端加载，命令定义清晰
+- [x] **References：** 9 个参考文档存在且内容完整
+- [x] **API 文档：** api-docs.md 覆盖主要端点，便于人工查阅
+- [x] **MCP README：** 按文档可完成安装、配置和 Cursor 集成

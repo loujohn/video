@@ -1,6 +1,6 @@
 # Phase 3：视觉与资源 — 实施计划
 
-> **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 实现分镜管理（CRUD + 拖拽排序）、资源库（上传/浏览/关联）、文件存储服务（本地 + 可配置 S3/MinIO）、图片/音频/视频预览，补齐短剧视觉生产链路。
 
@@ -164,7 +164,7 @@ export async function down(knex: Knex): Promise<void> {
 }
 ```
 
-- [ ] **Step 1:** 创建 migration 文件并执行 `npx knex migrate:latest`
+- [x] **Step 1:** 创建 migration 文件并执行 `npx knex migrate:latest`
 
 ### Task 1.2: Storyboard Model + Types
 
@@ -254,8 +254,8 @@ export const StoryboardModel = {
 }
 ```
 
-- [ ] **Step 1:** 修改 `core/types/storyboard.ts` 扩展 CreateStoryboardInput
-- [ ] **Step 2:** 创建 `core/models/storyboard.model.ts`
+- [x] **Step 1:** 修改 `core/types/storyboard.ts` 扩展 CreateStoryboardInput
+- [x] **Step 2:** 创建 `core/models/storyboard.model.ts`
 
 ### Task 1.3: Storyboard Service
 
@@ -316,7 +316,7 @@ export const StoryboardService = {
 }
 ```
 
-- [ ] **Step 1:** 创建 `core/services/storyboard.service.ts`
+- [x] **Step 1:** 创建 `core/services/storyboard.service.ts`
 
 ### Task 1.4: Storyboard API 路由
 
@@ -368,9 +368,9 @@ export default defineApiHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 1:** 创建 storyboards index.get / index.post
-- [ ] **Step 2:** 创建 storyboards reorder.put
-- [ ] **Step 3:** 创建 storyboards/[sid] index.get / index.put / index.delete
+- [x] **Step 1:** 创建 storyboards index.get / index.post
+- [x] **Step 2:** 创建 storyboards reorder.put
+- [x] **Step 3:** 创建 storyboards/[sid] index.get / index.put / index.delete
 
 ---
 
@@ -409,9 +409,9 @@ export const StorageService = {
 - S3：使用 `@aws-sdk/client-s3` 或 `minio` 客户端
 - 文件名需 sanitize，避免路径遍历
 
-- [ ] **Step 1:** 创建 `server/utils/upload.ts`，封装 `parseMultipartFormData(event)` 返回 `{ fields, files }`
-- [ ] **Step 2:** 创建 `core/services/storage.service.ts`，实现本地存储
-- [ ] **Step 3:** （可选）实现 S3 兼容存储，通过 `STORAGE_TYPE` 切换
+- [x] **Step 1:** 创建 `server/utils/upload.ts`，封装 `parseMultipartFormData(event)` 返回 `{ fields, files }`
+- [x] **Step 2:** 创建 `core/services/storage.service.ts`，实现本地存储
+- [x] **Step 3:** （可选）实现 S3 兼容存储，通过 `STORAGE_TYPE` 切换
 
 ### Task 2.2: Asset Model + Service
 
@@ -429,9 +429,9 @@ export const StorageService = {
 
 **AssetService:** 与 ProjectService 权限检查一致，所有操作前 `await ProjectService.getProject(projectId, userId)`。
 
-- [ ] **Step 1:** 修改 `core/types/asset.ts` 添加 CreateAssetInput
-- [ ] **Step 2:** 创建 `core/models/asset.model.ts`
-- [ ] **Step 3:** 创建 `core/services/asset.service.ts`
+- [x] **Step 1:** 修改 `core/types/asset.ts` 添加 CreateAssetInput
+- [x] **Step 2:** 创建 `core/models/asset.model.ts`
+- [x] **Step 3:** 创建 `core/services/asset.service.ts`
 
 ### Task 2.3: Asset 上传 API
 
@@ -452,10 +452,10 @@ export const StorageService = {
 - `type`: image | audio | video
 - `linked_entity_type`, `linked_entity_id`: 按关联实体筛选
 
-- [ ] **Step 1:** 安装 `formidable`：`pnpm add formidable`，并添加类型
-- [ ] **Step 2:** 创建 assets index.post（上传）
-- [ ] **Step 3:** 创建 assets index.get（列表 + 筛选）
-- [ ] **Step 4:** 创建 assets/[aid] index.get / index.put / index.delete
+- [x] **Step 1:** 安装 `formidable`：`pnpm add formidable`，并添加类型
+- [x] **Step 2:** 创建 assets index.post（上传）
+- [x] **Step 3:** 创建 assets index.get（列表 + 筛选）
+- [x] **Step 4:** 创建 assets/[aid] index.get / index.put / index.delete
 
 ### Task 2.4: 静态文件访问
 
@@ -464,7 +464,7 @@ export const StorageService = {
 
 **实现:** 使用 `sendStream` 或配置 Nitro 静态资源，确保上传后的图片/音频/视频可通过 URL 访问。
 
-- [ ] **Step 1:** 配置 `/uploads` 静态访问或创建 `server/routes/uploads/[...path].get.ts`
+- [x] **Step 1:** 配置 `/uploads` 静态访问或创建 `server/routes/uploads/[...path].get.ts`
 
 ---
 
@@ -486,11 +486,11 @@ export const StorageService = {
 - 「新建分镜」按钮 → 打开 StoryboardFormDialog
 - 每卡片有编辑、删除按钮
 
-- [ ] **Step 1:** 安装 `vuedraggable`：`pnpm add vuedraggable@next`（Vue 3 兼容）
-- [ ] **Step 2:** 创建 `components/project/StoryboardCard.vue`
-- [ ] **Step 3:** 创建 `components/project/StoryboardFormDialog.vue`（新建/编辑表单）
-- [ ] **Step 4:** 创建 `pages/projects/[id]/episodes/[num]/storyboards.vue`
-- [ ] **Step 5:** 在 `episodes.vue` 每行增加「分镜」链接
+- [x] **Step 1:** 安装 `vuedraggable`：`pnpm add vuedraggable@next`（Vue 3 兼容）
+- [x] **Step 2:** 创建 `components/project/StoryboardCard.vue`
+- [x] **Step 3:** 创建 `components/project/StoryboardFormDialog.vue`（新建/编辑表单）
+- [x] **Step 4:** 创建 `pages/projects/[id]/episodes/[num]/storyboards.vue`
+- [x] **Step 5:** 在 `episodes.vue` 每行增加「分镜」链接
 
 ### Task 3.2: 分镜表单字段
 
@@ -507,8 +507,8 @@ export const StorageService = {
 - camera_movement（机位运动）
 - transition_type（转场：cut/dissolve/fade/wipe）
 
-- [ ] **Step 1:** 实现 StoryboardFormDialog 完整表单
-- [ ] **Step 2:** 集成删除确认（CommonConfirmDialog）
+- [x] **Step 1:** 实现 StoryboardFormDialog 完整表单
+- [x] **Step 2:** 集成删除确认（CommonConfirmDialog）
 
 ---
 
@@ -534,10 +534,10 @@ export const StorageService = {
 - 上传时构建 FormData，调用 `$fetch('/api/projects/:id/assets', { method: 'POST', body: formData })`
 - 注意：`useApi` 的 `$api` 可能需扩展支持 FormData，或此处直接用 `$fetch` 并带 token
 
-- [ ] **Step 1:** 创建 `components/project/AssetUploadZone.vue`
-- [ ] **Step 2:** 创建 `components/project/AssetCard.vue`
-- [ ] **Step 3:** 创建 `components/project/AssetPreviewDialog.vue`（图片 img、音频 audio、视频 video）
-- [ ] **Step 4:** 创建 `pages/projects/[id]/assets.vue`
+- [x] **Step 1:** 创建 `components/project/AssetUploadZone.vue`
+- [x] **Step 2:** 创建 `components/project/AssetCard.vue`
+- [x] **Step 3:** 创建 `components/project/AssetPreviewDialog.vue`（图片 img、音频 audio、视频 video）
+- [x] **Step 4:** 创建 `pages/projects/[id]/assets.vue`
 
 ### Task 4.2: 上传与 useApi 兼容
 
@@ -545,8 +545,8 @@ export const StorageService = {
 - 方案 A：在 assets 页单独使用 `$fetch` 上传，手动附加 `Authorization` header
 - 方案 B：扩展 `useApi` 支持 `$upload(url, formData)` 方法
 
-- [ ] **Step 1:** 实现上传逻辑（方案 A 或 B）
-- [ ] **Step 2:** 上传成功后刷新资源列表
+- [x] **Step 1:** 实现上传逻辑（方案 A 或 B）
+- [x] **Step 2:** 上传成功后刷新资源列表
 
 ---
 
@@ -560,8 +560,8 @@ export const StorageService = {
 
 **UI:** 在资源详情/编辑中，下拉选择关联类型（角色/场景/道具/分镜/分集/项目）和对应实体 ID。
 
-- [ ] **Step 1:** 实现 Asset 编辑关联实体
-- [ ] **Step 2:** 在资源库筛选时可按关联实体过滤
+- [x] **Step 1:** 实现 Asset 编辑关联实体
+- [x] **Step 2:** 在资源库筛选时可按关联实体过滤
 
 ### Task 5.2: 分镜参考图与资源库联动
 
@@ -569,8 +569,8 @@ export const StorageService = {
 - 手动输入 URL
 - 或从资源库选择：打开资源选择器，筛选 type=image，选择后填入 asset 的访问 URL
 
-- [ ] **Step 1:** 创建 `components/project/AssetPickerDialog.vue`（可选，用于从资源库选图）
-- [ ] **Step 2:** 在 StoryboardFormDialog 中集成「从资源库选择」按钮
+- [x] **Step 1:** 创建 `components/project/AssetPickerDialog.vue`（可选，用于从资源库选图）
+- [x] **Step 2:** 在 StoryboardFormDialog 中集成「从资源库选择」按钮
 
 ### Task 5.3: SubNav 更新
 
@@ -585,21 +585,21 @@ export const StorageService = {
 - 分镜：可链接到 `/projects/:id/episodes/1/storyboards`（默认第一集）或单独「分镜」页按集筛选
 - 资源库：`/projects/:id/assets`
 
-- [ ] **Step 1:** 在 ProjectSubNav 增加「资源库」链接
-- [ ] **Step 2:** 在 ProjectSubNav 增加「分镜」链接（指向第一集分镜或分镜汇总页，按设计选择）
+- [x] **Step 1:** 在 ProjectSubNav 增加「资源库」链接
+- [x] **Step 2:** 在 ProjectSubNav 增加「分镜」链接（指向第一集分镜或分镜汇总页，按设计选择）
 
 ---
 
 ## 验证清单
 
 完成所有 Batch 后验证：
-- [ ] 分镜 CRUD：新建分镜 → 编辑 → 删除 → 确认
-- [ ] 分镜拖拽排序：调整顺序 → 保存 → 刷新确认顺序
-- [ ] 资源上传：上传图片/音频/视频 → 列表显示
-- [ ] 资源筛选：按类型、关联实体筛选
-- [ ] 资源预览：图片放大、音频播放、视频播放
-- [ ] 资源关联：编辑资源的关联实体
-- [ ] 分镜参考图：从资源库选择或输入 URL
-- [ ] SubNav：分镜、资源库入口可正确导航
-- [ ] 本地存储：上传文件存在于 `uploads/` 目录
-- [ ] （若启用 S3）S3 上传与访问正常
+- [x] 分镜 CRUD：新建分镜 → 编辑 → 删除 → 确认
+- [x] 分镜拖拽排序：调整顺序 → 保存 → 刷新确认顺序
+- [x] 资源上传：上传图片/音频/视频 → 列表显示
+- [x] 资源筛选：按类型、关联实体筛选
+- [x] 资源预览：图片放大、音频播放、视频播放
+- [x] 资源关联：编辑资源的关联实体
+- [x] 分镜参考图：从资源库选择或输入 URL
+- [x] SubNav：分镜、资源库入口可正确导航
+- [x] 本地存储：上传文件存在于 `uploads/` 目录
+- [x] （若启用 S3）S3 上传与访问正常
