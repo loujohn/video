@@ -1,7 +1,4 @@
 import { AuthService } from '~/core/services/auth.service'
-import { getTokenFromEvent, verifyToken } from '~/server/utils/auth'
-import { ok, unauthorized } from '~/server/utils/response'
-
 export default defineEventHandler(async (event) => {
   const token = getTokenFromEvent(event)
   if (!token) unauthorized()

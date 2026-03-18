@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
@@ -8,13 +9,27 @@ export default defineNuxtConfig({
   ],
   shadcn: {
     prefix: '',
-    componentDir: './components/ui',
+    componentDir: './app/components/ui',
   },
-  css: ['~/app/assets/css/tailwind.css'],
+  css: ['~/assets/css/tailwind.css'],
   vite: {
     plugins: [
       tailwindcss(),
     ],
+  },
+  nitro: {
+    alias: {
+      '~/core': fileURLToPath(new URL('./app/core', import.meta.url)),
+    },
+  },
+  app: {
+    head: {
+      link: [
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap' },
+      ],
+    },
   },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/drama_studio',

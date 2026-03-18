@@ -1,6 +1,4 @@
 import { StoryboardService } from '~/core/services/storyboard.service'
-import { ok, badRequest } from '~/server/utils/response'
-
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId
   const projectId = getRouterParam(event, 'id')!

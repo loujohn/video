@@ -1,7 +1,4 @@
 import { AuthService } from '~/core/services/auth.service'
-import { signToken } from '~/server/utils/auth'
-import { ok, badRequest } from '~/server/utils/response'
-
 export default defineApiHandler(async (event) => {
   const body = await readBody(event)
 

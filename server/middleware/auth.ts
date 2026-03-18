@@ -1,5 +1,3 @@
-import { getTokenFromEvent, verifyToken } from '~/server/utils/auth'
-
 export default defineEventHandler(async (event) => {
   const url = getRequestURL(event)
   const path = url.pathname

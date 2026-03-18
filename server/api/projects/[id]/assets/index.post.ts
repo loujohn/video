@@ -1,7 +1,5 @@
 import { AssetService } from '~/core/services/asset.service'
 import { StorageService } from '~/core/services/storage.service'
-import { ok, badRequest } from '~/server/utils/response'
-
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId
   const projectId = getRouterParam(event, 'id')!

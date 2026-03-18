@@ -1,6 +1,4 @@
 import { TeamService } from '~/core/services/team.service'
-import { ok, badRequest } from '~/server/utils/response'
-
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId
   const body = await readBody(event)
