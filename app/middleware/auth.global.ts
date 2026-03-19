@@ -1,5 +1,5 @@
 export default defineNuxtRouteMiddleware(async (to) => {
-  const { isLoggedIn, fetchUser } = useAuth()
+  const { isLoggedIn, fetchUser, user } = useAuth()
   const publicPages = ['/login', '/register']
 
   if (!isLoggedIn.value) {
@@ -11,6 +11,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   if (isLoggedIn.value && publicPages.includes(to.path)) {
+    return navigateTo('/')
+  }
+
+  if (isLoggedIn.value && to.path.startsWith('/admin') && user.value?.role !== 'admin') {
     return navigateTo('/')
   }
 })

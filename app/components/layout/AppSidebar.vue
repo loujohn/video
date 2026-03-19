@@ -1,14 +1,21 @@
 <script setup lang="ts">
-import { Home, Film, Users, Clapperboard, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Home, Film, Users, Clapperboard, ChevronLeft, ChevronRight, Shield } from 'lucide-vue-next'
 
 const collapsed = ref(false)
 const route = useRoute()
+const { user } = useAuth()
 
-const navItems = [
-  { label: '仪表盘', icon: Home, to: '/' },
-  { label: '项目', icon: Clapperboard, to: '/projects' },
-  { label: '团队', icon: Users, to: '/teams' },
-]
+const navItems = computed(() => {
+  const items = [
+    { label: '仪表盘', icon: Home, to: '/' },
+    { label: '项目', icon: Clapperboard, to: '/projects' },
+    { label: '团队', icon: Users, to: '/teams' },
+  ]
+  if (user.value?.role === 'admin') {
+    items.push({ label: '管理', icon: Shield, to: '/admin' })
+  }
+  return items
+})
 
 function isActive(to: string) {
   return route.path === to || (to !== '/' && route.path.startsWith(to + '/'))
