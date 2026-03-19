@@ -44,6 +44,7 @@ export const CharacterService = {
 
   async setRelations(projectId: string, relations: Array<{ from_character_id: string; to_character_id: string; relation_type: string; description?: string }>, userId: string): Promise<CharacterRelation[]> {
     await ProjectService.getProject(projectId, userId)
-    return CharacterModel.setRelations(projectId, relations)
+    const valid = relations.filter(r => r.from_character_id && r.to_character_id && r.relation_type)
+    return CharacterModel.setRelations(projectId, valid)
   },
 }

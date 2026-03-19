@@ -8,7 +8,7 @@ export async function validateBody<T>(event: H3Event, schema: ZodType<T>): Promi
     const messages = result.error.issues
       .map((i: any) => `${i.path.join('.')}: ${i.message}`)
       .join('; ')
-    throw createError({ statusCode: 400, statusMessage: messages })
+    throw createError({ statusCode: 400, message: messages })
   }
   return result.data
 }

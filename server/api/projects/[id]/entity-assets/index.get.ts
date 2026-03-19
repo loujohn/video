@@ -7,7 +7,7 @@ export default defineApiHandler(async (event) => {
   const entityId = query.entity_id as string
 
   if (!entityType || !entityId) {
-    throw createError({ statusCode: 400, statusMessage: 'entity_type and entity_id required' })
+    throw createError({ statusCode: 400, message: 'entity_type and entity_id required' })
   }
 
   return ok(

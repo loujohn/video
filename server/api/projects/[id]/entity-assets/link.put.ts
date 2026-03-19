@@ -6,7 +6,7 @@ export default defineApiHandler(async (event) => {
   const { asset_id, entity_type, entity_id } = body
 
   if (!asset_id) {
-    throw createError({ statusCode: 400, statusMessage: 'asset_id required' })
+    throw createError({ statusCode: 400, message: 'asset_id required' })
   }
 
   const asset = await AssetService.update(projectId, asset_id, {

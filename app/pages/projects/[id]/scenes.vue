@@ -8,9 +8,9 @@ const { $api } = useApi()
 
 const activeTab = ref('scenes')
 
-useHead({ title: computed(() => project.value ? `${project.value.title} - 场景与道具` : '场景管理') })
-
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () => $api<Project>(`/api/projects/${projectId}`))
+
+useHead({ title: computed(() => project.value ? `${project.value.title} - 场景与道具` : '场景管理') })
 
 const { data: scenes, refresh: refreshScenes } = useAsyncData(`scenes-${projectId}`, () =>
   $api<Scene[]>(`/api/projects/${projectId}/scenes`),

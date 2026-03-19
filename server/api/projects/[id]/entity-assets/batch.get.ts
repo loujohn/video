@@ -12,12 +12,12 @@ export default defineApiHandler(async (event) => {
   const includeInactive = query.include_inactive === 'true'
 
   if (!entityType || !entityIdsRaw) {
-    throw createError({ statusCode: 400, statusMessage: 'entity_type and entity_ids required' })
+    throw createError({ statusCode: 400, message: 'entity_type and entity_ids required' })
   }
 
   const entityIds = entityIdsRaw.split(',').filter(Boolean)
   if (entityIds.length === 0 || entityIds.length > 100) {
-    throw createError({ statusCode: 400, statusMessage: 'entity_ids must contain 1-100 IDs' })
+    throw createError({ statusCode: 400, message: 'entity_ids must contain 1-100 IDs' })
   }
 
   const assets = await AssetModel.findByEntities(projectId, entityType, entityIds, !includeInactive)

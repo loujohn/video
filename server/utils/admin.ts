@@ -4,10 +4,10 @@ import type { H3Event } from 'h3'
 export async function requireAdmin(event: H3Event): Promise<void> {
   const userId = event.context.userId
   if (!userId) {
-    throw createError({ statusCode: 401, statusMessage: '未授权' })
+    throw createError({ statusCode: 401, message: '未授权' })
   }
   const user = await UserModel.findById(userId)
   if (!user || user.role !== 'admin') {
-    throw createError({ statusCode: 403, statusMessage: '需要管理员权限' })
+    throw createError({ statusCode: 403, message: '需要管理员权限' })
   }
 }

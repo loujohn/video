@@ -44,7 +44,7 @@ export function checkRateLimit(event: H3Event, opts: RateLimitOptions = {}): voi
   if (entry.count > max) {
     throw createError({
       statusCode: 429,
-      statusMessage: '请求过于频繁，请稍后再试',
+      message: '请求过于频繁，请稍后再试',
     })
   }
 }

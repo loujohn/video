@@ -122,20 +122,6 @@ export const imageTools = [
     },
   },
   {
-    name: 'link_asset_to_entity',
-    description: '将已有资源关联到实体',
-    inputSchema: {
-      type: 'object' as const,
-      properties: {
-        asset_id: { type: 'string', description: '资源 ID' },
-        entity_type: { type: 'string', description: '实体类型' },
-        entity_id: { type: 'string', description: '实体 ID' },
-        project_id: { type: 'string', description: '项目 ID' },
-      },
-      required: ['asset_id', 'entity_type', 'entity_id', 'project_id'],
-    },
-  },
-  {
     name: 'get_prompt_template',
     description: '获取用于生成图片的提示词模板，可作为 AI 的起点',
     inputSchema: {
@@ -248,21 +234,6 @@ export async function handleImageTool(name: string, args: Record<string, unknown
       const params = new URLSearchParams({ entity_type: entityType, entity_id: entityId })
       return JSON.stringify(
         await api.get(`/api/projects/${pid}/entity-assets?${params.toString()}`),
-        null,
-        2,
-      )
-    }
-
-    case 'link_asset_to_entity': {
-      const assetId = args.asset_id as string
-      const entityType = args.entity_type as string
-      const entityId = args.entity_id as string
-      return JSON.stringify(
-        await api.put(`/api/projects/${pid}/entity-assets/link`, {
-          asset_id: assetId,
-          entity_type: entityType,
-          entity_id: entityId,
-        }),
         null,
         2,
       )

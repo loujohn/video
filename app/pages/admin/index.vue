@@ -6,6 +6,7 @@ useHead({ title: '用户管理 - Drama Studio' })
 
 const { $api } = useApi()
 const { user: currentUser } = useAuth()
+const token = useCookie('token')
 
 const searchQuery = ref('')
 const roleFilter = ref('')
@@ -27,13 +28,13 @@ const {
     if (statusFilter.value) params.set('is_active', statusFilter.value)
     params.set('page', String(currentPage.value))
     params.set('per_page', String(perPage))
+    const headers: Record<string, string> = {}
+    if (token.value) headers['Authorization'] = `Bearer ${token.value}`
     return $fetch<{
       success: boolean
       data: UserPublic[]
       pagination: { total: number; page: number; pageSize: number; totalPages: number }
-    }>(`/api/admin/users?${params.toString()}`, {
-      headers: { Authorization: `Bearer ${useCookie('token').value}` },
-    })
+    }>(`/api/admin/users?${params.toString()}`, { headers })
   },
   { watch: [searchQuery, roleFilter, statusFilter, currentPage] },
 )

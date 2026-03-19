@@ -8,12 +8,12 @@ export default defineEventHandler(async (event) => {
 
   const token = getTokenFromEvent(event)
   if (!token) {
-    throw createError({ statusCode: 401, statusMessage: '未授权' })
+    throw createError({ statusCode: 401, message: '未授权' })
   }
 
   const payload = await verifyToken(token)
   if (!payload) {
-    throw createError({ statusCode: 401, statusMessage: 'Token 无效或已过期' })
+    throw createError({ statusCode: 401, message: 'Token 无效或已过期' })
   }
 
   event.context.userId = payload.userId

@@ -18,7 +18,7 @@
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `DRAMA_API_URL` | 平台 API 根地址 | `http://localhost:3002` |
+| `DRAMA_API_URL` | 平台 API 根地址 | `http://localhost:3000` |
 | `DRAMA_API_TOKEN` | Bearer Token，用于身份认证 | 需用户配置 |
 
 **调用优先级**：优先使用 MCP 工具（video-drama-mcp 服务器），当 MCP 不可用时回退至 curl/fetch 调用 REST API。
@@ -145,6 +145,87 @@
 2. 参考 `genre-guide.md` 中的海外题材映射，调整题材标签与叙事习惯
 
 **Output**：出海模式已开启，提示后续创作需适配海外受众与平台规范。
+
+---
+
+## 辅助命令
+
+除六个核心创作命令外，你还可以使用以下工具完成平台管理与辅助操作：
+
+### 评论与协作
+
+| 工具 | 功能 |
+|------|------|
+| `list_comments` | 列出实体评论 |
+| `add_comment` | 添加评论 |
+| `resolve_comment` | 标记评论已解决 |
+| `delete_comment` | 删除评论 |
+| `get_comment_counts` | 获取评论统计 |
+
+### 资源管理
+
+| 工具 | 功能 |
+|------|------|
+| `list_assets` | 列出项目资源 |
+| `get_asset` | 获取资源详情 |
+| `upload_asset` | 上传本地文件到资源库 |
+| `update_asset` | 更新资源信息 |
+| `delete_asset` | 删除资源 |
+| `list_entity_assets` | 列出实体关联资源 |
+| `batch_get_entity_assets` | 批量获取实体资源 |
+| `link_entity_asset` | 关联资源到实体 |
+
+### 图像提示词
+
+| 工具 | 功能 |
+|------|------|
+| `set_image_prompt` | 设置实体图片生成提示词 |
+| `batch_set_image_prompts` | 批量设置提示词 |
+| `list_entity_images` | 列出实体关联图片 |
+| `get_prompt_template` | 获取提示词模板 |
+
+### 版本历史
+
+| 工具 | 功能 |
+|------|------|
+| `get_version_history` | 获取实体版本历史 |
+
+### 通知
+
+| 工具 | 功能 |
+|------|------|
+| `list_notifications` | 列出通知 |
+| `mark_notification_read` | 标记通知已读 |
+| `mark_all_notifications_read` | 全部标记已读 |
+
+### 团队管理
+
+| 工具 | 功能 |
+|------|------|
+| `list_teams` | 列出团队 |
+| `create_team` | 创建团队 |
+| `get_team` | 获取团队详情 |
+| `update_team` | 更新团队 |
+| `list_team_members` | 列出成员 |
+| `add_team_member` | 添加成员 |
+
+### 用户管理（仅管理员）
+
+| 工具 | 功能 |
+|------|------|
+| `admin_list_users` | 列出用户 |
+| `admin_get_user` | 获取用户详情 |
+| `admin_update_user` | 更新用户角色/状态 |
+| `admin_delete_user` | 删除用户 |
+| `admin_reset_password` | 重置用户密码 |
+
+### 认证
+
+| 工具 | 功能 |
+|------|------|
+| `login` | 登录并获取 Token |
+| `register` | 注册新用户 |
+| `get_current_user` | 获取当前登录用户信息 |
 
 ---
 
