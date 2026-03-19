@@ -1,7 +1,7 @@
 # 管理员用户管理系统 — 设计文档
 
 > 日期: 2026-03-19
-> 状态: 待审查
+> 状态: 已批准
 
 ---
 
@@ -165,7 +165,7 @@ export async function requireAdmin(event: H3Event): Promise<void> {
 | `role` | string | 否 | `'admin'` 或 `'user'` |
 | `is_active` | boolean | 否 | 启用/禁用 |
 
-**安全检查:** 不允许修改自己的 role 或 is_active。
+**安全检查:** 管理员可以修改自己的 `name`，但不允许修改自己的 `role` 或 `is_active`。如果请求中包含对自己的 role 或 is_active 修改，返回 400。
 
 **响应:** `{ success: true, data: UserPublic }`
 
