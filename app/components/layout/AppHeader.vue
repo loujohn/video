@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LogOut, Bell } from 'lucide-vue-next'
+import { LogOut } from 'lucide-vue-next'
 
 const { user, logout } = useAuth()
 </script>
@@ -13,10 +13,7 @@ const { user, logout } = useAuth()
     </div>
 
     <div class="flex items-center gap-2">
-      <button class="p-2 rounded-lg hover:bg-zinc-100 text-zinc-400 transition-colors relative">
-        <Bell class="h-[18px] w-[18px]" />
-        <span class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-indigo-500" />
-      </button>
+      <LayoutNotificationBell />
 
       <Separator orientation="vertical" class="h-6 mx-1" />
 

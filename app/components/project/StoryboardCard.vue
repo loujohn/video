@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import type { Storyboard } from '~/core/types/storyboard'
-import { Pencil, Trash2, Image as ImageIcon } from 'lucide-vue-next'
+import { Pencil, Trash2, MessageSquare, Image as ImageIcon } from 'lucide-vue-next'
 
 const props = defineProps<{
   storyboard: Storyboard
   projectId?: string
+  commentCount?: number
 }>()
 
 const emit = defineEmits<{
   (e: 'edit'): void
   (e: 'delete'): void
+  (e: 'comment'): void
 }>()
 
 const shotTypeLabels: Record<string, string> = {
@@ -107,18 +109,27 @@ function safeImageUrl(url: string | null): string {
       />
     </div>
 
-    <div class="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-zinc-100 opacity-0 group-hover:opacity-100 transition-opacity">
-      <Button variant="ghost" size="sm" class="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600" @click="emit('edit')">
-        <Pencil class="h-3 w-3" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-        @click="emit('delete')"
+    <div class="flex items-center justify-between gap-1 mt-3 pt-3 border-t border-zinc-100">
+      <button
+        class="flex items-center gap-1 px-2 py-1 rounded text-xs text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+        @click="emit('comment')"
       >
-        <Trash2 class="h-3 w-3" />
-      </Button>
+        <MessageSquare class="h-3 w-3" />
+        <span v-if="commentCount">{{ commentCount }}</span>
+      </button>
+      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button variant="ghost" size="sm" class="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600" @click="emit('edit')">
+          <Pencil class="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+          @click="emit('delete')"
+        >
+          <Trash2 class="h-3 w-3" />
+        </Button>
+      </div>
     </div>
   </div>
 </template>

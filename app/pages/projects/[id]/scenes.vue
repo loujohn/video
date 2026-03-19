@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, MapPin, Box, Pencil, Trash2 } from 'lucide-vue-next'
+import { Plus, MapPin, Box, Pencil, Trash2, MessageSquare } from 'lucide-vue-next'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -104,6 +104,14 @@ async function submitProp() {
   }
 }
 
+const commentTarget = ref<{ type: 'scene' | 'prop'; id: string; name: string } | null>(null)
+const showCommentSheet = ref(false)
+
+function openEntityComments(type: 'scene' | 'prop', item: any) {
+  commentTarget.value = { type, id: item.id, name: item.name }
+  showCommentSheet.value = true
+}
+
 const deleteTarget = ref<{ type: 'scene' | 'prop'; id: string } | null>(null)
 const showDeleteConfirm = ref(false)
 
@@ -190,6 +198,9 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
                 </div>
               </div>
               <div class="flex items-center gap-1">
+                <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-400 hover:text-indigo-600" @click="openEntityComments('scene', s)">
+                  <MessageSquare class="h-3 w-3" />
+                </Button>
                 <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-400" @click="openSceneEdit(s)">
                   <Pencil class="h-3 w-3" />
                 </Button>
@@ -231,6 +242,9 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
                 </div>
               </div>
               <div class="flex items-center gap-1">
+                <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-400 hover:text-indigo-600" @click="openEntityComments('prop', p)">
+                  <MessageSquare class="h-3 w-3" />
+                </Button>
                 <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-400" @click="openPropEdit(p)">
                   <Pencil class="h-3 w-3" />
                 </Button>
@@ -346,5 +360,21 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
       @confirm="handleDelete"
       @cancel="showDeleteConfirm = false; deleteTarget = null"
     />
+
+    <Sheet :open="showCommentSheet" @update:open="(v: boolean) => { if (!v) { showCommentSheet = false; commentTarget = null } }">
+      <SheetContent class="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{{ commentTarget?.name }} — 评论</SheetTitle>
+        </SheetHeader>
+        <div class="mt-4">
+          <CommonCommentThread
+            v-if="commentTarget"
+            :project-id="projectId"
+            :entity-type="commentTarget.type"
+            :entity-id="commentTarget.id"
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   </LayoutAppLayout>
 </template>

@@ -21,6 +21,32 @@ const { data: storyboards, refresh } = useAsyncData(
   () => $api<Storyboard[]>(`/api/projects/${projectId}/episodes/${episodeNum}/storyboards`),
 )
 
+const commentTarget = ref<Storyboard | null>(null)
+const showComments = ref(false)
+
+function openComments(sb: Storyboard) {
+  commentTarget.value = sb
+  showComments.value = true
+}
+
+const commentCounts = ref<Record<string, number>>({})
+
+async function loadCommentCounts() {
+  if (!storyboards.value?.length) return
+  try {
+    const ids = storyboards.value.map(s => s.id)
+    const params = new URLSearchParams()
+    params.set('entity_type', 'storyboard')
+    for (const id of ids) params.append('entity_ids', id)
+    const res = await $api<Record<string, number>>(
+      `/api/projects/${projectId}/comments/counts?${params.toString()}`,
+    )
+    commentCounts.value = res || {}
+  } catch {}
+}
+
+watch(storyboards, () => { loadCommentCounts() }, { immediate: true })
+
 const { data: scenes } = useAsyncData(`scenes-${projectId}`, () =>
   $api<any[]>(`/api/projects/${projectId}/scenes`),
 )
@@ -271,8 +297,10 @@ async function exportPDF() {
             <ProjectStoryboardCard
               :storyboard="element"
               :project-id="projectId"
+              :comment-count="commentCounts[element.id] || 0"
               @edit="openEdit(element)"
               @delete="openDelete(element)"
+              @comment="openComments(element)"
             />
           </template>
         </draggable>
@@ -370,5 +398,21 @@ async function exportPDF() {
       @confirm="handleDelete"
       @cancel="showDeleteConfirm = false; deleteTarget = null"
     />
+
+    <Sheet :open="showComments" @update:open="(v: boolean) => { if (!v) { showComments = false; commentTarget = null } }">
+      <SheetContent class="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>分镜 #{{ commentTarget ? String(commentTarget.sequence_number).padStart(2, '0') : '' }} 评论</SheetTitle>
+        </SheetHeader>
+        <div class="mt-4">
+          <CommonCommentThread
+            v-if="commentTarget"
+            :project-id="projectId"
+            entity-type="storyboard"
+            :entity-id="commentTarget.id"
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   </LayoutAppLayout>
 </template>

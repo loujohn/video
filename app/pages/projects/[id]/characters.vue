@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Plus, User, Pencil, Trash2, Link, ArrowRight } from 'lucide-vue-next'
+import { Plus, User, Pencil, Trash2, Link, ArrowRight, MessageSquare } from 'lucide-vue-next'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -91,6 +91,14 @@ async function removeRelation(index: number) {
   } catch (e: any) {
     relationError.value = e.data?.statusMessage || '删除失败'
   }
+}
+
+const commentTarget = ref<any>(null)
+const showCommentSheet = ref(false)
+
+function openCharacterComments(c: any) {
+  commentTarget.value = c
+  showCommentSheet.value = true
 }
 
 const editing = ref<any>(null)
@@ -221,6 +229,9 @@ async function handleDelete() {
           </div>
 
           <div class="flex gap-1 px-4 pb-3 pt-2 border-t border-zinc-100">
+            <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-indigo-600" @click="openCharacterComments(c)">
+              <MessageSquare class="h-3 w-3 mr-1" /> 评论
+            </Button>
             <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-indigo-600" @click="openEdit(c)">
               <Pencil class="h-3 w-3 mr-1" /> 编辑
             </Button>
@@ -453,5 +464,21 @@ async function handleDelete() {
       @confirm="handleDelete"
       @cancel="confirmDelete = null"
     />
+
+    <Sheet :open="showCommentSheet" @update:open="(v: boolean) => { if (!v) { showCommentSheet = false; commentTarget = null } }">
+      <SheetContent class="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{{ commentTarget?.name }} — 评论</SheetTitle>
+        </SheetHeader>
+        <div class="mt-4">
+          <CommonCommentThread
+            v-if="commentTarget"
+            :project-id="projectId"
+            entity-type="character"
+            :entity-id="commentTarget.id"
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   </LayoutAppLayout>
 </template>

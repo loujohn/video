@@ -78,6 +78,7 @@ const changeSummary = ref('')
 const saving = ref(false)
 const error = ref('')
 const showVersionHistory = ref(false)
+const showComments = ref(false)
 
 const fields: { key: keyof CreativePlanContent; label: string; rows?: number }[] = [
   { key: 'logline', label: '一句话故事梗概', rows: 2 },
@@ -154,6 +155,9 @@ async function handleSave() {
                 当前版本：v{{ planData?.version ?? 0 }}
               </span>
               <div class="flex items-center gap-2">
+                <Button v-if="planData?.id" type="button" variant="outline" size="sm" @click="showComments = !showComments">
+                  {{ showComments ? '收起评论' : '评论' }}
+                </Button>
                 <Button v-if="planData?.id" type="button" variant="outline" size="sm" @click="showVersionHistory = true">
                   版本历史
                 </Button>
@@ -163,6 +167,14 @@ async function handleSave() {
               </div>
             </div>
           </form>
+        </div>
+        <!-- Comment panel -->
+        <div v-if="showComments && planData?.id" class="bg-white rounded-2xl border border-zinc-200/60 p-6 shadow-sm mt-6">
+          <CommonCommentThread
+            :project-id="projectId"
+            entity-type="creative_plan"
+            :entity-id="planData.id"
+          />
         </div>
       </template>
     </div>

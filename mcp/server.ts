@@ -13,6 +13,7 @@ import { storyboardTools, handleStoryboardTool } from './tools/storyboard-tools.
 import { assetTools, handleAssetTool } from './tools/asset-tools.js'
 import { imageTools, handleImageTool } from './tools/image-tools.js'
 import { versionTools, handleVersionTool } from './tools/version-tools.js'
+import { commentTools, handleCommentTool } from './tools/comment-tools.js'
 
 const allTools = [
   ...projectTools,
@@ -23,6 +24,7 @@ const allTools = [
   ...assetTools,
   ...imageTools,
   ...versionTools,
+  ...commentTools,
 ]
 
 const toolHandlers: Record<string, (name: string, args: Record<string, unknown>) => Promise<string>> = {}
@@ -34,6 +36,7 @@ for (const t of storyboardTools) toolHandlers[t.name] = handleStoryboardTool
 for (const t of assetTools) toolHandlers[t.name] = handleAssetTool
 for (const t of imageTools) toolHandlers[t.name] = handleImageTool
 for (const t of versionTools) toolHandlers[t.name] = handleVersionTool
+for (const t of commentTools) toolHandlers[t.name] = handleCommentTool
 
 const server = new Server(
   { name: 'video-drama-mcp', version: '1.0.0' },

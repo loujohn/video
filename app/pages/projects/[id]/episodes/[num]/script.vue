@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Save } from 'lucide-vue-next'
+import { ArrowLeft, Save, MessageSquare } from 'lucide-vue-next'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -77,6 +77,8 @@ async function handleSave() {
   }
 }
 
+const showComments = ref(false)
+
 function goBack() {
   navigateTo(`/projects/${projectId}/episodes`)
 }
@@ -101,6 +103,10 @@ function goBack() {
           </Badge>
         </div>
         <div class="flex items-center gap-2">
+          <Button v-if="episode?.id" variant="outline" size="sm" class="gap-2" @click="showComments = !showComments">
+            <MessageSquare class="h-3.5 w-3.5" />
+            {{ showComments ? '收起评论' : '评论' }}
+          </Button>
           <Button v-if="episode?.id" variant="outline" size="sm" @click="showVersionHistory = true">
             版本历史
           </Button>
@@ -124,6 +130,19 @@ function goBack() {
       <div class="flex items-center justify-between gap-4 py-2 mt-4 border-t border-zinc-200/60 text-xs text-zinc-500">
         <span>字数：{{ wordCount }}</span>
         <span v-if="lastSavedAt">上次保存：{{ lastSavedAt }}</span>
+      </div>
+
+      <!-- Comment panel -->
+      <div v-if="showComments && episode?.id" class="mt-4 bg-white rounded-xl border border-zinc-200/60 p-4 shadow-sm">
+        <h3 class="text-sm font-semibold text-zinc-800 mb-3 flex items-center gap-2">
+          <MessageSquare class="h-4 w-4 text-indigo-600" />
+          剧本评论
+        </h3>
+        <CommonCommentThread
+          :project-id="projectId"
+          entity-type="episode_script"
+          :entity-id="episode.id"
+        />
       </div>
     </div>
 
