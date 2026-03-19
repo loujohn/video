@@ -14,6 +14,8 @@ export async function seed(knex: Knex): Promise<void> {
       email: 'demo@drama.studio',
       name: '演示用户',
       password_hash: passwordHash,
+      role: 'admin',
+      is_active: true,
     })
     .returning('*')
 

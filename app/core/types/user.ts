@@ -4,6 +4,8 @@ export interface User {
   name: string
   avatar: string | null
   password_hash: string
+  role: 'admin' | 'user'
+  is_active: boolean
   created_at: Date
   updated_at: Date
 }
