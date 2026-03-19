@@ -72,7 +72,7 @@ export const CommentService = {
   },
 }
 
-function buildCommentTree(flat: CommentWithAuthor[]): CommentWithAuthor[] {
+export function buildCommentTree(flat: CommentWithAuthor[]): CommentWithAuthor[] {
   const map = new Map<string, CommentWithAuthor>()
   const roots: CommentWithAuthor[] = []
   for (const c of flat) {
@@ -210,6 +210,6 @@ async function notifyStatusChange(projectId: string, comment: Comment, resolvedB
   })
 }
 
-function truncate(text: string, maxLen: number): string {
+export function truncate(text: string, maxLen: number): string {
   return text.length > maxLen ? text.slice(0, maxLen) + '…' : text
 }
