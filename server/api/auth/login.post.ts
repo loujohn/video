@@ -2,6 +2,7 @@ import { AuthService } from '~/core/services/auth.service'
 import { loginSchema } from '~/schemas/auth'
 
 export default defineApiHandler(async (event) => {
+  checkRateLimit(event, { windowMs: 60_000, max: 10, keyPrefix: 'login' })
   const body = await validateBody(event, loginSchema)
 
   const user = await AuthService.login({

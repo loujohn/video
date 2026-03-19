@@ -1,0 +1,14 @@
+node_modules
+.nuxt
+.output
+dist
+.git
+.env
+uploads/
+*.log
+.DS_Store
+.vscode
+.idea
+*.md
+tests/
+vitest.config.*

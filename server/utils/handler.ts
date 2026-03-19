@@ -9,7 +9,17 @@ export function defineApiHandler(fn: (event: H3Event) => Promise<any>) {
       if (error instanceof AppError) {
         throw createError({ statusCode: error.statusCode, statusMessage: error.message })
       }
-      throw error
+      if ((error as any)?.statusCode) {
+        throw error
+      }
+      const isProd = process.env.NODE_ENV === 'production'
+      if (!isProd) {
+        console.error('[API Error]', error)
+      }
+      throw createError({
+        statusCode: 500,
+        statusMessage: isProd ? '服务器内部错误' : (error as Error)?.message || '未知错误',
+      })
     }
   })
 }

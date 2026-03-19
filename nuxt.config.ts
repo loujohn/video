@@ -22,6 +22,16 @@ export default defineNuxtConfig({
       '~/core': fileURLToPath(new URL('./app/core', import.meta.url)),
       '~/schemas': fileURLToPath(new URL('./server/schemas', import.meta.url)),
     },
+    routeRules: {
+      '/api/**': {
+        cors: true,
+        headers: {
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Max-Age': '86400',
+        },
+      },
+    },
   },
   app: {
     head: {

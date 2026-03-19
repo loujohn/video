@@ -3,6 +3,7 @@ export default defineEventHandler(async (event) => {
   const path = url.pathname
 
   if (path.startsWith('/api/auth/')) return
+  if (path === '/api/health') return
   if (!path.startsWith('/api/')) return
 
   const token = getTokenFromEvent(event)

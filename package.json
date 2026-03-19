@@ -9,7 +9,15 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:migrate": "npx knex migrate:latest --knexfile knexfile.ts",
+    "db:rollback": "npx knex migrate:rollback --knexfile knexfile.ts",
+    "db:status": "npx knex migrate:status --knexfile knexfile.ts",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:db": "docker compose up -d postgres",
+    "docker:build": "docker compose build",
+    "docker:logs": "docker compose logs -f"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
