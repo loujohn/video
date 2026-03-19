@@ -1,5 +1,5 @@
 import { StoryboardService } from '~/core/services/storyboard.service'
-import { reorderStoryboardsSchema } from '~/schemas/storyboard'
+import { reorderStoryboardsSchema } from '~~/server/schemas/storyboard'
 
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId

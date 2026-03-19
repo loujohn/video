@@ -28,7 +28,7 @@ export default defineApiHandler(async (event) => {
   }
   for (const asset of assets) {
     if (asset.linked_entity_id && grouped[asset.linked_entity_id]) {
-      grouped[asset.linked_entity_id].push(asset)
+      grouped[asset.linked_entity_id]!.push(asset)
     }
   }
 

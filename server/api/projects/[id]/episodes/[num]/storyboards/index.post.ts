@@ -1,5 +1,5 @@
 import { StoryboardService } from '~/core/services/storyboard.service'
-import { createStoryboardSchema } from '~/schemas/storyboard'
+import { createStoryboardSchema } from '~~/server/schemas/storyboard'
 
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId

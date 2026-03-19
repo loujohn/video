@@ -39,7 +39,7 @@ export async function checkDbConnection(): Promise<boolean> {
   }
 }
 
-export function buildUpdateData<T extends Record<string, unknown>>(
+export function buildUpdateData<T extends object>(
   data: T,
   fields: readonly (keyof T & string)[],
 ): Record<string, unknown> {

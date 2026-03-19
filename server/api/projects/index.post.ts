@@ -1,5 +1,5 @@
 import { ProjectService } from '~/core/services/project.service'
-import { createProjectSchema } from '~/schemas/project'
+import { createProjectSchema } from '~~/server/schemas/project'
 
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId

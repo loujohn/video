@@ -30,7 +30,7 @@ export interface CharacterRelation {
 
 export interface CreateCharacterInput {
   name: string
-  age?: number
+  age?: number | null
   appearance?: string
   personality_tags?: string[]
   public_identity?: string
@@ -39,7 +39,7 @@ export interface CreateCharacterInput {
   conflict_point?: string
   catchphrase?: string
   arc_description?: string
-  villain_level?: number
+  villain_level?: number | null
   image_prompt?: string
   sort_order?: number
 }

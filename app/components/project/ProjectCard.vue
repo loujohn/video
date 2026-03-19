@@ -8,7 +8,7 @@ defineProps<{
     genre: string[]
     status: string
     total_episodes: number
-    updated_at: string
+    updated_at: string | Date
   }
 }>()
 

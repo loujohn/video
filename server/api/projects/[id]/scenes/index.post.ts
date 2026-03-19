@@ -1,5 +1,5 @@
 import { SceneService } from '~/core/services/scene.service'
-import { createSceneSchema } from '~/schemas/scene'
+import { createSceneSchema } from '~~/server/schemas/scene'
 
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId

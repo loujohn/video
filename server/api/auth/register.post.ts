@@ -1,5 +1,5 @@
 import { AuthService } from '~/core/services/auth.service'
-import { registerSchema } from '~/schemas/auth'
+import { registerSchema } from '~~/server/schemas/auth'
 
 export default defineApiHandler(async (event) => {
   checkRateLimit(event, { windowMs: 60_000, max: 5, keyPrefix: 'register' })

@@ -34,6 +34,6 @@ export interface CreateEpisodeInput {
   hook_type?: string
   is_key_episode?: boolean
   is_paywall?: boolean
-  act?: number
+  act?: number | null
   rhythm_phase?: string
 }

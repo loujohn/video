@@ -1,5 +1,5 @@
 import { TeamService } from '~/core/services/team.service'
-import { createTeamSchema } from '~/schemas/team'
+import { createTeamSchema } from '~~/server/schemas/team'
 
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId

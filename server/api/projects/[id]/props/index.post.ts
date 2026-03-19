@@ -1,5 +1,5 @@
 import { PropService } from '~/core/services/prop.service'
-import { createPropSchema } from '~/schemas/prop'
+import { createPropSchema } from '~~/server/schemas/prop'
 
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId

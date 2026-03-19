@@ -195,7 +195,7 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
                 <div>
                   <h3 class="text-sm font-medium text-zinc-900">{{ s.name }}</h3>
                   <p class="text-xs text-zinc-400">
-                    {{ locationMap[s.location_type] || s.location_type }} · {{ todMap[s.time_of_day] || s.time_of_day }}
+                    {{ (s.location_type && locationMap[s.location_type]) || s.location_type }} · {{ (s.time_of_day && todMap[s.time_of_day]) || s.time_of_day }}
                   </p>
                 </div>
                 <div v-if="s.tags?.length" class="flex gap-1 ml-2">

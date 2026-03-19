@@ -109,7 +109,7 @@ const showForm = ref(false)
 const confirmDelete = ref<any>(null)
 const form = reactive({
   name: '',
-  age: null as number | null,
+  age: undefined as number | undefined,
   appearance: '',
   personality_tags: '',
   public_identity: '',

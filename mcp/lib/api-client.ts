@@ -27,9 +27,26 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return (json as ApiResponse<T>).data
 }
 
+async function uploadMultipart<T>(path: string, formData: FormData): Promise<T> {
+  const url = `${BASE_URL}${path}`
+  const headers: Record<string, string> = {}
+  if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`
+
+  const res = await fetch(url, { method: 'POST', headers, body: formData })
+  const json = (await res.json()) as ApiResponse<T> | { error: true; statusMessage: string }
+
+  if (!res.ok || 'error' in json) {
+    const msg = 'statusMessage' in json ? json.statusMessage : `HTTP ${res.status}`
+    throw new Error(`API Error [${res.status}]: ${msg}`)
+  }
+
+  return (json as ApiResponse<T>).data
+}
+
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   del: <T>(path: string) => request<T>('DELETE', path),
+  upload: <T>(path: string, formData: FormData) => uploadMultipart<T>(path, formData),
 }

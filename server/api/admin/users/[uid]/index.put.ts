@@ -1,5 +1,5 @@
 import { AdminService } from '~/core/services/admin.service'
-import { updateUserSchema } from '~/schemas/admin'
+import { updateUserSchema } from '~~/server/schemas/admin'
 import type { UserUpdatable } from '~/core/types'
 
 export default defineApiHandler(async (event) => {

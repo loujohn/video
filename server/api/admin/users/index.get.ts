@@ -1,5 +1,5 @@
 import { AdminService } from '~/core/services/admin.service'
-import { listUsersSchema } from '~/schemas/admin'
+import { listUsersSchema } from '~~/server/schemas/admin'
 
 export default defineApiHandler(async (event) => {
   await requireAdmin(event)

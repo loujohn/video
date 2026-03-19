@@ -1,5 +1,5 @@
 import { CharacterService } from '~/core/services/character.service'
-import { createCharacterSchema } from '~/schemas/character'
+import { createCharacterSchema } from '~~/server/schemas/character'
 
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId

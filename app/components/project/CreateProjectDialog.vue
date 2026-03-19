@@ -20,7 +20,7 @@ const error = ref('')
 
 watch(() => props.open, (v) => {
   if (v && props.teams.length > 0 && !form.team_id) {
-    form.team_id = props.teams[0].id
+    form.team_id = props.teams[0]!.id
   }
 })
 

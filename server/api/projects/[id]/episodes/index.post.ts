@@ -1,5 +1,5 @@
 import { EpisodeService } from '~/core/services/episode.service'
-import { createEpisodeSchema } from '~/schemas/episode'
+import { createEpisodeSchema } from '~~/server/schemas/episode'
 
 export default defineApiHandler(async (event) => {
   const userId = event.context.userId

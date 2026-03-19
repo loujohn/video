@@ -25,15 +25,15 @@ export interface CreateStoryboardInput {
   sequence_number?: number
   shot_type?: string
   camera_angle?: string
-  scene_id?: string
+  scene_id?: string | null
   description?: string
   dialogue?: string
   action_direction?: string
   music_cue?: string
   sound_effects?: string
   notes?: string
-  duration_seconds?: number
-  reference_image_url?: string
+  duration_seconds?: number | null
+  reference_image_url?: string | null
   camera_movement?: string
   transition_type?: string
   image_prompt?: string

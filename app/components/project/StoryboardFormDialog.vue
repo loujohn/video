@@ -35,7 +35,7 @@ const form = reactive({
   dialogue: '',
   action_direction: '',
   music_cue: '',
-  duration_seconds: null as number | null,
+  duration_seconds: undefined as number | undefined,
   camera_movement: '',
   transition_type: '',
   reference_image_url: '',
@@ -53,7 +53,7 @@ watch(
         form.dialogue = sb.dialogue ?? ''
         form.action_direction = sb.action_direction ?? ''
         form.music_cue = sb.music_cue ?? ''
-        form.duration_seconds = sb.duration_seconds ?? null
+        form.duration_seconds = sb.duration_seconds ?? undefined
         form.camera_movement = sb.camera_movement ?? ''
         form.transition_type = sb.transition_type ?? ''
         form.reference_image_url = sb.reference_image_url ?? ''
@@ -65,7 +65,7 @@ watch(
         form.dialogue = ''
         form.action_direction = ''
         form.music_cue = ''
-        form.duration_seconds = null
+        form.duration_seconds = undefined
         form.camera_movement = ''
         form.transition_type = ''
         form.reference_image_url = ''
