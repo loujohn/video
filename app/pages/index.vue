@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { Film, Users, TrendingUp, ArrowRight, Clapperboard } from 'lucide-vue-next'
+import type { Project, Team } from '~/core/types'
 
 const { $api } = useApi()
 const { user } = useAuth()
 
 const { data: projects, status: projectsStatus, error: projectsError, refresh: refreshProjects } = useAsyncData('dashboard-projects', () =>
-  $api<any[]>('/api/projects'),
+  $api<Project[]>('/api/projects'),
 )
 
 const { data: teams } = useAsyncData('dashboard-teams', () =>
-  $api<any[]>('/api/teams'),
+  $api<Team[]>('/api/teams'),
 )
 
 const statusMap: Record<string, { label: string; color: string }> = {

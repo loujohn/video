@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ArrowLeft, Save, MessageSquare } from 'lucide-vue-next'
+import type { Project } from '~/core/types'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -7,7 +8,7 @@ const episodeNum = route.params.num as string
 const { $api } = useApi()
 
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
-  $api<any>(`/api/projects/${projectId}`),
+  $api<Project>(`/api/projects/${projectId}`),
 )
 
 const { data: episode } = useAsyncData(`episode-${projectId}-${episodeNum}`, () =>

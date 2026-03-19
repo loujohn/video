@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Plus, Users, UserPlus, Pencil } from 'lucide-vue-next'
+import type { Team } from '~/core/types'
 
 const { $api } = useApi()
 
 const { data: teams, status: teamsStatus, error: teamsError, refresh } = useAsyncData('my-teams', () =>
-  $api<any[]>('/api/teams'),
+  $api<Team[]>('/api/teams'),
 )
 
 const showCreate = ref(false)

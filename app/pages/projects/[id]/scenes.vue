@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Plus, MapPin, Box, Pencil, Trash2, MessageSquare } from 'lucide-vue-next'
+import type { Project, Scene, Prop } from '~/core/types'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -7,14 +8,14 @@ const { $api } = useApi()
 
 const activeTab = ref('scenes')
 
-const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () => $api<any>(`/api/projects/${projectId}`))
+const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () => $api<Project>(`/api/projects/${projectId}`))
 
 const { data: scenes, refresh: refreshScenes } = useAsyncData(`scenes-${projectId}`, () =>
-  $api<any[]>(`/api/projects/${projectId}/scenes`),
+  $api<Scene[]>(`/api/projects/${projectId}/scenes`),
 )
 
 const { data: propsList, refresh: refreshProps } = useAsyncData(`props-${projectId}`, () =>
-  $api<any[]>(`/api/projects/${projectId}/props`),
+  $api<Prop[]>(`/api/projects/${projectId}/props`),
 )
 
 const showSceneForm = ref(false)

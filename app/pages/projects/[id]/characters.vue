@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { Plus, User, Pencil, Trash2, Link, ArrowRight, MessageSquare } from 'lucide-vue-next'
+import type { Project, Character } from '~/core/types'
 
 const route = useRoute()
 const projectId = route.params.id as string
 const { $api } = useApi()
 
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
-  $api<any>(`/api/projects/${projectId}`),
+  $api<Project>(`/api/projects/${projectId}`),
 )
 
 const { data: characters, refresh } = useAsyncData(`chars-${projectId}`, () =>
-  $api<any[]>(`/api/projects/${projectId}/characters`),
+  $api<Character[]>(`/api/projects/${projectId}/characters`),
 )
 
 const { data: relations, refresh: refreshRelations } = useAsyncData(

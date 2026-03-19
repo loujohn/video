@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Asset } from '~/core/types/asset'
+import type { Asset, Project } from '~/core/types'
 import { Image, Music, Video, FolderOpen, Plus, CheckSquare, X, Columns2, Ban, RotateCcw } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -14,7 +14,7 @@ const selectedIds = ref<Set<string>>(new Set())
 const compareOpen = ref(false)
 
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
-  $api<any>(`/api/projects/${projectId}`),
+  $api<Project>(`/api/projects/${projectId}`),
 )
 
 const { data: assets, refresh } = useAsyncData(

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Plus, ListOrdered, Pencil, Trash2, FileText, Film } from 'lucide-vue-next'
+import type { Project, Episode } from '~/core/types'
 
 const route = useRoute()
 const projectId = route.params.id as string
 const { $api } = useApi()
 
-const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () => $api<any>(`/api/projects/${projectId}`))
+const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () => $api<Project>(`/api/projects/${projectId}`))
 const { data: episodes, refresh } = useAsyncData(`eps-${projectId}`, () =>
-  $api<any[]>(`/api/projects/${projectId}/episodes`),
+  $api<Episode[]>(`/api/projects/${projectId}/episodes`),
 )
 
 const showForm = ref(false)

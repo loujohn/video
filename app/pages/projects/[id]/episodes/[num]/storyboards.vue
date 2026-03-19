@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Storyboard } from '~/core/types/storyboard'
+import type { Storyboard, Project, Scene } from '~/core/types'
 import { ArrowLeft, Plus, Film, LayoutGrid, GalleryHorizontal, Trash2, Download } from 'lucide-vue-next'
 import jsPDF from 'jspdf'
 
@@ -13,7 +13,7 @@ const episodeNum = route.params.num as string
 const { $api } = useApi()
 
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
-  $api<any>(`/api/projects/${projectId}`),
+  $api<Project>(`/api/projects/${projectId}`),
 )
 
 const { data: storyboards, refresh } = useAsyncData(
@@ -48,7 +48,7 @@ async function loadCommentCounts() {
 watch(storyboards, () => { loadCommentCounts() }, { immediate: true })
 
 const { data: scenes } = useAsyncData(`scenes-${projectId}`, () =>
-  $api<any[]>(`/api/projects/${projectId}/scenes`),
+  $api<Scene[]>(`/api/projects/${projectId}/scenes`),
 )
 
 const localList = ref<Storyboard[]>([])

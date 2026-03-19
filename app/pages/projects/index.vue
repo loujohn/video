@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { Plus, Clapperboard } from 'lucide-vue-next'
+import type { Project, Team } from '~/core/types'
 
 const { $api } = useApi()
 const showCreate = ref(false)
 
 const { data: projects, refresh, error: projectsError, status: projectsStatus } = useAsyncData('projects', () =>
-  $api<any[]>('/api/projects'),
+  $api<Project[]>('/api/projects'),
 )
 
 const { data: teams } = useAsyncData('my-teams', () =>
-  $api<any[]>('/api/teams'),
+  $api<Team[]>('/api/teams'),
 )
 
 function handleCreated() {

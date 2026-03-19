@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Project } from '~/core/types'
+
 interface CreativePlanContent {
   logline?: string
   synopsis?: string
@@ -23,7 +25,7 @@ const projectId = route.params.id as string
 const { $api } = useApi()
 
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
-  $api<any>(`/api/projects/${projectId}`),
+  $api<Project>(`/api/projects/${projectId}`),
 )
 
 const { data: planData, pending: loading, refresh } = useAsyncData(

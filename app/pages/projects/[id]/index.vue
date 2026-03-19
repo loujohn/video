@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Users, ListOrdered, MapPin, Pencil } from 'lucide-vue-next'
+import type { Project, Character, Episode, Scene } from '~/core/types'
 
 const route = useRoute()
 const projectId = route.params.id as string
 const { $api } = useApi()
 
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
-  $api<any>(`/api/projects/${projectId}`),
+  $api<Project>(`/api/projects/${projectId}`),
 )
 
 const showEdit = ref(false)
@@ -16,15 +17,15 @@ function handleUpdated() {
 }
 
 const { data: characters } = useAsyncData(`chars-${projectId}`, () =>
-  $api<any[]>(`/api/projects/${projectId}/characters`),
+  $api<Character[]>(`/api/projects/${projectId}/characters`),
 )
 
 const { data: episodes } = useAsyncData(`eps-${projectId}`, () =>
-  $api<any[]>(`/api/projects/${projectId}/episodes`),
+  $api<Episode[]>(`/api/projects/${projectId}/episodes`),
 )
 
 const { data: scenes } = useAsyncData(`scenes-${projectId}`, () =>
-  $api<any[]>(`/api/projects/${projectId}/scenes`),
+  $api<Scene[]>(`/api/projects/${projectId}/scenes`),
 )
 
 const statusMap: Record<string, { label: string; color: string }> = {
