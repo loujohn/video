@@ -8,6 +8,8 @@ const { data: teams, status: teamsStatus, error: teamsError, refresh } = useAsyn
   $api<Team[]>('/api/teams'),
 )
 
+useHead({ title: '团队管理 - Drama Studio' })
+
 const showCreate = ref(false)
 const createForm = reactive({ name: '', description: '' })
 const createLoading = ref(false)

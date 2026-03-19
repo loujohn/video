@@ -5,6 +5,8 @@ import type { Project, Team } from '~/core/types'
 const { $api } = useApi()
 const showCreate = ref(false)
 
+useHead({ title: '项目列表 - Drama Studio' })
+
 const { data: projects, refresh, error: projectsError, status: projectsStatus } = useAsyncData('projects', () =>
   $api<Project[]>('/api/projects'),
 )

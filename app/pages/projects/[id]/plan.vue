@@ -28,6 +28,8 @@ const { data: project, status: projectStatus, error: projectError, refresh: refr
   $api<Project>(`/api/projects/${projectId}`),
 )
 
+useHead({ title: computed(() => project.value ? `${project.value.title} - 创作方案` : '创作方案') })
+
 const { data: planData, pending: loading, refresh } = useAsyncData(
   `plan-${projectId}`,
   async () => {

@@ -12,6 +12,8 @@ const { data: project, status: projectStatus, error: projectError, refresh: refr
 
 const showEdit = ref(false)
 
+useHead({ title: computed(() => project.value ? `${project.value.title} - 概览` : '项目详情') })
+
 function handleUpdated() {
   refreshProject()
 }

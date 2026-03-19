@@ -19,6 +19,8 @@ const { data: relations, refresh: refreshRelations } = useAsyncData(
   () => $api<any[]>(`/api/projects/${projectId}/character-relations`),
 )
 
+useHead({ title: computed(() => project.value ? `${project.value.title} - 角色` : '角色管理') })
+
 const showRelationForm = ref(false)
 const relationForm = reactive({
   from_character_id: '',

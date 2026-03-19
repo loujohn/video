@@ -5,6 +5,8 @@ import type { Project, Team } from '~/core/types'
 const { $api } = useApi()
 const { user } = useAuth()
 
+useHead({ title: '仪表盘 - Drama Studio' })
+
 const { data: projects, status: projectsStatus, error: projectsError, refresh: refreshProjects } = useAsyncData('dashboard-projects', () =>
   $api<Project[]>('/api/projects'),
 )

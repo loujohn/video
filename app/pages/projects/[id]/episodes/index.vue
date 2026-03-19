@@ -11,6 +11,8 @@ const { data: episodes, refresh } = useAsyncData(`eps-${projectId}`, () =>
   $api<Episode[]>(`/api/projects/${projectId}/episodes`),
 )
 
+useHead({ title: computed(() => project.value ? `${project.value.title} - 分集` : '分集管理') })
+
 const showForm = ref(false)
 const editing = ref<any>(null)
 const form = reactive({
