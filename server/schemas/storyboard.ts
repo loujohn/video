@@ -9,12 +9,13 @@ export const createStoryboardSchema = z.object({
   transition_type: z.string().max(50).optional(),
   description: z.string().max(5000).optional(),
   dialogue: z.string().max(5000).optional(),
+  action_direction: z.string().max(5000).optional(),
+  music_cue: z.string().max(1000).optional(),
   sound_effects: z.string().max(1000).optional(),
+  notes: z.string().max(5000).optional(),
   duration_seconds: z.number().min(0).max(3600).optional().nullable(),
   reference_image_url: z.string().url().max(2000).optional().nullable(),
   image_prompt: z.string().max(5000).optional(),
-  notes: z.string().max(5000).optional(),
-  action_direction: z.string().max(5000).optional(),
 })
 
 export const updateStoryboardSchema = createStoryboardSchema.partial()

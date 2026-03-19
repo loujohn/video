@@ -65,7 +65,7 @@ export const EpisodeService = {
   async delete(projectId: string, episodeNumber: number, userId: string): Promise<void> {
     await ProjectService.getProject(projectId, userId)
     const episode = await EpisodeModel.findByNumber(projectId, episodeNumber)
-    if (!episode) notFoundError('分集')
+    if (!episode) notFoundError('分集不存在')
     await getDb()('entity_versions').where({ entity_type: 'episode_script', entity_id: episode.id }).del()
     await getDb()('episode_scripts').where({ episode_id: episode.id }).del()
     await EpisodeModel.delete(episode.id)

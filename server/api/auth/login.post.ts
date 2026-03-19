@@ -1,10 +1,8 @@
 import { AuthService } from '~/core/services/auth.service'
-export default defineApiHandler(async (event) => {
-  const body = await readBody(event)
+import { loginSchema } from '~/schemas/auth'
 
-  if (!body.email || !body.password) {
-    badRequest('email, password 必填')
-  }
+export default defineApiHandler(async (event) => {
+  const body = await validateBody(event, loginSchema)
 
   const user = await AuthService.login({
     email: body.email,

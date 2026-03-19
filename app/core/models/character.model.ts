@@ -1,4 +1,4 @@
-import { getDb } from '../db'
+import { getDb, buildUpdateData } from '../db'
 import type { Character, CreateCharacterInput, CharacterRelation } from '../types'
 
 const TABLE = 'characters'
@@ -42,21 +42,15 @@ export const CharacterModel = {
   },
 
   async update(id: string, data: Partial<CreateCharacterInput> & { is_active?: boolean }): Promise<Character | undefined> {
-    const updateData: Record<string, unknown> = { updated_at: new Date() }
-    if (data.name !== undefined) updateData.name = data.name
-    if (data.age !== undefined) updateData.age = data.age
-    if (data.appearance !== undefined) updateData.appearance = data.appearance
-    if (data.personality_tags !== undefined) updateData.personality_tags = JSON.stringify(data.personality_tags)
-    if (data.public_identity !== undefined) updateData.public_identity = data.public_identity
-    if (data.real_identity !== undefined) updateData.real_identity = data.real_identity
-    if (data.motivation !== undefined) updateData.motivation = data.motivation
-    if (data.conflict_point !== undefined) updateData.conflict_point = data.conflict_point
-    if (data.catchphrase !== undefined) updateData.catchphrase = data.catchphrase
-    if (data.arc_description !== undefined) updateData.arc_description = data.arc_description
-    if (data.villain_level !== undefined) updateData.villain_level = data.villain_level
-    if (data.image_prompt !== undefined) updateData.image_prompt = data.image_prompt
-    if (data.sort_order !== undefined) updateData.sort_order = data.sort_order
-    if (data.is_active !== undefined) updateData.is_active = data.is_active
+    const fields = [
+      'name', 'age', 'appearance', 'public_identity', 'real_identity',
+      'motivation', 'conflict_point', 'catchphrase', 'arc_description',
+      'villain_level', 'image_prompt', 'sort_order', 'is_active',
+    ] as const
+    const updateData = buildUpdateData(data, fields)
+    if (data.personality_tags !== undefined) {
+      updateData.personality_tags = JSON.stringify(data.personality_tags)
+    }
 
     const [character] = await getDb()(TABLE).where({ id }).update(updateData).returning('*')
     return character
@@ -72,15 +66,17 @@ export const CharacterModel = {
   },
 
   async setRelations(projectId: string, relations: Array<{ from_character_id: string; to_character_id: string; relation_type: string; description?: string }>): Promise<CharacterRelation[]> {
-    await getDb()(RELATIONS_TABLE).where({ project_id: projectId }).del()
-    if (relations.length === 0) return []
-    const rows = relations.map(r => ({
-      project_id: projectId,
-      from_character_id: r.from_character_id,
-      to_character_id: r.to_character_id,
-      relation_type: r.relation_type,
-      description: r.description ?? null,
-    }))
-    return getDb()(RELATIONS_TABLE).insert(rows).returning('*')
+    return getDb().transaction(async (trx) => {
+      await trx(RELATIONS_TABLE).where({ project_id: projectId }).del()
+      if (relations.length === 0) return []
+      const rows = relations.map(r => ({
+        project_id: projectId,
+        from_character_id: r.from_character_id,
+        to_character_id: r.to_character_id,
+        relation_type: r.relation_type,
+        description: r.description ?? null,
+      }))
+      return trx(RELATIONS_TABLE).insert(rows).returning('*')
+    })
   },
 }

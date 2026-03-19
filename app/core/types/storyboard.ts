@@ -3,11 +3,14 @@ export interface Storyboard {
   episode_id: string
   sequence_number: number
   shot_type: string | null
+  camera_angle: string | null
   scene_id: string | null
   description: string | null
   dialogue: string | null
   action_direction: string | null
   music_cue: string | null
+  sound_effects: string | null
+  notes: string | null
   duration_seconds: number | null
   reference_image_url: string | null
   camera_movement: string | null
@@ -21,11 +24,14 @@ export interface Storyboard {
 export interface CreateStoryboardInput {
   sequence_number?: number
   shot_type?: string
+  camera_angle?: string
   scene_id?: string
   description?: string
   dialogue?: string
   action_direction?: string
   music_cue?: string
+  sound_effects?: string
+  notes?: string
   duration_seconds?: number
   reference_image_url?: string
   camera_movement?: string

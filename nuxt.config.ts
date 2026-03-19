@@ -20,6 +20,7 @@ export default defineNuxtConfig({
   nitro: {
     alias: {
       '~/core': fileURLToPath(new URL('./app/core', import.meta.url)),
+      '~/schemas': fileURLToPath(new URL('./server/schemas', import.meta.url)),
     },
   },
   app: {

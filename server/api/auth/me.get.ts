@@ -1,5 +1,5 @@
 import { AuthService } from '~/core/services/auth.service'
-export default defineEventHandler(async (event) => {
+export default defineApiHandler(async (event) => {
   const token = getTokenFromEvent(event)
   if (!token) unauthorized()
 

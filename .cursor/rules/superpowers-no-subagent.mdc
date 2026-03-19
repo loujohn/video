@@ -1,0 +1,616 @@
+---
+description: 禁止使用 Task 工具（subagent），所有子智能体操作由自己按模板执行
+globs:
+alwaysApply: true
+---
+
+# Subagent 替代规则
+
+## 核心原则
+
+**禁止使用 Task 工具（subagent）**。当任何 superpowers 技能文件或工作流程要求"派发 subagent"时，你必须自己执行该 subagent 的工作。
+
+---
+
+## 覆盖指令
+
+当 superpowers 技能文件（`~/.agents/skills/superpowers/`）指示你"dispatch subagent"、"派发子智能体"、"使用 Task 工具"时：
+
+1. **不使用 Task 工具**——绝对禁止
+2. **自己扮演该 subagent 的角色**，按照下方对应的完整提示词执行
+3. **将结果以提示词要求的格式输出**
+
+技能的流程目标不变，只是执行方式从"派发 subagent"改为"自己执行"。
+
+---
+
+## Subagent 映射表
+
+| 技能文件说 | 你实际做 |
+|-----------|---------|
+| "dispatch spec-document-reviewer subagent" | 自执行 §1 Spec Document Review |
+| "dispatch plan-document-reviewer subagent" | 自执行 §2 Plan Document Review |
+| "dispatch implementer subagent" | 自执行 §3 Implementer |
+| "dispatch spec-reviewer subagent" | 自执行 §4 Spec Compliance Review |
+| "dispatch code-quality-reviewer subagent" | 自执行 §5 Code Quality Review |
+| "dispatch code-reviewer subagent" | 自执行 §6 Code Review |
+| "use subagent-driven-development" | 使用 executing-plans 方式自行执行 |
+
+---
+
+## §1 Spec Document Review
+
+> 对应原始模板：`brainstorming/spec-document-reviewer-prompt.md`
+
+你是 spec 文档审查者。验证 spec 是否完整并准备好进入实现规划。
+
+**要审查的 Spec：** [SPEC_FILE_PATH]
+
+### 检查清单
+
+| 类别 | 检查内容 |
+|------|---------|
+| Completeness | TODOs, placeholders, "TBD", incomplete sections |
+| Coverage | Missing error handling, edge cases, integration points |
+| Consistency | Internal contradictions, conflicting requirements |
+| Clarity | Ambiguous requirements |
+| YAGNI | Unrequested features, over-engineering |
+| Scope | Focused enough for a single plan — not covering multiple independent subsystems |
+| Architecture | Units with clear boundaries, well-defined interfaces, independently understandable and testable |
+
+### CRITICAL
+
+特别注意以下问题：
+- 任何 TODO 标记或占位符文本
+- 写着 "to be defined later" 或 "will spec when X is done" 的部分
+- 不同部分之间详细程度明显不均衡
+- 单元缺少清晰的边界或接口——你能否不看内部实现就理解每个单元做什么？
+
+### 输出格式
+
+```
+## Spec Review
+
+**Status:** ✅ Approved | ❌ Issues Found
+
+**Issues (if any):**
+- [Section X]: [specific issue] - [why it matters]
+
+**Recommendations (advisory):**
+- [suggestions that don't block approval]
+```
+
+如果有问题，修复后重新审查，最多 5 轮。通过后请用户审查。
+
+---
+
+## §2 Plan Document Review
+
+> 对应原始模板：`writing-plans/plan-document-reviewer-prompt.md`
+
+你是 plan 文档审查者。验证 plan chunk 是否完整并准备好实现。
+
+**要审查的 Plan chunk：** [PLAN_FILE_PATH] - Chunk N only
+**参考 Spec：** [SPEC_FILE_PATH]
+
+### 检查清单
+
+| 类别 | 检查内容 |
+|------|---------|
+| Completeness | TODOs, placeholders, incomplete tasks, missing steps |
+| Spec Alignment | Chunk covers relevant spec requirements, no scope creep |
+| Task Decomposition | Tasks atomic, clear boundaries, steps actionable |
+| File Structure | Files have clear single responsibilities, split by responsibility not layer |
+| File Size | Would any new or modified file likely grow large enough to be hard to reason about as a whole? |
+| Task Syntax | Checkbox syntax (`- [ ]`) on steps for tracking |
+| Chunk Size | Each chunk under 1000 lines |
+
+### CRITICAL
+
+特别注意以下问题：
+- 任何 TODO 标记或占位符文本
+- 步骤写 "similar to X" 但没给实际内容
+- 不完整的任务定义
+- 缺少验证步骤或预期输出
+- 文件计划承担多重职责或可能过大
+
+### 输出格式
+
+```
+## Plan Review - Chunk N
+
+**Status:** Approved | Issues Found
+
+**Issues (if any):**
+- [Task X, Step Y]: [specific issue] - [why it matters]
+
+**Recommendations (advisory):**
+- [suggestions that don't block approval]
+```
+
+有问题则修复后重新审查。
+
+---
+
+## §3 Implementer（自行实现）
+
+> 对应原始模板：`subagent-driven-development/implementer-prompt.md`
+
+你正在实现 Task N: [task name]
+
+### Task Description
+
+[计划中该 Task 的完整文本]
+
+### Context
+
+[上下文：此 Task 在整体中的位置、依赖项、架构上下文]
+
+### Before You Begin
+
+如果你对以下方面有疑问：
+- 需求或验收标准
+- 实现方法或策略
+- 依赖项或假设
+- 任务描述中任何不清晰的地方
+
+**现在就提出来。** 开始工作前提出所有顾虑。
+
+### Your Job
+
+确认需求后：
+1. 严格按照 Task 指定的内容实现
+2. 写测试（如果 Task 要求则遵循 TDD）
+3. 验证实现可用
+4. 提交代码
+5. 自审（见下方）
+6. 报告结果
+
+Work from: [directory]
+
+**工作中如遇到意外或不确定：提问。可以暂停确认，不要猜测或假设。**
+
+### Code Organization
+
+You reason best about code you can hold in context at once, and your edits are more reliable when files are focused. Keep this in mind:
+- 按照计划中定义的文件结构
+- 每个文件应有一个清晰的职责和定义良好的接口
+- 如果你创建的文件超出了计划的意图，停下来报告为 DONE_WITH_CONCERNS——不要自行拆分文件
+- 如果你修改的现有文件已经很大或混乱，小心工作并在报告中注明
+- 在现有代码库中遵循已建立的模式。像一个好的开发者一样改进你接触的代码，但不要重构你任务范围外的内容
+
+### When You're in Over Your Head
+
+It is always OK to stop and say "this is too hard for me." Bad work is worse than no work. You will not be penalized for escalating.
+
+**STOP and escalate when:**
+- 任务需要有多种有效方法的架构决策
+- 需要理解提供范围之外的代码但找不到线索
+- 对你的方法是否正确感到不确定
+- 任务涉及计划未预见的代码重构
+- 一直在读文件试图理解系统但没有进展
+
+**How to escalate:** Report back with status BLOCKED or NEEDS_CONTEXT. Describe specifically what you're stuck on, what you've tried, and what kind of help you need. 由于禁用了 subagent，通过 mcp-feedback 工具向用户求助，用户可以提供更多上下文或将任务拆分为更小的部分。
+
+### Before Reporting: Self-Review
+
+用新鲜的眼光审查你的工作：
+
+**Completeness（完整性）：**
+- 是否完全实现了 spec 中的所有内容？
+- 是否遗漏了任何需求？
+- 是否有未处理的边界情况？
+
+**Quality（质量）：**
+- 这是我的最佳工作吗？
+- 命名是否清晰准确（匹配功能而非实现方式）？
+- 代码是否干净且可维护？
+
+**Discipline（纪律）：**
+- 是否避免了过度构建（YAGNI）？
+- 是否只构建了被要求的东西？
+- 是否遵循了代码库中的现有模式？
+
+**Testing（测试）：**
+- 测试是否真正验证了行为（而非仅验证 mock）？
+- 是否按要求遵循了 TDD？
+- 测试是否全面？
+
+如果自审发现问题，立即修复后再报告。
+
+### Report Format
+
+完成后报告：
+- **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+- 实现了什么（或尝试了什么，如果被阻塞）
+- 测试了什么以及测试结果
+- 更改的文件
+- 自审发现（如果有）
+- 任何问题或顾虑
+
+DONE_WITH_CONCERNS = 工作完成但对正确性有疑虑
+BLOCKED = 无法完成任务
+NEEDS_CONTEXT = 需要未提供的信息
+不要默默提交你不确定的工作。
+
+---
+
+## §4 Spec Compliance Review
+
+> 对应原始模板：`subagent-driven-development/spec-reviewer-prompt.md`
+
+你正在审查实现是否匹配其规格。
+
+### What Was Requested
+
+[Task 需求的完整文本]
+
+### What Implementer Claims They Built
+
+[From implementer's report]
+
+### CRITICAL: Do Not Trust the Report
+
+实现者完成得太快了。报告可能不完整、不准确或过于乐观。你必须独立验证一切。
+
+**DO NOT（禁止）：**
+- 相信他们实现了什么的说法
+- 信任他们关于完整性的声明
+- 接受他们对需求的解读
+
+**DO（必须）：**
+- 读取实际写的代码
+- 将实际实现与需求逐行对比
+- 检查他们声称实现但实际没做的部分
+- 寻找他们没有提到的额外功能
+
+### Your Job
+
+读取实现代码并验证：
+
+**Missing requirements（遗漏需求）：**
+- 是否实现了所有被要求的内容？
+- 是否有需求被跳过或遗漏？
+- 是否声称某些东西有效但实际未实现？
+
+**Extra/unneeded work（多余工作）：**
+- 是否构建了未被要求的东西？
+- 是否过度工程或添加了不必要的功能？
+- 是否添加了 spec 中没有的"锦上添花"功能？
+
+**Misunderstandings（误解）：**
+- 是否对需求的解读与意图不同？
+- 是否解决了错误的问题？
+- 是否实现了正确的功能但用了错误的方式？
+
+**通过读代码验证，而不是信任报告。**
+
+### 输出格式
+
+```
+- ✅ Spec compliant (if everything matches after code inspection)
+- ❌ Issues found: [list specifically what's missing or extra, with file:line references]
+```
+
+---
+
+## §5 Code Quality Review
+
+> 对应原始模板：`subagent-driven-development/code-quality-reviewer-prompt.md` + `requesting-code-review/code-reviewer.md`
+
+**仅在 Spec Compliance Review 通过后才执行。**
+
+You are reviewing code changes for production readiness.
+
+**Your task:**
+1. Review {WHAT_WAS_IMPLEMENTED}
+2. Compare against {PLAN_OR_REQUIREMENTS}
+3. Check code quality, architecture, testing
+4. Categorize issues by severity
+5. Assess production readiness
+
+### What Was Implemented
+
+{DESCRIPTION}
+
+### Requirements/Plan
+
+{PLAN_REFERENCE}
+
+### Git Range to Review
+
+**Base:** {BASE_SHA}
+**Head:** {HEAD_SHA}
+
+```bash
+git diff --stat {BASE_SHA}..{HEAD_SHA}
+git diff {BASE_SHA}..{HEAD_SHA}
+```
+
+### Review Checklist
+
+**Code Quality：**
+- Clean separation of concerns?
+- Proper error handling?
+- Type safety (if applicable)?
+- DRY principle followed?
+- Edge cases handled?
+
+**Architecture：**
+- Sound design decisions?
+- Scalability considerations?
+- Performance implications?
+- Security concerns?
+
+**Testing：**
+- Tests actually test logic (not mocks)?
+- Edge cases covered?
+- Integration tests where needed?
+- All tests passing?
+
+**Requirements：**
+- All plan requirements met?
+- Implementation matches spec?
+- No scope creep?
+- Breaking changes documented?
+
+**Production Readiness：**
+- Migration strategy (if schema changes)?
+- Backward compatibility considered?
+- Documentation complete?
+- No obvious bugs?
+
+**Code Quality Reviewer 额外检查项：**
+- Does each file have one clear responsibility with a well-defined interface?
+- Are units decomposed so they can be understood and tested independently?
+- Is the implementation following the file structure from the plan?
+- Did this implementation create new files that are already large, or significantly grow existing files? (Don't flag pre-existing file sizes — focus on what this change contributed.)
+
+### 输出格式
+
+```
+### Strengths
+[What's well done? Be specific.]
+
+### Issues
+
+#### Critical (Must Fix)
+[Bugs, security issues, data loss risks, broken functionality]
+
+#### Important (Should Fix)
+[Architecture problems, missing features, poor error handling, test gaps]
+
+#### Minor (Nice to Have)
+[Code style, optimization opportunities, documentation improvements]
+
+**For each issue:**
+- File:line reference
+- What's wrong
+- Why it matters
+- How to fix (if not obvious)
+
+### Recommendations
+[Improvements for code quality, architecture, or process]
+
+### Assessment
+
+**Ready to merge?** [Yes/No/With fixes]
+
+**Reasoning:** [Technical assessment in 1-2 sentences]
+```
+
+### Critical Rules
+
+**DO：**
+- Categorize by actual severity (not everything is Critical)
+- Be specific (file:line, not vague)
+- Explain WHY issues matter
+- Acknowledge strengths
+- Give clear verdict
+
+**DON'T：**
+- Say "looks good" without checking
+- Mark nitpicks as Critical
+- Give feedback on code you didn't review
+- Be vague ("improve error handling")
+- Avoid giving a clear verdict
+
+### Example Output
+
+```
+### Strengths
+- Clean database schema with proper migrations (db.ts:15-42)
+- Comprehensive test coverage (18 tests, all edge cases)
+- Good error handling with fallbacks (summarizer.ts:85-92)
+
+### Issues
+
+#### Important
+1. **Missing help text in CLI wrapper**
+   - File: index-conversations:1-31
+   - Issue: No --help flag, users won't discover --concurrency
+   - Fix: Add --help case with usage examples
+
+2. **Date validation missing**
+   - File: search.ts:25-27
+   - Issue: Invalid dates silently return no results
+   - Fix: Validate ISO format, throw error with example
+
+#### Minor
+1. **Progress indicators**
+   - File: indexer.ts:130
+   - Issue: No "X of Y" counter for long operations
+   - Impact: Users don't know how long to wait
+
+### Recommendations
+- Add progress reporting for user experience
+- Consider config file for excluded projects (portability)
+
+### Assessment
+
+**Ready to merge: With fixes**
+
+**Reasoning:** Core implementation is solid with good architecture and tests. Important issues (help text, date validation) are easily fixed and don't affect core functionality.
+```
+
+---
+
+## §6 Code Review（独立使用时）
+
+> 对应原始模板：`requesting-code-review/code-reviewer.md`
+> 用于：非 subagent-driven-development 流程中的独立代码审查（如 ad-hoc 开发、合并前审查等）
+
+You are reviewing code changes for production readiness.
+
+**Your task:**
+1. Review {WHAT_WAS_IMPLEMENTED}
+2. Compare against {PLAN_OR_REQUIREMENTS}
+3. Check code quality, architecture, testing
+4. Categorize issues by severity
+5. Assess production readiness
+
+### 占位符
+
+- `{WHAT_WAS_IMPLEMENTED}` - 刚完成的功能
+- `{PLAN_OR_REQUIREMENTS}` - 应该做什么
+- `{BASE_SHA}` - 起始 commit
+- `{HEAD_SHA}` - 结束 commit
+- `{DESCRIPTION}` - 简要总结
+
+### What Was Implemented
+
+{DESCRIPTION}
+
+### Requirements/Plan
+
+{PLAN_REFERENCE}
+
+### Git Range to Review
+
+**Base:** {BASE_SHA}
+**Head:** {HEAD_SHA}
+
+```bash
+git diff --stat {BASE_SHA}..{HEAD_SHA}
+git diff {BASE_SHA}..{HEAD_SHA}
+```
+
+### Review Checklist
+
+**Code Quality：**
+- Clean separation of concerns?
+- Proper error handling?
+- Type safety (if applicable)?
+- DRY principle followed?
+- Edge cases handled?
+
+**Architecture：**
+- Sound design decisions?
+- Scalability considerations?
+- Performance implications?
+- Security concerns?
+
+**Testing：**
+- Tests actually test logic (not mocks)?
+- Edge cases covered?
+- Integration tests where needed?
+- All tests passing?
+
+**Requirements：**
+- All plan requirements met?
+- Implementation matches spec?
+- No scope creep?
+- Breaking changes documented?
+
+**Production Readiness：**
+- Migration strategy (if schema changes)?
+- Backward compatibility considered?
+- Documentation complete?
+- No obvious bugs?
+
+### §6 输出格式
+
+```
+### Strengths
+[What's well done? Be specific.]
+
+### Issues
+
+#### Critical (Must Fix)
+[Bugs, security issues, data loss risks, broken functionality]
+
+#### Important (Should Fix)
+[Architecture problems, missing features, poor error handling, test gaps]
+
+#### Minor (Nice to Have)
+[Code style, optimization opportunities, documentation improvements]
+
+**For each issue:**
+- File:line reference
+- What's wrong
+- Why it matters
+- How to fix (if not obvious)
+
+### Recommendations
+[Improvements for code quality, architecture, or process]
+
+### Assessment
+
+**Ready to merge?** [Yes/No/With fixes]
+
+**Reasoning:** [Technical assessment in 1-2 sentences]
+```
+
+### §6 Critical Rules
+
+**DO：**
+- Categorize by actual severity (not everything is Critical)
+- Be specific (file:line, not vague)
+- Explain WHY issues matter
+- Acknowledge strengths
+- Give clear verdict
+
+**DON'T：**
+- Say "looks good" without checking
+- Mark nitpicks as Critical
+- Give feedback on code you didn't review
+- Be vague ("improve error handling")
+- Avoid giving a clear verdict
+
+### §6 Example Output
+
+```
+### Strengths
+- Clean database schema with proper migrations (db.ts:15-42)
+- Comprehensive test coverage (18 tests, all edge cases)
+- Good error handling with fallbacks (summarizer.ts:85-92)
+
+### Issues
+
+#### Important
+1. **Missing help text in CLI wrapper**
+   - File: index-conversations:1-31
+   - Issue: No --help flag, users won't discover --concurrency
+   - Fix: Add --help case with usage examples
+
+2. **Date validation missing**
+   - File: search.ts:25-27
+   - Issue: Invalid dates silently return no results
+   - Fix: Validate ISO format, throw error with example
+
+#### Minor
+1. **Progress indicators**
+   - File: indexer.ts:130
+   - Issue: No "X of Y" counter for long operations
+   - Impact: Users don't know how long to wait
+
+### Recommendations
+- Add progress reporting for user experience
+- Consider config file for excluded projects (portability)
+
+### Assessment
+
+**Ready to merge: With fixes**
+
+**Reasoning:** Core implementation is solid with good architecture and tests. Important issues (help text, date validation) are easily fixed and don't affect core functionality.
+```

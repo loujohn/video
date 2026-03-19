@@ -92,11 +92,7 @@ async function handleDeleteEpisode() {
   }
 }
 
-const statusMap: Record<string, { label: string; color: string }> = {
-  planned: { label: '待编写', color: 'bg-zinc-100 text-zinc-600' },
-  writing: { label: '编写中', color: 'bg-indigo-50 text-indigo-700' },
-  written: { label: '已完成', color: 'bg-emerald-50 text-emerald-700' },
-}
+const statusMap = EPISODE_STATUS_MAP
 
 const hookTypes = ['悬念钩', '反转钩', '情绪钩', '信息钩', '危机钩']
 const rhythmPhases = ['起势', '攀升', '风暴', '决战']

@@ -16,10 +16,6 @@ function toPublic(user: { id: string; email: string; name: string; avatar: strin
 
 export const AuthService = {
   async register(input: CreateUserInput): Promise<UserPublic> {
-    if (input.password.length < 6) {
-      badRequestError('密码至少 6 个字符')
-    }
-
     const existing = await UserModel.findByEmail(input.email)
     if (existing) {
       badRequestError('邮箱已被注册')

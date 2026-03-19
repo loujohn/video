@@ -1,4 +1,4 @@
-import { getDb } from '../db'
+import { getDb, buildUpdateData } from '../db'
 import type { Scene, CreateSceneInput } from '../types'
 
 const TABLE = 'scenes'
@@ -28,14 +28,14 @@ export const SceneModel = {
   },
 
   async update(id: string, data: Partial<CreateSceneInput> & { is_active?: boolean }): Promise<Scene | undefined> {
-    const updateData: Record<string, unknown> = { updated_at: new Date() }
-    if (data.name !== undefined) updateData.name = data.name
-    if (data.location_type !== undefined) updateData.location_type = data.location_type
-    if (data.time_of_day !== undefined) updateData.time_of_day = data.time_of_day
-    if (data.description !== undefined) updateData.description = data.description
-    if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags)
-    if (data.image_prompt !== undefined) updateData.image_prompt = data.image_prompt
-    if (data.is_active !== undefined) updateData.is_active = data.is_active
+    const fields = [
+      'name', 'location_type', 'time_of_day', 'description',
+      'image_prompt', 'is_active',
+    ] as const
+    const updateData = buildUpdateData(data, fields)
+    if (data.tags !== undefined) {
+      updateData.tags = JSON.stringify(data.tags)
+    }
 
     const [scene] = await getDb()(TABLE).where({ id }).update(updateData).returning('*')
     return scene

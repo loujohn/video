@@ -15,12 +15,7 @@ const { data: teams } = useAsyncData('dashboard-teams', () =>
   $api<Team[]>('/api/teams'),
 )
 
-const statusMap: Record<string, { label: string; color: string }> = {
-  draft: { label: '草稿', color: 'bg-zinc-100 text-zinc-600' },
-  in_progress: { label: '进行中', color: 'bg-indigo-50 text-indigo-700' },
-  review: { label: '审核中', color: 'bg-amber-50 text-amber-700' },
-  completed: { label: '已完成', color: 'bg-emerald-50 text-emerald-700' },
-}
+const statusMap = PROJECT_STATUS_MAP
 </script>
 
 <template>
@@ -90,9 +85,10 @@ const statusMap: Record<string, { label: string; color: string }> = {
         </div>
 
         <div v-if="projects?.length" class="divide-y divide-zinc-50">
-          <div
+          <NuxtLink
             v-for="project in projects.slice(0, 5)"
             :key="project.id"
+            :to="`/projects/${project.id}`"
             class="flex items-center justify-between px-6 py-4 hover:bg-zinc-50/50 transition-colors cursor-pointer"
           >
             <div class="flex items-center gap-4">
@@ -112,7 +108,7 @@ const statusMap: Record<string, { label: string; color: string }> = {
             >
               {{ statusMap[project.status]?.label || project.status }}
             </span>
-          </div>
+          </NuxtLink>
         </div>
         <div v-else class="px-6 py-16 text-center">
           <div class="h-12 w-12 rounded-xl bg-zinc-100 flex items-center justify-center mx-auto mb-3">

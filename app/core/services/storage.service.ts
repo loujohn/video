@@ -6,10 +6,6 @@ function getStorageRoot(): string {
   return process.env.STORAGE_LOCAL_PATH || join(process.cwd(), 'uploads')
 }
 
-function sanitizeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200)
-}
-
 export const StorageService = {
   async saveFile(
     projectId: string,

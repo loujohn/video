@@ -52,11 +52,13 @@ export const AssetModel = {
 
   async update(id: string, data: Partial<Pick<Asset, 'linked_entity_type' | 'linked_entity_id' | 'category' | 'tags' | 'is_active' | 'metadata'>>): Promise<Asset | undefined> {
     const updateData: Record<string, unknown> = {}
-    if (data.linked_entity_type !== undefined) updateData.linked_entity_type = data.linked_entity_type
-    if (data.linked_entity_id !== undefined) updateData.linked_entity_id = data.linked_entity_id
-    if (data.category !== undefined) updateData.category = data.category
+    const fields = ['linked_entity_type', 'linked_entity_id', 'category', 'is_active'] as const
+    for (const field of fields) {
+      if ((data as Record<string, unknown>)[field] !== undefined) {
+        updateData[field] = (data as Record<string, unknown>)[field]
+      }
+    }
     if (data.tags !== undefined) updateData.tags = JSON.stringify(data.tags)
-    if (data.is_active !== undefined) updateData.is_active = data.is_active
     if (data.metadata !== undefined) updateData.metadata = JSON.stringify(data.metadata)
 
     if (Object.keys(updateData).length === 0) return this.findById(id)

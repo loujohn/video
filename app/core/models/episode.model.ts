@@ -1,4 +1,4 @@
-import { getDb } from '../db'
+import { getDb, buildUpdateData } from '../db'
 import type { Episode, CreateEpisodeInput } from '../types'
 
 const TABLE = 'episodes'
@@ -38,17 +38,12 @@ export const EpisodeModel = {
   },
 
   async update(id: string, data: Partial<CreateEpisodeInput> & { status?: string; is_active?: boolean }): Promise<Episode | undefined> {
-    const updateData: Record<string, unknown> = { updated_at: new Date() }
-    if (data.episode_number !== undefined) updateData.episode_number = data.episode_number
-    if (data.title !== undefined) updateData.title = data.title
-    if (data.synopsis !== undefined) updateData.synopsis = data.synopsis
-    if (data.hook_type !== undefined) updateData.hook_type = data.hook_type
-    if (data.is_key_episode !== undefined) updateData.is_key_episode = data.is_key_episode
-    if (data.is_paywall !== undefined) updateData.is_paywall = data.is_paywall
-    if (data.act !== undefined) updateData.act = data.act
-    if (data.rhythm_phase !== undefined) updateData.rhythm_phase = data.rhythm_phase
-    if (data.status !== undefined) updateData.status = data.status
-    if (data.is_active !== undefined) updateData.is_active = data.is_active
+    const fields = [
+      'episode_number', 'title', 'synopsis', 'hook_type',
+      'is_key_episode', 'is_paywall', 'act', 'rhythm_phase',
+      'status', 'is_active',
+    ] as const
+    const updateData = buildUpdateData(data, fields)
 
     const [episode] = await getDb()(TABLE).where({ id }).update(updateData).returning('*')
     return episode
