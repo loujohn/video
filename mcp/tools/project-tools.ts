@@ -54,6 +54,15 @@ export const projectTools = [
     },
   },
   {
+    name: 'get_creative_plan',
+    description: '获取项目的当前创作方案',
+    inputSchema: {
+      type: 'object' as const,
+      properties: { project_id: { type: 'string', description: '项目 ID' } },
+      required: ['project_id'],
+    },
+  },
+  {
     name: 'save_creative_plan',
     description: '保存项目创作方案（包含核心概念、故事线、主题、受众、爽点设计等）',
     inputSchema: {
@@ -82,6 +91,8 @@ export async function handleProjectTool(name: string, args: Record<string, unkno
       const { project_id, ...data } = args
       return JSON.stringify(await api.put(`/api/projects/${project_id}`, data), null, 2)
     }
+    case 'get_creative_plan':
+      return JSON.stringify(await api.get(`/api/projects/${args.project_id}/plan`), null, 2)
     case 'save_creative_plan':
       return JSON.stringify(
         await api.put(`/api/projects/${args.project_id}/plan`, {

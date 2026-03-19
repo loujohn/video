@@ -12,6 +12,21 @@ export interface User {
 
 export type UserPublic = Omit<User, 'password_hash'>
 
+export type UserUpdatable = Partial<Pick<User, 'name' | 'avatar' | 'role' | 'is_active'>>
+
+export function toUserPublic(user: Omit<User, 'password_hash'> & { password_hash?: string }): UserPublic {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    avatar: user.avatar,
+    role: user.role,
+    is_active: user.is_active,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+  }
+}
+
 export interface CreateUserInput {
   email: string
   name: string

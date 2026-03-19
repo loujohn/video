@@ -49,6 +49,27 @@ export const commentTools = [
       required: ['project_id', 'comment_id'],
     },
   },
+  {
+    name: 'delete_comment',
+    description: '删除评论',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        comment_id: { type: 'string', description: '评论 ID' },
+      },
+      required: ['project_id', 'comment_id'],
+    },
+  },
+  {
+    name: 'get_comment_counts',
+    description: '获取项目中各实体的评论计数',
+    inputSchema: {
+      type: 'object' as const,
+      properties: { project_id: { type: 'string', description: '项目 ID' } },
+      required: ['project_id'],
+    },
+  },
 ]
 
 export async function handleCommentTool(name: string, args: Record<string, unknown>): Promise<string> {
@@ -87,6 +108,12 @@ export async function handleCommentTool(name: string, args: Record<string, unkno
         2,
       )
     }
+
+    case 'delete_comment':
+      return JSON.stringify(await api.del(`/api/projects/${pid}/comments/${args.comment_id}`), null, 2)
+
+    case 'get_comment_counts':
+      return JSON.stringify(await api.get(`/api/projects/${pid}/comments/counts`), null, 2)
 
     default:
       throw new Error(`Unknown comment tool: ${name}`)

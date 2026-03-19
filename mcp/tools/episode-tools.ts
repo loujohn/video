@@ -30,6 +30,49 @@ export const episodeTools = [
     },
   },
   {
+    name: 'get_episode',
+    description: '获取分集详情',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        episode_number: { type: 'number', description: '集号' },
+      },
+      required: ['project_id', 'episode_number'],
+    },
+  },
+  {
+    name: 'update_episode',
+    description: '更新分集信息',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        episode_number: { type: 'number', description: '集号' },
+        title: { type: 'string', description: '标题' },
+        synopsis: { type: 'string', description: '概要' },
+        hook_type: { type: 'string', description: '钩子类型' },
+        is_key_episode: { type: 'boolean', description: '是否重点集' },
+        is_paywall: { type: 'boolean', description: '是否付费卡点' },
+        act: { type: 'number', description: '所属幕' },
+        rhythm_phase: { type: 'string', description: '节奏段落' },
+      },
+      required: ['project_id', 'episode_number'],
+    },
+  },
+  {
+    name: 'delete_episode',
+    description: '删除分集',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        episode_number: { type: 'number', description: '集号' },
+      },
+      required: ['project_id', 'episode_number'],
+    },
+  },
+  {
     name: 'save_episode_script',
     description: '保存分集剧本',
     inputSchema: {
@@ -66,6 +109,14 @@ export async function handleEpisodeTool(name: string, args: Record<string, unkno
       const { project_id, ...data } = args
       return JSON.stringify(await api.post(`/api/projects/${pid}/episodes`, data), null, 2)
     }
+    case 'get_episode':
+      return JSON.stringify(await api.get(`/api/projects/${pid}/episodes/${args.episode_number}`), null, 2)
+    case 'update_episode': {
+      const { project_id, episode_number, ...data } = args
+      return JSON.stringify(await api.put(`/api/projects/${pid}/episodes/${episode_number}`, data), null, 2)
+    }
+    case 'delete_episode':
+      return JSON.stringify(await api.del(`/api/projects/${pid}/episodes/${args.episode_number}`), null, 2)
     case 'save_episode_script': {
       const num = args.episode_number
       return JSON.stringify(

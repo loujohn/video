@@ -56,6 +56,39 @@ export const characterTools = [
     },
   },
   {
+    name: 'get_character',
+    description: '获取角色详情',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        character_id: { type: 'string', description: '角色 ID' },
+      },
+      required: ['project_id', 'character_id'],
+    },
+  },
+  {
+    name: 'delete_character',
+    description: '删除角色',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        character_id: { type: 'string', description: '角色 ID' },
+      },
+      required: ['project_id', 'character_id'],
+    },
+  },
+  {
+    name: 'get_character_relations',
+    description: '获取项目中的角色关系图',
+    inputSchema: {
+      type: 'object' as const,
+      properties: { project_id: { type: 'string', description: '项目 ID' } },
+      required: ['project_id'],
+    },
+  },
+  {
     name: 'set_character_relations',
     description: '批量设置角色之间的关系',
     inputSchema: {
@@ -95,6 +128,12 @@ export async function handleCharacterTool(name: string, args: Record<string, unk
       const { project_id, character_id, ...data } = args
       return JSON.stringify(await api.put(`/api/projects/${pid}/characters/${character_id}`, data), null, 2)
     }
+    case 'get_character':
+      return JSON.stringify(await api.get(`/api/projects/${pid}/characters/${args.character_id}`), null, 2)
+    case 'delete_character':
+      return JSON.stringify(await api.del(`/api/projects/${pid}/characters/${args.character_id}`), null, 2)
+    case 'get_character_relations':
+      return JSON.stringify(await api.get(`/api/projects/${pid}/character-relations`), null, 2)
     case 'set_character_relations':
       return JSON.stringify(
         await api.put(`/api/projects/${pid}/character-relations`, { relations: args.relations }),

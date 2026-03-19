@@ -145,10 +145,10 @@ function isSelf(u: UserPublic) {
 const roleMap: Record<string, string> = { admin: '管理员', user: '普通用户' }
 
 let searchTimer: ReturnType<typeof setTimeout>
-function onSearch(val: string) {
+function onSearch(val: string | number) {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    searchQuery.value = val
+    searchQuery.value = String(val)
     currentPage.value = 1
   }, 300)
 }

@@ -1,5 +1,5 @@
 import { getDb } from '../db'
-import type { User, CreateUserInput } from '../types'
+import type { User, CreateUserInput, UserUpdatable, UserPublic } from '../types'
 
 const TABLE = 'users'
 
@@ -24,7 +24,7 @@ export const UserModel = {
     return user
   },
 
-  async update(id: string, data: Record<string, any>): Promise<User | undefined> {
+  async update(id: string, data: UserUpdatable): Promise<User | undefined> {
     const [user] = await getDb()(TABLE)
       .where({ id })
       .update({ ...data, updated_at: new Date() })
@@ -43,7 +43,7 @@ export const UserModel = {
     is_active?: boolean
     page: number
     pageSize: number
-  }): Promise<{ users: any[]; total: number }> {
+  }): Promise<{ users: UserPublic[]; total: number }> {
     const query = getDb()(TABLE).select(
       'id', 'email', 'name', 'avatar', 'role', 'is_active', 'created_at', 'updated_at',
     )
