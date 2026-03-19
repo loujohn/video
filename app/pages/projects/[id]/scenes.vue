@@ -7,7 +7,7 @@ const { $api } = useApi()
 
 const activeTab = ref('scenes')
 
-const { data: project } = useAsyncData(`project-${projectId}`, () => $api<any>(`/api/projects/${projectId}`))
+const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () => $api<any>(`/api/projects/${projectId}`))
 
 const { data: scenes, refresh: refreshScenes } = useAsyncData(`scenes-${projectId}`, () =>
   $api<any[]>(`/api/projects/${projectId}/scenes`),
@@ -150,7 +150,9 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
   <LayoutAppLayout>
     <template #title>{{ project?.title || '项目' }} — 场景与道具</template>
 
-    <div class="max-w-5xl">
+    <CommonPageLoading v-if="projectStatus === 'pending'" />
+    <CommonPageError v-else-if="projectError" :error="projectError" :retry-fn="refreshProject" />
+    <div v-else class="max-w-5xl">
       <ProjectSubNav :project-id="projectId" />
 
       <div class="flex items-center gap-1 mb-6">

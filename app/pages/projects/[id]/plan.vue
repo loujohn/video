@@ -22,7 +22,7 @@ const route = useRoute()
 const projectId = route.params.id as string
 const { $api } = useApi()
 
-const { data: project } = useAsyncData(`project-${projectId}`, () =>
+const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
   $api<any>(`/api/projects/${projectId}`),
 )
 
@@ -126,7 +126,9 @@ async function handleSave() {
   <LayoutAppLayout>
     <template #title>{{ project?.title || '项目' }} — 创作方案</template>
 
-    <div class="max-w-5xl">
+    <CommonPageLoading v-if="projectStatus === 'pending'" />
+    <CommonPageError v-else-if="projectError" :error="projectError" :retry-fn="refreshProject" />
+    <div v-else class="max-w-5xl">
       <ProjectSubNav :project-id="projectId" />
 
       <div v-if="loading" class="flex items-center justify-center py-16 text-zinc-500">

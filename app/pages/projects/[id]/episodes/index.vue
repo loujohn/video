@@ -5,7 +5,7 @@ const route = useRoute()
 const projectId = route.params.id as string
 const { $api } = useApi()
 
-const { data: project } = useAsyncData(`project-${projectId}`, () => $api<any>(`/api/projects/${projectId}`))
+const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () => $api<any>(`/api/projects/${projectId}`))
 const { data: episodes, refresh } = useAsyncData(`eps-${projectId}`, () =>
   $api<any[]>(`/api/projects/${projectId}/episodes`),
 )
@@ -103,7 +103,9 @@ const rhythmPhases = ['起势', '攀升', '风暴', '决战']
   <LayoutAppLayout>
     <template #title>{{ project?.title || '项目' }} — 分集</template>
 
-    <div class="max-w-5xl">
+    <CommonPageLoading v-if="projectStatus === 'pending'" />
+    <CommonPageError v-else-if="projectError" :error="projectError" :retry-fn="refreshProject" />
+    <div v-else class="max-w-5xl">
       <ProjectSubNav :project-id="projectId" />
 
       <div class="flex items-center justify-between mb-6">

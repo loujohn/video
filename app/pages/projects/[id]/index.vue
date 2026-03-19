@@ -5,7 +5,7 @@ const route = useRoute()
 const projectId = route.params.id as string
 const { $api } = useApi()
 
-const { data: project, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
+const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
   $api<any>(`/api/projects/${projectId}`),
 )
 
@@ -45,7 +45,9 @@ const stats = computed(() => [
   <LayoutAppLayout>
     <template #title>{{ project?.title || '项目详情' }}</template>
 
-    <div class="max-w-5xl" v-if="project">
+    <CommonPageLoading v-if="projectStatus === 'pending'" />
+    <CommonPageError v-else-if="projectError" :error="projectError" :retry-fn="refreshProject" />
+    <div class="max-w-5xl" v-else-if="project">
       <ProjectSubNav :project-id="projectId" />
 
       <div class="space-y-6">

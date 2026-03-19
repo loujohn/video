@@ -12,7 +12,7 @@ const projectId = route.params.id as string
 const episodeNum = route.params.num as string
 const { $api } = useApi()
 
-const { data: project } = useAsyncData(`project-${projectId}`, () =>
+const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
   $api<any>(`/api/projects/${projectId}`),
 )
 
@@ -243,7 +243,9 @@ async function exportPDF() {
   <LayoutAppLayout>
     <template #title>第{{ episodeNum }}集 — 分镜管理</template>
 
-    <div class="max-w-6xl">
+    <CommonPageLoading v-if="projectStatus === 'pending'" />
+    <CommonPageError v-else-if="projectError" :error="projectError" :retry-fn="refreshProject" />
+    <div v-else class="max-w-6xl">
       <div class="flex items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-3">
           <NuxtLink

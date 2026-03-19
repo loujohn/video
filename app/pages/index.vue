@@ -4,7 +4,7 @@ import { Film, Users, TrendingUp, ArrowRight, Clapperboard } from 'lucide-vue-ne
 const { $api } = useApi()
 const { user } = useAuth()
 
-const { data: projects } = useAsyncData('dashboard-projects', () =>
+const { data: projects, status: projectsStatus, error: projectsError, refresh: refreshProjects } = useAsyncData('dashboard-projects', () =>
   $api<any[]>('/api/projects'),
 )
 
@@ -24,7 +24,9 @@ const statusMap: Record<string, { label: string; color: string }> = {
   <LayoutAppLayout>
     <template #title>仪表盘</template>
 
-    <div class="max-w-5xl space-y-8">
+    <CommonPageLoading v-if="projectsStatus === 'pending'" />
+    <CommonPageError v-else-if="projectsError" :error="projectsError" :retry-fn="refreshProjects" />
+    <div v-else class="max-w-5xl space-y-8">
       <div>
         <h2 class="text-2xl font-bold text-zinc-900">
           你好，{{ user?.name }} 👋

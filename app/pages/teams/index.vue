@@ -3,7 +3,7 @@ import { Plus, Users, UserPlus, Pencil } from 'lucide-vue-next'
 
 const { $api } = useApi()
 
-const { data: teams, refresh } = useAsyncData('my-teams', () =>
+const { data: teams, status: teamsStatus, error: teamsError, refresh } = useAsyncData('my-teams', () =>
   $api<any[]>('/api/teams'),
 )
 
@@ -105,7 +105,9 @@ const roleMap: Record<string, string> = { owner: '所有者', editor: '编辑者
   <LayoutAppLayout>
     <template #title>团队</template>
 
-    <div class="max-w-3xl">
+    <CommonPageLoading v-if="teamsStatus === 'pending'" />
+    <CommonPageError v-else-if="teamsError" :error="teamsError" :retry-fn="refresh" />
+    <div v-else class="max-w-3xl">
       <div class="flex items-center justify-between mb-6">
         <div>
           <h2 class="text-xl font-bold text-zinc-900">我的团队</h2>

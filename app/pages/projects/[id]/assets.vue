@@ -13,7 +13,7 @@ const batchMode = ref(false)
 const selectedIds = ref<Set<string>>(new Set())
 const compareOpen = ref(false)
 
-const { data: project } = useAsyncData(`project-${projectId}`, () =>
+const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
   $api<any>(`/api/projects/${projectId}`),
 )
 
@@ -151,7 +151,9 @@ function openCompare() {
 <template>
   <LayoutAppLayout>
     <template #title>{{ project?.title || '项目' }} — 资源库</template>
-    <div class="max-w-6xl">
+    <CommonPageLoading v-if="projectStatus === 'pending'" />
+    <CommonPageError v-else-if="projectError" :error="projectError" :retry-fn="refreshProject" />
+    <div v-else class="max-w-6xl">
       <ProjectSubNav :project-id="projectId" />
 
       <div class="flex items-center justify-between mb-6">

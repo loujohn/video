@@ -6,7 +6,7 @@ const projectId = route.params.id as string
 const episodeNum = route.params.num as string
 const { $api } = useApi()
 
-const { data: project } = useAsyncData(`project-${projectId}`, () =>
+const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
   $api<any>(`/api/projects/${projectId}`),
 )
 
@@ -88,7 +88,9 @@ function goBack() {
   <LayoutAppLayout>
     <template #title>{{ project?.title || '项目' }} — 第 {{ episodeNum }} 集剧本</template>
 
-    <div class="flex flex-col h-[calc(100vh-8rem)] max-w-4xl">
+    <CommonPageLoading v-if="projectStatus === 'pending'" />
+    <CommonPageError v-else-if="projectError" :error="projectError" :retry-fn="refreshProject" />
+    <div v-else class="flex flex-col h-[calc(100vh-8rem)] max-w-4xl">
       <ProjectSubNav :project-id="projectId" />
 
       <!-- Top bar -->
