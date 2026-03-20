@@ -56,11 +56,13 @@ const form = reactive<CreativePlanContent>({
   notes: '',
 })
 
+const savedForm = ref<CreativePlanContent>({})
+
 watch(
   planData,
   (data) => {
     if (data?.content) {
-      Object.assign(form, {
+      const c = {
         logline: data.content.logline ?? '',
         synopsis: data.content.synopsis ?? '',
         theme: data.content.theme ?? '',
@@ -71,11 +73,17 @@ watch(
         unique_selling_points: data.content.unique_selling_points ?? '',
         reference_works: data.content.reference_works ?? '',
         notes: data.content.notes ?? '',
-      })
+      }
+      Object.assign(form, c)
+      savedForm.value = { ...c }
     }
   },
   { immediate: true },
 )
+
+const hasUnsavedChanges = computed(() => {
+  return JSON.stringify(form) !== JSON.stringify(savedForm.value)
+})
 
 const showSaveDialog = ref(false)
 const changeSummary = ref('')
@@ -83,6 +91,7 @@ const saving = ref(false)
 const error = ref('')
 const showVersionHistory = ref(false)
 const showComments = ref(false)
+const autoSaveStatus = ref<'idle' | 'saving' | 'saved' | 'error'>('idle')
 
 const fields: { key: keyof CreativePlanContent; label: string; rows?: number }[] = [
   { key: 'logline', label: '一句话故事梗概', rows: 2 },
@@ -103,19 +112,24 @@ function openSaveDialog() {
   showSaveDialog.value = true
 }
 
+function buildContent(): CreativePlanContent {
+  const content: CreativePlanContent = {}
+  for (const f of fields) {
+    const v = form[f.key]
+    if (v != null && v !== '') content[f.key] = v
+  }
+  return content
+}
+
 async function handleSave() {
   error.value = ''
   saving.value = true
   try {
-    const content: CreativePlanContent = {}
-    for (const f of fields) {
-      const v = form[f.key]
-      if (v != null && v !== '') content[f.key] = v
-    }
     await $api(`/api/projects/${projectId}/plan`, {
       method: 'PUT',
-      body: { content, change_summary: changeSummary.value || undefined },
+      body: { content: buildContent(), change_summary: changeSummary.value || undefined },
     })
+    savedForm.value = { ...form }
     showSaveDialog.value = false
     refresh()
   } catch (e: any) {
@@ -124,6 +138,49 @@ async function handleSave() {
     saving.value = false
   }
 }
+
+async function autoSave() {
+  if (!hasUnsavedChanges.value || saving.value || showSaveDialog.value) return
+  autoSaveStatus.value = 'saving'
+  try {
+    await $api(`/api/projects/${projectId}/plan`, {
+      method: 'PUT',
+      body: { content: buildContent(), change_summary: '自动保存' },
+    })
+    savedForm.value = { ...form }
+    autoSaveStatus.value = 'saved'
+    refresh()
+    setTimeout(() => {
+      if (autoSaveStatus.value === 'saved') autoSaveStatus.value = 'idle'
+    }, 3000)
+  } catch {
+    autoSaveStatus.value = 'error'
+  }
+}
+
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+watch(form, () => {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  if (!showSaveDialog.value) {
+    autoSaveTimer = setTimeout(autoSave, 30000)
+  }
+}, { deep: true })
+
+function handleKeyDown(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault()
+    openSaveDialog()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+onBeforeUnmount(() => {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  document.removeEventListener('keydown', handleKeyDown)
+})
 </script>
 
 <template>
@@ -157,10 +214,17 @@ async function handleSave() {
             </div>
 
             <div class="flex items-center justify-between pt-4 border-t border-zinc-100">
-              <span class="text-sm text-zinc-500">
-                当前版本：v{{ planData?.version ?? 0 }}
-              </span>
+              <div class="flex items-center gap-3 text-sm text-zinc-500">
+                <span>当前版本：v{{ planData?.version ?? 0 }}</span>
+                <Badge v-if="hasUnsavedChanges" variant="outline" class="text-xs text-amber-600 border-amber-200 bg-amber-50">
+                  未保存
+                </Badge>
+                <span v-if="autoSaveStatus === 'saving'" class="text-xs text-amber-500">自动保存中...</span>
+                <span v-else-if="autoSaveStatus === 'saved'" class="text-xs text-emerald-500">已自动保存</span>
+                <span v-else-if="autoSaveStatus === 'error'" class="text-xs text-red-500">自动保存失败</span>
+              </div>
               <div class="flex items-center gap-2">
+                <span class="text-xs text-zinc-400 mr-2">Ctrl+S 保存</span>
                 <Button v-if="planData?.id" type="button" variant="outline" size="sm" @click="showComments = !showComments">
                   {{ showComments ? '收起评论' : '评论' }}
                 </Button>

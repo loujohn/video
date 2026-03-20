@@ -6,7 +6,7 @@ export function getDb(): Knex {
   if (!instance) {
     instance = knex({
       client: 'pg',
-      connection: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/drama_studio',
+      connection: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/drama_studio',
       pool: {
         min: 0,
         max: 10,

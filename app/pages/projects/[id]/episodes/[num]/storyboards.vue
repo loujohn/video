@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import type { Storyboard, Project, Scene } from '~/core/types'
-import { ArrowLeft, Plus, Film, LayoutGrid, GalleryHorizontal, Trash2, Download } from 'lucide-vue-next'
-import jsPDF from 'jspdf'
+import type { Storyboard, Project, Scene, Episode } from '~/core/types'
+import { ArrowLeft, Plus, Film, LayoutGrid, GalleryHorizontal, Trash2, Download, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
-
-// Note: jsPDF has limited Chinese character support by default. Chinese text may not render correctly.
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -15,6 +12,22 @@ const { $api } = useApi()
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
   $api<Project>(`/api/projects/${projectId}`),
 )
+
+const { data: episodes } = useAsyncData(`eps-nav-${projectId}`, () =>
+  $api<Episode[]>(`/api/projects/${projectId}/episodes`),
+)
+
+const currentEpisodeIndex = computed(() =>
+  episodes.value?.findIndex((ep) => String(ep.episode_number) === episodeNum) ?? -1,
+)
+const prevEpisode = computed(() => {
+  if (!episodes.value || currentEpisodeIndex.value <= 0) return null
+  return episodes.value[currentEpisodeIndex.value - 1]
+})
+const nextEpisode = computed(() => {
+  if (!episodes.value || currentEpisodeIndex.value < 0 || currentEpisodeIndex.value >= episodes.value.length - 1) return null
+  return episodes.value[currentEpisodeIndex.value + 1]
+})
 
 const { data: storyboards, refresh } = useAsyncData(
   `storyboards-${projectId}-${episodeNum}`,
@@ -153,89 +166,74 @@ const sceneOptions = computed(() =>
   (scenes.value ?? []).map((s) => ({ id: s.id, name: s.name })),
 )
 
+const shotTypeLabels: Record<string, string> = {
+  close: '近景',
+  medium: '中景',
+  wide: '远景',
+  pov: '主观',
+  establishing: '全景',
+}
+
 async function exportPDF() {
   const data = await $api<any>(`/api/projects/${projectId}/episodes/${episodeNum}/storyboards/export`)
   if (!data?.storyboards?.length) return
 
-  const doc = new jsPDF('p', 'mm', 'a4')
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const margin = 15
-  const contentWidth = pageWidth - 2 * margin
-  let y = margin
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) return
 
-  // Title
-  doc.setFontSize(18)
-  doc.text(`第${episodeNum}集 — 分镜脚本`, pageWidth / 2, y, { align: 'center' })
-  y += 12
+  const storyboardsHtml = data.storyboards.map((sb: any) => {
+    const meta = [
+      `#${String(sb.sequence_number).padStart(2, '0')}`,
+      shotTypeLabels[sb.shot_type] || sb.shot_type || '',
+      sb.scene_name || '',
+      sb.camera_movement || '',
+      sb.duration_seconds ? `${sb.duration_seconds}s` : '',
+    ].filter(Boolean).join('  ')
 
-  if (data.episode?.title) {
-    doc.setFontSize(12)
-    doc.text(data.episode.title, pageWidth / 2, y, { align: 'center' })
-    y += 10
-  }
+    const sections = []
+    if (sb.description) sections.push(`<p class="desc">${escapeHtml(sb.description)}</p>`)
+    if (sb.dialogue) sections.push(`<p class="dialogue">台词：${escapeHtml(sb.dialogue)}</p>`)
+    if (sb.action_direction) sections.push(`<p class="action">动作：${escapeHtml(sb.action_direction)}</p>`)
+    if (sb.image_prompt) sections.push(`<p class="prompt">提示词：${escapeHtml(sb.image_prompt)}</p>`)
 
-  doc.setDrawColor(200)
-  doc.line(margin, y, pageWidth - margin, y)
-  y += 8
+    return `<div class="storyboard"><div class="header">${escapeHtml(meta)}</div>${sections.join('')}</div>`
+  }).join('')
 
-  const shotTypeLabels: Record<string, string> = {
-    close: '近景',
-    medium: '中景',
-    wide: '远景',
-    pov: '主观',
-    establishing: '全景',
-  }
+  const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>分镜脚本-第${episodeNum}集</title>
+<style>
+  @page { margin: 15mm; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: #1e1e1e; font-size: 10pt; line-height: 1.6; }
+  h1 { text-align: center; font-size: 18pt; margin-bottom: 4pt; }
+  h2 { text-align: center; font-size: 12pt; color: #666; margin-bottom: 12pt; }
+  hr { border: none; border-top: 1px solid #ccc; margin: 8pt 0; }
+  .storyboard { margin-bottom: 12pt; break-inside: avoid; }
+  .header { background: #f0f0f0; padding: 4pt 8pt; font-size: 9pt; color: #444; border-radius: 3pt; font-weight: 500; }
+  .desc { margin: 4pt 0 2pt 8pt; font-size: 9pt; }
+  .dialogue { margin: 2pt 0 2pt 8pt; font-size: 9pt; color: #555; }
+  .action { margin: 2pt 0 2pt 8pt; font-size: 9pt; color: #666; }
+  .prompt { margin: 2pt 0 2pt 8pt; font-size: 9pt; color: #96640a; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+<h1>第${episodeNum}集 — 分镜脚本</h1>
+${data.episode?.title ? `<h2>${escapeHtml(data.episode.title)}</h2>` : ''}
+<hr>
+${storyboardsHtml}
+<script>window.onload = function() { window.print(); }<\/script>
+</body>
+</html>`
 
-  for (const sb of data.storyboards) {
-    if (y > 260) {
-      doc.addPage()
-      y = margin
-    }
+  printWindow.document.write(html)
+  printWindow.document.close()
+}
 
-    // Sequence number box
-    doc.setFillColor(240, 240, 240)
-    doc.roundedRect(margin, y - 4, contentWidth, 6, 1, 1, 'F')
-    doc.setFontSize(10)
-    doc.setTextColor(80)
-    const header = `#${String(sb.sequence_number).padStart(2, '0')}  ${shotTypeLabels[sb.shot_type] || sb.shot_type || ''}  ${sb.scene_name || ''}  ${sb.camera_movement || ''}  ${sb.duration_seconds ? sb.duration_seconds + 's' : ''}`
-    doc.text(header.trim(), margin + 3, y)
-    y += 6
-
-    doc.setTextColor(30)
-    doc.setFontSize(9)
-
-    if (sb.description) {
-      const lines = doc.splitTextToSize(sb.description, contentWidth - 6)
-      doc.text(lines, margin + 3, y + 2)
-      y += lines.length * 4 + 2
-    }
-
-    if (sb.dialogue) {
-      doc.setTextColor(100)
-      const dLines = doc.splitTextToSize(`台词：${sb.dialogue}`, contentWidth - 6)
-      doc.text(dLines, margin + 3, y + 2)
-      y += dLines.length * 4 + 2
-    }
-
-    if (sb.action_direction) {
-      doc.setTextColor(120)
-      const aLines = doc.splitTextToSize(`动作：${sb.action_direction}`, contentWidth - 6)
-      doc.text(aLines, margin + 3, y + 2)
-      y += aLines.length * 4 + 2
-    }
-
-    if (sb.image_prompt) {
-      doc.setTextColor(150, 100, 0)
-      const pLines = doc.splitTextToSize(`提示词：${sb.image_prompt}`, contentWidth - 6)
-      doc.text(pLines, margin + 3, y + 2)
-      y += pLines.length * 4 + 2
-    }
-
-    doc.setTextColor(0)
-    y += 6
-  }
-
-  doc.save(`分镜脚本-第${episodeNum}集.pdf`)
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 </script>
 
@@ -257,6 +255,27 @@ async function exportPDF() {
           <h2 class="text-lg font-bold text-zinc-900">第{{ episodeNum }}集 — 分镜管理</h2>
         </div>
         <div class="flex items-center gap-2">
+          <!-- Episode navigation -->
+          <div class="flex items-center gap-1 mr-1">
+            <NuxtLink
+              v-if="prevEpisode"
+              :to="`/projects/${projectId}/episodes/${prevEpisode.episode_number}/storyboards`"
+              class="inline-flex h-7 items-center gap-1 px-2 rounded-md text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+              title="上一集"
+            >
+              <ChevronLeft class="h-3.5 w-3.5" />
+              上一集
+            </NuxtLink>
+            <NuxtLink
+              v-if="nextEpisode"
+              :to="`/projects/${projectId}/episodes/${nextEpisode.episode_number}/storyboards`"
+              class="inline-flex h-7 items-center gap-1 px-2 rounded-md text-xs text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 transition-colors"
+              title="下一集"
+            >
+              下一集
+              <ChevronRight class="h-3.5 w-3.5" />
+            </NuxtLink>
+          </div>
           <div class="flex items-center rounded-lg border border-zinc-200 p-0.5">
             <button
               :class="['px-2 py-1 rounded-md text-xs font-medium transition-colors', viewMode === 'grid' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-700']"
