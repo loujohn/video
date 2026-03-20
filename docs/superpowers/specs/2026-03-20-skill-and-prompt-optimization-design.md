@@ -443,6 +443,68 @@ AI 以「剧本写手」角色，根据导演骨架填充具体内容：
 - 服装可按场景变化，但 distinctive_features 始终保留
 - 中英文双版本，根据模型选择自动切换
 
+### 2.1.1 角色三视图提示词（Character Turnaround Sheet）
+
+角色创建后，自动生成三视图（正面、侧面、背面）提示词，用于建立角色的视觉基准。三视图是后续所有分镜图片保持角色一致性的基础。
+
+**三视图 Prompt 结构**：
+
+```json
+{
+  "turnaround_prompts": {
+    "front": "正面视图提示词",
+    "side": "侧面视图提示词",
+    "back": "背面视图提示词",
+    "combined": "三合一视图提示词（单张图包含三个角度）"
+  }
+}
+```
+
+**Gemini 三视图模板**：
+
+```
+// 三合一版本（推荐，一张图包含三个角度）
+"Character turnaround sheet of [IDENTITY_BLOCK], showing front view, right side view, and back view on a clean white background. Full body, neutral standing pose, consistent proportions across all three views. [OUTFIT]. Orthographic projection, character design reference sheet, professional concept art quality. 9:16 vertical layout with three views stacked vertically."
+
+// 单视图版本 - 正面
+"Full body front view of [IDENTITY_BLOCK]. Neutral standing pose, arms slightly away from body. [OUTFIT]. Clean white background. Professional character design, detailed features visible. Vertical portrait 9:16."
+
+// 单视图版本 - 侧面
+"Full body right side profile view of [IDENTITY_BLOCK]. Neutral standing pose. [OUTFIT]. Clean white background. Professional character design showing depth and silhouette. Vertical portrait 9:16."
+
+// 单视图版本 - 背面
+"Full body back view of [IDENTITY_BLOCK]. Neutral standing pose. [OUTFIT]. Clean white background. Professional character design showing hair, outfit details from behind. Vertical portrait 9:16."
+```
+
+**即梦三视图模板**：
+
+```
+// 三合一版本
+"三视图，全身像，正面，侧面，背面，[IDENTITY_BLOCK_CN]，中性站姿，白色背景，[OUTFIT_CN]，角色设定图，高细节，最好的质量，UHD，专业概念设计，竖版排列，9:16比例"
+
+// 单视图版本 - 正面
+"全身正面视图，[IDENTITY_BLOCK_CN]，中性站姿，双臂自然下垂，[OUTFIT_CN]，白色背景，角色设定，高细节，8K画质，竖版，9:16比例"
+
+// 单视图版本 - 侧面
+"全身右侧面视图，[IDENTITY_BLOCK_CN]，中性站姿，[OUTFIT_CN]，白色背景，角色设定，展示轮廓和层次，高细节，8K画质，竖版，9:16比例"
+
+// 单视图版本 - 背面
+"全身背面视图，[IDENTITY_BLOCK_CN]，中性站姿，[OUTFIT_CN]，白色背景，角色设定，展示发型和服装背面细节，高细节，8K画质，竖版，9:16比例"
+```
+
+**在 /角色开发 命令中的集成**：
+
+角色创建完成后，自动为每个主要角色生成三视图提示词：
+1. 根据角色的 character_anchor 填充 identity block
+2. 根据项目模型选择（Gemini/即梦）选择对应模板
+3. 将三视图提示词存储在角色的 `image_prompt` 字段中（JSON 格式，包含 `character_anchor` 和 `turnaround_prompts`）
+4. 提示用户可以使用三视图提示词生成参考图，后续分镜将基于此保持一致性
+
+**三视图与分镜的关系**：
+- 三视图是「角色锚点」的视觉化表达
+- 在即梦中，三视图可作为后续分镜的参考图输入
+- 在 Gemini 中，三视图的文字描述（identity block）在所有分镜中保持一致
+
 ### 2.2 「风格 × 题材 × 模型」三维提示词矩阵
 
 重构 `PROMPT_TEMPLATES`，从一维（6 风格）扩展为三维：
@@ -798,17 +860,20 @@ const NEGATIVE_PROMPTS = {
 
 | 文件 | 变更内容 |
 |------|----------|
-| `skills/SKILL.md` | 重构命令流程，增加 /风格 命令，强化 /分集 和 /分镜 |
+| `skills/SKILL.md` | 重构命令流程，增加 /风格 和 /视频 命令，强化 /分集、/分镜、/角色开发 |
 | `skills/references/opening-rules.md` | 增加 3-7-21 规则、prompt 模板、few-shot 示例、自检清单 |
 | `skills/references/rhythm-curve.md` | 增加 3-15-30 结构、导演层模板、beat sheet 格式 |
 | `skills/references/hook-design.md` | 增加钩子 prompt 模板、few-shot 示例 |
 | `skills/references/paywall-design.md` | 重构为 5 块付费壁感知架构 |
 | `skills/references/satisfaction-matrix.md` | 增加爽点 prompt 模板、与导演层集成 |
 | `skills/references/villain-design.md` | 增加反派 prompt 模板、few-shot 示例 |
-| `skills/references/storyboard-guide.md` | 增加动态 prompt 组装指南、20-60-20 构图规则 |
+| `skills/references/storyboard-guide.md` | 增加动态 prompt 组装指南、20-60-20 构图规则、视频提示词指南 |
 | `skills/references/visual-style-guide.md` | 增加题材视觉映射表、模型适配指南 |
 | `skills/references/genre-guide.md` | 增加对白风格特征、出海文化适配 |
-| `mcp/tools/image-tools.ts` | 重构 PROMPT_TEMPLATES 为三维矩阵，增加负面提示词 |
+| `mcp/tools/image-tools.ts` | 重构 PROMPT_TEMPLATES 为三维矩阵，增加负面提示词、三视图模板 |
+| `app/core/types/storyboard.ts` | 新增 `video_prompt` 字段 |
+| `app/core/models/storyboard.model.ts` | 新增 `video_prompt` 字段 |
+| `server/schemas/storyboard.ts` | 新增 `video_prompt` 字段 |
 
 ### 新增的文件
 
@@ -816,13 +881,141 @@ const NEGATIVE_PROMPTS = {
 |------|------|
 | `skills/references/dialogue-style-guide.md` | 对白风格库（按题材分类） |
 | `skills/references/overseas-writing-guide.md` | 出海模式英文剧本写作指导 |
+| `migrations/YYYYMMDD_add_video_prompt.ts` | 为 storyboard 表添加 video_prompt 字段 |
+
+---
+
+## 第四部分：AI 视频片段管理
+
+### 4.1 问题分析
+
+当前平台的创作流程是：剧本 → 分镜 → 图片提示词。但在实际 AI 短剧制作中，每集由多个 AI 生成的视频片段组成，这些视频片段需要管理和追踪。
+
+现有的分镜（storyboard）数据模型已经包含了镜头的基本信息（shot_type、camera_angle、duration_seconds 等），但缺少视频生成和管理的环节。
+
+### 4.2 视频片段与分镜的关系
+
+```
+分集剧本（Episode Script）
+  └── 场景（Scene）
+       └── 分镜（Storyboard）—— 已有
+            ├── 图片提示词（image_prompt）—— 已有
+            ├── 图片资源（通过 entity_assets 关联）—— 已有
+            └── 视频提示词（video_prompt）—— 新增
+                 └── 视频资源（通过 entity_assets 关联）—— 利用现有资源系统
+```
+
+每个分镜可以关联：
+- 1 张参考图片（已有 `reference_image_url` 字段）
+- 1 个图片生成提示词（已有 `image_prompt` 字段）
+- 多张生成的图片（通过 `entity_assets` 关联，已有）
+- 1 个视频生成提示词（**新增 `video_prompt` 字段**）
+- 多个生成的视频片段（通过 `entity_assets` 关联，已有资源系统支持）
+
+### 4.3 视频提示词设计
+
+在分镜数据中新增 `video_prompt` 字段，用于存储 AI 视频生成的提示词。
+
+**视频提示词结构**：
+
+```json
+{
+  "video_prompt": {
+    "positive": "视频生成正面提示词",
+    "negative": "视频生成负面提示词",
+    "duration": 3,
+    "motion_description": "运动描述",
+    "camera_movement": "推/拉/摇/跟/升降/手持",
+    "reference_image": "参考图片URL（从分镜图片中选择）",
+    "model": "jimeng/runway/kling"
+  }
+}
+```
+
+**Gemini 视频提示词模板**（用于描述，实际视频生成可能使用其他模型）：
+
+```
+"[DURATION]s video clip. [IDENTITY_BLOCK] [ACTION_DESCRIPTION]. Camera: [CAMERA_MOVEMENT]. [SCENE_ANCHOR]. [LIGHTING_FROM_GENRE]. Smooth motion, cinematic quality. 9:16 vertical format."
+```
+
+**即梦视频提示词模板**：
+
+```
+"[DURATION]秒视频，[IDENTITY_BLOCK_CN]，[ACTION_DESCRIPTION_CN]，[CAMERA_MOVEMENT_CN]，[SCENE_ANCHOR_CN]，[LIGHTING_CN]，流畅运动，电影质感，竖版9:16"
+```
+
+### 4.4 在 SKILL 中的集成
+
+#### /分镜 N 命令扩展
+
+在生成分镜的图片提示词之后，自动为每个分镜生成视频提示词：
+
+```
+/分镜 N（扩展后）
+
+Process 新增步骤：
+...（原有步骤 1-9）
+10. 为每个分镜生成视频提示词：
+    a. 基于图片提示词 + 分镜的 action_direction 生成运动描述
+    b. 根据分镜的 camera_movement 字段确定镜头运动
+    c. 根据分镜的 duration_seconds 确定时长
+    d. 输出视频提示词并保存
+11. 输出每集的视频片段概览表
+```
+
+#### 新增 /视频 N 命令
+
+```
+### /视频 N
+
+**Input**：用户指定集数 N，可附带视频生成重点或修改意见。
+
+**Process**：
+1. 调用 `list_storyboards` 获取第 N 集所有分镜
+2. 检查每个分镜是否已有视频提示词
+3. 为缺少视频提示词的分镜生成提示词
+4. 输出第 N 集的完整视频制作清单：
+   - 分镜序号 | 时长 | 镜头类型 | 运镜 | 视频提示词 | 状态
+5. 提示用户可以：
+   - 修改某个分镜的视频提示词
+   - 导出所有视频提示词（用于批量生成）
+   - 标记已生成的视频片段
+
+**Output**：第 N 集视频制作清单，提示用户生成视频或继续下一集。
+```
+
+### 4.5 视频资源管理
+
+利用现有的资源管理系统（`entity_assets`）来关联视频文件：
+
+```
+工作流：
+1. AI 生成视频片段（在外部工具中完成）
+2. 用户上传视频到平台（upload_asset）
+3. 关联视频到对应分镜（link_entity_asset，entity_type: storyboard）
+4. 在分镜卡片中展示关联的视频和图片
+
+资源类型标记：
+- 图片资源：mime_type 为 image/*
+- 视频资源：mime_type 为 video/*
+- 现有的 asset 系统已支持 mime_type 区分
+```
+
+### 4.6 数据模型变更
+
+**需要新增的字段**：
+
+```
+storyboard 表新增：
+- video_prompt: text | null  —— 视频生成提示词（JSON 字符串）
+```
+
+这是本 spec 中唯一需要修改数据库 schema 的地方。需要一个新的 migration 文件。
 
 ---
 
 ## 不在范围内
 
-- 不修改数据库 schema（character_anchor 存储在现有 image_prompt 字段中）
-- 不修改 MCP 工具的 API 接口（只修改模板内容和 SKILL 指导）
-- 不增加新的 MCP 工具
-- 不修改前端 UI
-- 不涉及视频生成（只涉及图片生成提示词）
+- 不修改前端 UI（视频片段的展示可在后续迭代中处理）
+- 不涉及实际的 AI 视频生成调用（只生成提示词，实际生成在外部工具完成）
+- 不修改认证、团队管理等非创作相关功能
