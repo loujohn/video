@@ -31,6 +31,7 @@ export const StoryboardModel = {
         shot_type: input.shot_type ?? null,
         camera_angle: input.camera_angle ?? null,
         scene_id: input.scene_id ?? null,
+        scene_variant_id: input.scene_variant_id ?? null,
         description: input.description ?? null,
         dialogue: input.dialogue ?? null,
         action_direction: input.action_direction ?? null,
@@ -49,9 +50,9 @@ export const StoryboardModel = {
 
   async update(id: string, data: Partial<CreateStoryboardInput> & { is_active?: boolean }): Promise<Storyboard | undefined> {
     const fields = [
-      'sequence_number', 'shot_type', 'camera_angle', 'scene_id', 'description',
-      'dialogue', 'action_direction', 'music_cue', 'sound_effects', 'notes',
-      'duration_seconds', 'reference_image_url', 'camera_movement',
+      'sequence_number', 'shot_type', 'camera_angle', 'scene_id', 'scene_variant_id',
+      'description', 'dialogue', 'action_direction', 'music_cue', 'sound_effects',
+      'notes', 'duration_seconds', 'reference_image_url', 'camera_movement',
       'transition_type', 'image_prompt', 'is_active',
     ] as const
     const updateData = buildUpdateData(data, fields)
