@@ -169,15 +169,19 @@ async function submitVariant() {
   variantError.value = ''
   variantLoading.value = true
   try {
+    const body = {
+      ...variantForm,
+      variant_type: variantForm.variant_type || undefined,
+    }
     if (editingVariant.value) {
-      await $api(`/api/projects/${projectId}/scenes/${variantParentSceneId.value}/variants/${editingVariant.value.id}`, { method: 'PUT', body: variantForm })
+      await $api(`/api/projects/${projectId}/scenes/${variantParentSceneId.value}/variants/${editingVariant.value.id}`, { method: 'PUT', body })
     } else {
-      await $api(`/api/projects/${projectId}/scenes/${variantParentSceneId.value}/variants`, { method: 'POST', body: variantForm })
+      await $api(`/api/projects/${projectId}/scenes/${variantParentSceneId.value}/variants`, { method: 'POST', body })
     }
     showVariantForm.value = false
     await refreshVariants(variantParentSceneId.value)
   } catch (e: any) {
-    variantError.value = e.data?.statusMessage || '操作失败'
+    variantError.value = e.data?.message || e.data?.statusMessage || '操作失败'
   } finally {
     variantLoading.value = false
   }

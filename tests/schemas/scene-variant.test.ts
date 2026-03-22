@@ -45,6 +45,14 @@ describe('createSceneVariantSchema', () => {
     expect(result.success).toBe(false)
   })
 
+  it('treats empty string variant_type as undefined (frontend compatibility)', () => {
+    const result = createSceneVariantSchema.safeParse({ name: '变体', variant_type: '' })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.variant_type).toBeUndefined()
+    }
+  })
+
   it('rejects name over 100 characters', () => {
     const result = createSceneVariantSchema.safeParse({ name: 'a'.repeat(101) })
     expect(result.success).toBe(false)

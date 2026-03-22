@@ -3,7 +3,7 @@ import type { Knex } from 'knex'
 const config: { [key: string]: Knex.Config } = {
   development: {
     client: 'pg',
-    connection: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/drama_studio',
+    connection: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/drama_studio',
     migrations: {
       directory: './migrations',
       extension: 'ts',

@@ -173,7 +173,7 @@ async function submitLook() {
     showLookForm.value = false
     await refreshLooks(lookParentCharacterId.value)
   } catch (e: any) {
-    lookError.value = e.data?.statusMessage || '操作失败'
+    lookError.value = e.data?.message || e.data?.statusMessage || '操作失败'
   } finally {
     lookLoading.value = false
   }
