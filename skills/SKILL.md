@@ -33,10 +33,10 @@
 |------|------|---------------|
 | /开始 | 选题定位，创建/选择项目 | list_teams, list_projects, create_project, get_project, update_project |
 | /创作方案 | 生成故事骨架，保存创作方案 | get_project, get_creative_plan, save_creative_plan |
-| /角色开发 | 生成角色档案与关系 | list_characters, get_character, create_character, update_character, delete_character, get_character_relations, set_character_relations |
+| /角色开发 | 生成角色档案与关系 | list_characters, get_character, create_character, update_character, delete_character, get_character_relations, set_character_relations, list_character_looks, create_character_look, update_character_look, delete_character_look |
 | /目录 | 生成分集目录 | list_episodes, get_episode, create_episode, update_episode, delete_episode |
 | /分集 N | 生成第 N 集剧本 | get_episode, get_episode_script, save_episode_script, list_characters, list_scenes, list_props |
-| /分镜 N | 生成第 N 集分镜 | list_storyboards, get_storyboard, create_storyboard, update_storyboard, delete_storyboard, reorder_storyboards, export_storyboards |
+| /分镜 N | 生成第 N 集分镜 | list_storyboards, get_storyboard, create_storyboard, update_storyboard, delete_storyboard, reorder_storyboards, export_storyboards, list_scene_variants, create_scene_variant |
 | /出海 | 切换出海模式 | update_project (mode: overseas, language: en-US) |
 
 ---
@@ -80,7 +80,8 @@
 1. 加载 `villain-design.md` 参考
 2. 调用 `list_characters` 查看已有角色
 3. 调用 `get_character_relations` 查看已有关系图谱
-4. 为主角、重要配角、反派体系调用 `create_character` 或 `update_character`
+4. 为主角、重要配角、反派体系调用 `create_character` 或 `update_character`（创建角色时自动创建基础形象）
+5. 为每个角色管理形象：调用 `list_character_looks` 查看已有形象，`create_character_look` 创建新形象（如日常装、战斗装等），`update_character_look` 更新形象提示词
 5. 必要时调用 `delete_character` 移除废弃角色
 6. 调用 `set_character_relations` 建立角色关系图谱
 
@@ -151,6 +152,24 @@
 ## 辅助命令
 
 除六个核心创作命令外，你还可以使用以下工具完成平台管理与辅助操作：
+
+### 角色形象管理
+
+| 工具 | 功能 |
+|------|------|
+| `list_character_looks` | 列出角色所有形象（造型） |
+| `create_character_look` | 创建角色形象 |
+| `update_character_look` | 更新角色形象 |
+| `delete_character_look` | 删除角色形象 |
+
+### 场景变体管理
+
+| 工具 | 功能 |
+|------|------|
+| `list_scene_variants` | 列出场景所有变体 |
+| `create_scene_variant` | 创建场景变体 |
+| `update_scene_variant` | 更新场景变体 |
+| `delete_scene_variant` | 删除场景变体 |
 
 ### 评论与协作
 
