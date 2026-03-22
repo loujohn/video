@@ -3,7 +3,7 @@ import type { CommentEntityType, CommentStatus } from '../../app/core/types'
 
 describe('comment entity type enum', () => {
   const validTypes: CommentEntityType[] = [
-    'episode_script', 'storyboard', 'character', 'scene', 'prop', 'creative_plan',
+    'episode_script', 'storyboard', 'character', 'scene', 'prop', 'creative_plan', 'asset',
   ]
 
   it.each(validTypes)('"%s" is a valid entity type', (type) => {
