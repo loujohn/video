@@ -1,6 +1,6 @@
 import { CharacterLookModel } from '../models/character-look.model'
 import { CharacterService } from './character.service'
-import { notFoundError } from '../errors'
+import { notFoundError, badRequestError } from '../errors'
 import type { CharacterLook, CreateCharacterLookInput } from '../types'
 
 export const CharacterLookService = {
@@ -43,6 +43,7 @@ export const CharacterLookService = {
     await CharacterService.get(projectId, characterId, userId)
     const look = await CharacterLookModel.findById(lookId)
     if (!look || look.character_id !== characterId) notFoundError('角色形象不存在')
+    if (look.is_base) badRequestError('基础形象不能删除')
     await CharacterLookModel.delete(lookId)
   },
 }

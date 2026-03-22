@@ -33,6 +33,7 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
 COPY --from=build /app/knexfile.ts ./
 COPY --from=build /app/migrations ./migrations
+COPY --from=build /app/seeds ./seeds
 
 RUN mkdir -p /app/uploads
 

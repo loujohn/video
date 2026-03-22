@@ -10,7 +10,7 @@ export const SceneVariantModel = {
 
   async findByScene(sceneId: string): Promise<SceneVariant[]> {
     return getDb()(TABLE)
-      .where({ scene_id: sceneId })
+      .where({ scene_id: sceneId, is_active: true })
       .orderBy('sort_order', 'asc')
   },
 

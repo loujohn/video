@@ -1,5 +1,5 @@
 import { CharacterModel } from '../models/character.model'
-import { CharacterLookModel } from '../models/character-look.model'
+import { CharacterLookService } from './character-look.service'
 import { ProjectService } from './project.service'
 import { notFoundError } from '../errors'
 import type { Character, CreateCharacterInput, CharacterRelation } from '../types'
@@ -20,12 +20,12 @@ export const CharacterService = {
   async create(projectId: string, input: CreateCharacterInput, userId: string): Promise<Character> {
     await ProjectService.getProject(projectId, userId)
     const character = await CharacterModel.create(projectId, input)
-    await CharacterLookModel.create(character.id, {
-      name: '基础形象',
-      image_prompt: input.image_prompt ?? undefined,
-      is_base: true,
-      sort_order: 0,
-    })
+    try {
+      await CharacterLookService.createBaseLook(character.id, input.image_prompt)
+    } catch (e) {
+      await CharacterModel.delete(character.id)
+      throw e
+    }
     return character
   },
 

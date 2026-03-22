@@ -1,4 +1,4 @@
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { readFile, access } from 'fs/promises'
 import { lookup } from '~~/server/utils/mime'
 
@@ -8,14 +8,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing path' })
   }
 
-  if (pathParam.includes('..')) {
-    throw createError({ statusCode: 403, message: 'Forbidden' })
-  }
+  const storageRoot = resolve(process.env.STORAGE_LOCAL_PATH || join(process.cwd(), 'uploads'))
+  const filePath = resolve(storageRoot, pathParam)
 
-  const storageRoot = process.env.STORAGE_LOCAL_PATH || join(process.cwd(), 'uploads')
-  const filePath = join(storageRoot, pathParam)
-
-  if (!filePath.startsWith(storageRoot)) {
+  if (!filePath.startsWith(storageRoot + '/') && filePath !== storageRoot) {
     throw createError({ statusCode: 403, message: 'Forbidden' })
   }
 

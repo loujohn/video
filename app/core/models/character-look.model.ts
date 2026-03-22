@@ -10,7 +10,7 @@ export const CharacterLookModel = {
 
   async findByCharacter(characterId: string): Promise<CharacterLook[]> {
     return getDb()(TABLE)
-      .where({ character_id: characterId })
+      .where({ character_id: characterId, is_active: true })
       .orderBy('sort_order', 'asc')
   },
 
