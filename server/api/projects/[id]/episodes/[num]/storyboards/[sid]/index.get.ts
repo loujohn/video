@@ -5,5 +5,5 @@ export default defineApiHandler(async (event) => {
   const num = Number(getRouterParam(event, 'num'))
   if (!Number.isInteger(num) || num < 1) badRequest('无效的集号')
   const sid = getRouterParam(event, 'sid')!
-  return ok(await StoryboardService.get(projectId, num, sid, userId))
+  return ok(await StoryboardService.getWithAssociations(projectId, num, sid, userId))
 })
