@@ -36,7 +36,7 @@
 | /角色开发 | 生成角色档案与关系 | list_characters, get_character, create_character, update_character, delete_character, get_character_relations, set_character_relations, list_character_looks, create_character_look, update_character_look, delete_character_look |
 | /目录 | 生成分集目录 | list_episodes, get_episode, create_episode, update_episode, delete_episode |
 | /分集 N | 生成第 N 集剧本 | get_episode, get_episode_script, save_episode_script, list_characters, list_scenes, list_props |
-| /分镜 N | 生成第 N 集分镜 | list_storyboards, get_storyboard, create_storyboard, update_storyboard, delete_storyboard, reorder_storyboards, export_storyboards, list_scene_variants, create_scene_variant |
+| /分镜 N | 生成第 N 集分镜 | list_storyboards, get_storyboard, create_storyboard, update_storyboard, delete_storyboard, reorder_storyboards, export_storyboards, list_scene_variants, create_scene_variant, list_prop_variants, create_prop_variant, list_character_looks |
 | /出海 | 切换出海模式 | update_project (mode: overseas, language: en-US) |
 
 ---
@@ -128,10 +128,11 @@
 1. 加载 `storyboard-guide.md`、`visual-style-guide.md` 参考
 2. 调用 `get_episode_script` 获取第 N 集剧本
 3. 调用 `list_storyboards` 查看已有分镜
-4. 调用 `list_scenes`、`list_characters` 获取场景和角色信息
-5. 按剧本内容生成分镜序列，为每个镜头调用 `create_storyboard`
-6. 必要时调用 `update_storyboard` 修改或 `delete_storyboard` 删除分镜
-7. 调用 `reorder_storyboards` 调整分镜顺序
+4. 调用 `list_scenes`、`list_characters`、`list_props` 获取场景、角色和道具信息
+5. 调用 `list_scene_variants`、`list_character_looks`、`list_prop_variants` 获取变体/形象信息
+6. 按剧本内容生成分镜序列，为每个镜头调用 `create_storyboard`，指定 `scene_variant_id`、`character_look_ids`、`prop_variant_ids` 关联具体的场景变体、角色形象和道具变体
+7. 必要时调用 `update_storyboard` 修改或 `delete_storyboard` 删除分镜
+8. 调用 `reorder_storyboards` 调整分镜顺序
 
 **Output**：第 N 集分镜摘要，提示用户导出分镜表（`export_storyboards`）或继续创作。
 
@@ -170,6 +171,15 @@
 | `create_scene_variant` | 创建场景变体 |
 | `update_scene_variant` | 更新场景变体 |
 | `delete_scene_variant` | 删除场景变体 |
+
+### 道具变体管理
+
+| 工具 | 功能 |
+|------|------|
+| `list_prop_variants` | 列出道具所有变体 |
+| `create_prop_variant` | 创建道具变体 |
+| `update_prop_variant` | 更新道具变体 |
+| `delete_prop_variant` | 删除道具变体 |
 
 ### 评论与协作
 
