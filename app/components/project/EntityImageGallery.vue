@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Upload, ZoomIn, Trash2, Ban, RotateCcw, Star, Play } from 'lucide-vue-next'
+import { Upload, ZoomIn, Trash2, Ban, RotateCcw, Star, Play, MessageSquare } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import type { Asset } from '~/core/types/asset'
 
@@ -38,15 +38,48 @@ const { data: assets, refresh } = useAsyncData(
   { watch: [() => props.entityId, assetsUrl] },
 )
 
-const activeAssets = computed(() => (assets.value ?? []).filter(i => i.is_active))
+const activeAssets = computed(() =>
+  (assets.value ?? [])
+    .filter(i => i.is_active)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+)
 const discardedAssets = computed(() => (assets.value ?? []).filter(i => !i.is_active))
 const discardedCount = computed(() => discardedAssets.value.length)
+
+const hasConfirmedCover = computed(() => activeAssets.value.some(i => (i.metadata as any)?.is_cover))
 
 const coverAsset = computed(() => {
   const active = activeAssets.value
   const starred = active.find(i => (i.metadata as any)?.is_cover)
   return starred || active[0] || null
 })
+
+const commentCounts = ref<Record<string, number>>({})
+const commentAsset = ref<Asset | null>(null)
+const showCommentSheet = ref(false)
+
+async function loadCommentCounts() {
+  const ids = activeAssets.value.map(a => a.id)
+  if (!ids.length) return
+  try {
+    const params = new URLSearchParams()
+    params.set('entity_type', 'asset')
+    ids.forEach(id => params.append('entity_ids', id))
+    const data = await $api<Record<string, number>>(`/api/projects/${props.projectId}/comments/counts?${params}`)
+    commentCounts.value = data ?? {}
+  } catch {}
+}
+
+watch(activeAssets, loadCommentCounts, { immediate: true })
+
+function openAssetComments(asset: Asset) {
+  commentAsset.value = asset
+  showCommentSheet.value = true
+}
+
+function getCommentCount(assetId: string): number {
+  return commentCounts.value[assetId] || 0
+}
 
 const coverUrl = computed(() => coverAsset.value ? `/uploads/${coverAsset.value.file_path}` : null)
 
@@ -266,8 +299,12 @@ function onDragLeave() {
       <div
         v-for="item in activeAssets"
         :key="item.id"
-        class="group/img relative aspect-square rounded-lg overflow-hidden border bg-zinc-50 transition-all"
-        :class="isCover(item) ? 'border-indigo-400 ring-1 ring-indigo-200' : 'border-zinc-200'"
+        class="group/img relative aspect-square rounded-lg overflow-hidden bg-zinc-50 transition-all"
+        :class="[
+          isCover(item) && hasConfirmedCover ? 'border-2 border-indigo-400 ring-1 ring-indigo-200' :
+          isCover(item) && !hasConfirmedCover ? 'border-2 border-dashed border-amber-400' :
+          'border border-zinc-200',
+        ]"
       >
         <!-- Video thumbnail -->
         <template v-if="isAssetVideo(item)">
@@ -292,10 +329,24 @@ function onDragLeave() {
           />
         </template>
 
-        <!-- Cover badge -->
-        <div v-if="isCover(item)" class="absolute top-1 left-1">
+        <!-- Cover / unconfirmed badge -->
+        <div v-if="isCover(item) && hasConfirmedCover" class="absolute top-1 left-1">
           <Star class="h-3.5 w-3.5 text-indigo-500 fill-indigo-500 drop-shadow-sm" />
         </div>
+        <div v-else-if="isCover(item) && !hasConfirmedCover" class="absolute top-1 left-1">
+          <Badge variant="secondary" class="text-[8px] bg-amber-500/80 text-white border-0 px-1 py-0">待确认</Badge>
+        </div>
+
+        <!-- Comment count badge -->
+        <button
+          v-if="getCommentCount(item.id) > 0"
+          type="button"
+          class="absolute bottom-1 left-1 flex items-center gap-0.5 bg-black/60 text-white rounded-full px-1.5 py-0.5 text-[9px]"
+          @click.stop="openAssetComments(item)"
+        >
+          <MessageSquare class="h-2.5 w-2.5" />
+          {{ getCommentCount(item.id) }}
+        </button>
 
         <!-- Generation prompt tooltip -->
         <div v-if="getGenerationPrompt(item)" class="absolute top-1 right-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
@@ -322,6 +373,14 @@ function onDragLeave() {
             @click.stop="setCover(item)"
           >
             <Star class="h-3.5 w-3.5 text-white" />
+          </button>
+          <button
+            type="button"
+            class="h-7 w-7 rounded-full bg-blue-500/90 flex items-center justify-center hover:bg-blue-600 transition-colors"
+            title="评论"
+            @click.stop="openAssetComments(item)"
+          >
+            <MessageSquare class="h-3.5 w-3.5 text-white" />
           </button>
           <button
             type="button"
@@ -398,6 +457,23 @@ function onDragLeave() {
       </button>
       <span v-if="!activeAssets.length && !discardedCount" class="text-[10px] text-zinc-400">暂无{{ mediaLabel }}</span>
     </div>
+
+    <!-- Comment Sheet -->
+    <Sheet :open="showCommentSheet" @update:open="(v: boolean) => { if (!v) { showCommentSheet = false; loadCommentCounts() } }">
+      <SheetContent side="right" class="w-[400px] sm:w-[440px]">
+        <SheetHeader>
+          <SheetTitle>{{ mediaLabel }}评论</SheetTitle>
+        </SheetHeader>
+        <div class="mt-4">
+          <CommonCommentThread
+            v-if="commentAsset"
+            :project-id="projectId"
+            entity-type="asset"
+            :entity-id="commentAsset.id"
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
 
     <!-- Preview dialog with navigation -->
     <Dialog :open="showPreview" @update:open="(v: boolean) => { if (!v) showPreview = false }">

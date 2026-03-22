@@ -1,4 +1,4 @@
-export type CommentEntityType = 'episode_script' | 'storyboard' | 'character' | 'scene' | 'prop' | 'creative_plan'
+export type CommentEntityType = 'episode_script' | 'storyboard' | 'character' | 'scene' | 'prop' | 'creative_plan' | 'asset'
 export type CommentStatus = 'open' | 'resolved'
 
 export interface Comment {
