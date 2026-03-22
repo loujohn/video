@@ -35,7 +35,7 @@ wait_for_db() {
 wait_for_db
 
 echo "Running database migrations..."
-npx knex migrate:latest --knexfile knexfile.ts
+npx tsx node_modules/.bin/knex migrate:latest --knexfile knexfile.ts
 
 echo "Starting application..."
 node .output/server/index.mjs

@@ -10,9 +10,9 @@
     "postinstall": "nuxt prepare",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:migrate": "npx knex migrate:latest --knexfile knexfile.ts",
-    "db:rollback": "npx knex migrate:rollback --knexfile knexfile.ts",
-    "db:status": "npx knex migrate:status --knexfile knexfile.ts",
+    "db:migrate": "npx tsx node_modules/.bin/knex migrate:latest --knexfile knexfile.ts",
+    "db:rollback": "npx tsx node_modules/.bin/knex migrate:rollback --knexfile knexfile.ts",
+    "db:status": "npx tsx node_modules/.bin/knex migrate:status --knexfile knexfile.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:db": "docker compose up -d postgres",
@@ -38,7 +38,9 @@
     "vue-router": "^5.0.3",
     "vue-sonner": "^2.0.9",
     "vuedraggable": "^4.1.0",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "tslib": "^2.8.1",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@nuxt/test-utils": "^4.0.0",
@@ -54,7 +56,6 @@
     "reka-ui": "^2.9.2",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
   }
