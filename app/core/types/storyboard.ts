@@ -5,6 +5,7 @@ export interface Storyboard {
   shot_type: string | null
   camera_angle: string | null
   scene_id: string | null
+  scene_variant_id: string | null
   description: string | null
   dialogue: string | null
   action_direction: string | null
@@ -26,6 +27,9 @@ export interface CreateStoryboardInput {
   shot_type?: string
   camera_angle?: string
   scene_id?: string | null
+  scene_variant_id?: string | null
+  character_look_ids?: string[]
+  prop_variant_ids?: string[]
   description?: string
   dialogue?: string
   action_direction?: string
@@ -37,4 +41,10 @@ export interface CreateStoryboardInput {
   camera_movement?: string
   transition_type?: string
   image_prompt?: string
+}
+
+export interface StoryboardWithAssociations extends Storyboard {
+  scene_variant?: { id: string; name: string; scene_id: string; scene_name?: string } | null
+  character_looks?: Array<{ id: string; name: string; character_id: string; character_name?: string }>
+  prop_variants?: Array<{ id: string; name: string; prop_id: string; prop_name?: string }>
 }
