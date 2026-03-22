@@ -28,9 +28,9 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/drama_studio
-      JWT_SECRET: ${JWT_SECRET:-dev-secret}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      UPLOAD_DIR: /app/uploads
+      NUXT_JWT_SECRET: ${JWT_SECRET:-your-production-secret-change-me}
+      NUXT_JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      NUXT_UPLOAD_DIR: /app/uploads
       NODE_ENV: production
     ports:
       - "3001:3000"
