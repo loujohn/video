@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Plus, User, Pencil, Trash2, Link, ArrowRight, MessageSquare } from 'lucide-vue-next'
-import type { Project, Character } from '~/core/types'
+import { Plus, User, Pencil, Trash2, Link, ArrowRight, MessageSquare, ChevronDown, ChevronRight, Shirt } from 'lucide-vue-next'
+import type { Project, Character, CharacterLook } from '~/core/types'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -102,6 +102,88 @@ const showCommentSheet = ref(false)
 function openCharacterComments(c: any) {
   commentTarget.value = c
   showCommentSheet.value = true
+}
+
+const expandedCharacter = ref<string | null>(null)
+const looksMap = ref<Record<string, CharacterLook[]>>({})
+const looksLoading = ref<Record<string, boolean>>({})
+
+function toggleCharacterExpand(characterId: string) {
+  if (expandedCharacter.value === characterId) {
+    expandedCharacter.value = null
+  } else {
+    expandedCharacter.value = characterId
+    loadLooks(characterId)
+  }
+}
+
+async function loadLooks(characterId: string) {
+  if (looksMap.value[characterId]) return
+  looksLoading.value[characterId] = true
+  try {
+    const data = await $api<CharacterLook[]>(`/api/projects/${projectId}/characters/${characterId}/looks`)
+    looksMap.value[characterId] = data
+  } catch {}
+  looksLoading.value[characterId] = false
+}
+
+async function refreshLooks(characterId: string) {
+  try {
+    const data = await $api<CharacterLook[]>(`/api/projects/${projectId}/characters/${characterId}/looks`)
+    looksMap.value[characterId] = data
+  } catch {}
+}
+
+const showLookForm = ref(false)
+const editingLook = ref<CharacterLook | null>(null)
+const lookParentCharacterId = ref('')
+const lookForm = reactive({ name: '', description: '', image_prompt: '' })
+const lookLoading = ref(false)
+const lookError = ref('')
+
+function openLookCreate(characterId: string) {
+  lookParentCharacterId.value = characterId
+  editingLook.value = null
+  Object.assign(lookForm, { name: '', description: '', image_prompt: '' })
+  lookError.value = ''
+  showLookForm.value = true
+}
+
+function openLookEdit(characterId: string, look: CharacterLook) {
+  lookParentCharacterId.value = characterId
+  editingLook.value = look
+  Object.assign(lookForm, {
+    name: look.name,
+    description: look.description || '',
+    image_prompt: look.image_prompt || '',
+  })
+  lookError.value = ''
+  showLookForm.value = true
+}
+
+async function submitLook() {
+  lookError.value = ''
+  lookLoading.value = true
+  try {
+    if (editingLook.value) {
+      await $api(`/api/projects/${projectId}/characters/${lookParentCharacterId.value}/looks/${editingLook.value.id}`, { method: 'PUT', body: lookForm })
+    } else {
+      await $api(`/api/projects/${projectId}/characters/${lookParentCharacterId.value}/looks`, { method: 'POST', body: lookForm })
+    }
+    showLookForm.value = false
+    await refreshLooks(lookParentCharacterId.value)
+  } catch (e: any) {
+    lookError.value = e.data?.statusMessage || '操作失败'
+  } finally {
+    lookLoading.value = false
+  }
+}
+
+async function deleteLook(characterId: string, lookId: string) {
+  try {
+    await $api(`/api/projects/${projectId}/characters/${characterId}/looks/${lookId}`, { method: 'DELETE' })
+    await refreshLooks(characterId)
+  } catch {}
 }
 
 const editing = ref<any>(null)
@@ -225,12 +307,51 @@ async function handleDelete() {
           </div>
 
           <div class="px-4 pb-3">
-            <ProjectEntityImageGallery
-              :project-id="projectId"
-              entity-type="character"
-              :entity-id="c.id"
-              :image-prompt="c.image_prompt"
-            />
+            <button
+              type="button"
+              class="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
+              @click="toggleCharacterExpand(c.id)"
+            >
+              <component :is="expandedCharacter === c.id ? ChevronDown : ChevronRight" class="h-3.5 w-3.5" />
+              <Shirt class="h-3.5 w-3.5" />
+              形象 ({{ looksMap[c.id]?.length ?? '...' }})
+            </button>
+
+            <div v-if="expandedCharacter === c.id" class="mt-2 space-y-2">
+              <div v-if="looksLoading[c.id]" class="text-xs text-zinc-400 py-2">加载中...</div>
+              <template v-else-if="looksMap[c.id]?.length">
+                <div
+                  v-for="look in looksMap[c.id]"
+                  :key="look.id"
+                  class="rounded-lg border border-zinc-100 p-2 space-y-1.5"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-xs font-medium text-zinc-700">{{ look.name }}</span>
+                      <Badge v-if="look.is_base" variant="secondary" class="text-[9px] px-1 py-0">基础</Badge>
+                    </div>
+                    <div class="flex items-center gap-0.5">
+                      <button type="button" class="h-6 w-6 rounded flex items-center justify-center text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" @click="openLookEdit(c.id, look)">
+                        <Pencil class="h-3 w-3" />
+                      </button>
+                      <button v-if="!look.is_base" type="button" class="h-6 w-6 rounded flex items-center justify-center text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors" @click="deleteLook(c.id, look.id)">
+                        <Trash2 class="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                  <ProjectEntityImageGallery
+                    :project-id="projectId"
+                    entity-type="character_look"
+                    :entity-id="look.id"
+                    :image-prompt="look.image_prompt"
+                    compact
+                  />
+                </div>
+              </template>
+              <Button variant="outline" size="sm" class="gap-1.5 text-xs h-7 w-full" @click="openLookCreate(c.id)">
+                <Plus class="h-3 w-3" /> 添加形象
+              </Button>
+            </div>
           </div>
 
           <div class="flex gap-1 px-4 pb-3 pt-2 border-t border-zinc-100">
@@ -483,6 +604,36 @@ async function handleDelete() {
             :entity-id="commentTarget.id"
           />
         </div>
+      </SheetContent>
+    </Sheet>
+
+    <Sheet :open="showLookForm" @update:open="(v: boolean) => { if (!v) showLookForm = false }">
+      <SheetContent class="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{{ editingLook ? '编辑形象' : '新建形象' }}</SheetTitle>
+        </SheetHeader>
+        <form @submit.prevent="submitLook" class="space-y-4 mt-4">
+          <div class="space-y-2"><Label>形象名称 *</Label><Input v-model="lookForm.name" required placeholder="如 日常装扮、战斗装甲" /></div>
+          <div class="space-y-2"><Label>描述</Label><Textarea v-model="lookForm.description" rows="3" placeholder="形象描述" /></div>
+          <Separator />
+          <div class="space-y-2">
+            <Label>图像提示词</Label>
+            <Textarea v-model="lookForm.image_prompt" placeholder="用于 AI 生成该形象图的提示词" rows="3" />
+          </div>
+          <div v-if="editingLook" class="space-y-2">
+            <Label>关联图片</Label>
+            <ProjectEntityImageGallery
+              :project-id="projectId"
+              entity-type="character_look"
+              :entity-id="editingLook.id"
+            />
+          </div>
+          <div v-if="lookError" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{{ lookError }}</div>
+          <div class="flex gap-2 pt-2">
+            <Button type="button" variant="outline" @click="showLookForm = false" class="flex-1">取消</Button>
+            <Button type="submit" :disabled="lookLoading || !lookForm.name" class="flex-1">{{ lookLoading ? '保存中...' : '保存' }}</Button>
+          </div>
+        </form>
       </SheetContent>
     </Sheet>
   </LayoutAppLayout>

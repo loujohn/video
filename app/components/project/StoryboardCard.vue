@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { Storyboard } from '~/core/types/storyboard'
-import { Pencil, Trash2, MessageSquare, Image as ImageIcon } from 'lucide-vue-next'
+import { Pencil, Trash2, MessageSquare, Image as ImageIcon, Film } from 'lucide-vue-next'
 
 const props = defineProps<{
   storyboard: Storyboard
   projectId?: string
   commentCount?: number
+  slotCount?: number
 }>()
 
 const emit = defineEmits<{
@@ -99,14 +100,34 @@ function safeImageUrl(url: string | null): string {
       </div>
     </div>
 
-    <div v-if="projectId" class="mt-3 px-0">
-      <ProjectEntityImageGallery
-        :project-id="projectId"
-        entity-type="storyboard"
-        :entity-id="storyboard.id"
-        :image-prompt="storyboard.image_prompt"
-        compact
-      />
+    <div v-if="projectId" class="mt-3 space-y-2">
+      <div>
+        <p class="text-[10px] font-medium text-zinc-400 mb-1 flex items-center gap-1">
+          <ImageIcon class="h-3 w-3" /> 分镜图
+        </p>
+        <ProjectEntityImageGallery
+          :project-id="projectId"
+          entity-type="storyboard"
+          :entity-id="storyboard.id"
+          :image-prompt="storyboard.image_prompt"
+          media-type="image"
+          :show-slots="(slotCount ?? 1) > 1"
+          :slot-count="slotCount ?? 1"
+          compact
+        />
+      </div>
+      <div>
+        <p class="text-[10px] font-medium text-zinc-400 mb-1 flex items-center gap-1">
+          <Film class="h-3 w-3" /> 分镜视频
+        </p>
+        <ProjectEntityImageGallery
+          :project-id="projectId"
+          entity-type="storyboard"
+          :entity-id="storyboard.id"
+          media-type="video"
+          compact
+        />
+      </div>
     </div>
 
     <div class="flex items-center justify-between gap-1 mt-3 pt-3 border-t border-zinc-100">

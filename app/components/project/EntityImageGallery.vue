@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { Upload, ZoomIn, Trash2, Ban, RotateCcw, Star } from 'lucide-vue-next'
+import { Upload, ZoomIn, Trash2, Ban, RotateCcw, Star, Play } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import type { Asset } from '~/core/types/asset'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   projectId: string
   entityType: string
   entityId: string
   imagePrompt?: string | null
   compact?: boolean
-}>()
+  mediaType?: 'image' | 'video' | 'all'
+}>(), {
+  mediaType: 'image',
+})
 
 const emit = defineEmits<{
   (e: 'refresh'): void
@@ -20,28 +23,32 @@ const token = useCookie('token')
 
 const showDiscarded = ref(false)
 
+const isVideo = computed(() => props.mediaType === 'video')
+const mediaLabel = computed(() => isVideo.value ? '视频' : '图片')
+
 const assetsUrl = computed(() => {
-  const base = `/api/projects/${props.projectId}/assets?linked_entity_type=${encodeURIComponent(props.entityType)}&linked_entity_id=${encodeURIComponent(props.entityId)}&type=image`
+  let base = `/api/projects/${props.projectId}/assets?linked_entity_type=${encodeURIComponent(props.entityType)}&linked_entity_id=${encodeURIComponent(props.entityId)}`
+  if (props.mediaType !== 'all') base += `&type=${props.mediaType}`
   return showDiscarded.value ? `${base}&is_active=all` : base
 })
 
-const { data: images, refresh } = useAsyncData(
-  `entity-images-${props.entityType}-${props.entityId}`,
+const { data: assets, refresh } = useAsyncData(
+  `entity-media-${props.mediaType}-${props.entityType}-${props.entityId}`,
   () => $api<Asset[]>(assetsUrl.value),
   { watch: [() => props.entityId, assetsUrl] },
 )
 
-const activeImages = computed(() => (images.value ?? []).filter(i => i.is_active))
-const discardedImages = computed(() => (images.value ?? []).filter(i => !i.is_active))
-const discardedCount = computed(() => discardedImages.value.length)
+const activeAssets = computed(() => (assets.value ?? []).filter(i => i.is_active))
+const discardedAssets = computed(() => (assets.value ?? []).filter(i => !i.is_active))
+const discardedCount = computed(() => discardedAssets.value.length)
 
-const coverImage = computed(() => {
-  const active = activeImages.value
+const coverAsset = computed(() => {
+  const active = activeAssets.value
   const starred = active.find(i => (i.metadata as any)?.is_cover)
   return starred || active[0] || null
 })
 
-const coverUrl = computed(() => coverImage.value ? `/uploads/${coverImage.value.file_path}` : null)
+const coverUrl = computed(() => coverAsset.value ? `/uploads/${coverAsset.value.file_path}` : null)
 
 watch(coverUrl, (url) => {
   emit('cover-change', url)
@@ -56,40 +63,50 @@ const totalFiles = ref(0)
 const dragOver = ref(false)
 
 const previewUrl = computed(() => {
-  const img = activeImages.value[previewIndex.value]
-  return img ? `/uploads/${img.file_path}` : ''
+  const item = activeAssets.value[previewIndex.value]
+  return item ? `/uploads/${item.file_path}` : ''
 })
+
+const previewItem = computed(() => activeAssets.value[previewIndex.value] ?? null)
 
 const previewInfo = computed(() => {
-  const img = activeImages.value[previewIndex.value]
-  return img ? { name: img.file_name || '未命名', index: previewIndex.value + 1, total: activeImages.value.length } : null
+  const item = activeAssets.value[previewIndex.value]
+  return item ? { name: item.file_name || '未命名', index: previewIndex.value + 1, total: activeAssets.value.length } : null
 })
 
+function isAssetVideo(asset: Asset): boolean {
+  return asset.type === 'video'
+}
+
 function openPreview(url: string) {
-  const idx = activeImages.value.findIndex(i => `/uploads/${i.file_path}` === url)
+  const idx = activeAssets.value.findIndex(i => `/uploads/${i.file_path}` === url)
   previewIndex.value = idx >= 0 ? idx : 0
   showPreview.value = true
 }
 
-function prevImage() {
+function prevAsset() {
   if (previewIndex.value > 0) previewIndex.value--
 }
 
-function nextImage() {
-  if (previewIndex.value < activeImages.value.length - 1) previewIndex.value++
+function nextAsset() {
+  if (previewIndex.value < activeAssets.value.length - 1) previewIndex.value++
 }
 
 function isCover(asset: Asset): boolean {
-  return coverImage.value?.id === asset.id
+  return coverAsset.value?.id === asset.id
+}
+
+function getGenerationPrompt(asset: Asset): string | null {
+  return (asset.metadata as any)?.generation_prompt || null
 }
 
 async function setCover(asset: Asset) {
-  const active = activeImages.value
-  for (const img of active) {
-    if ((img.metadata as any)?.is_cover) {
-      const meta = { ...(img.metadata as any) }
+  const active = activeAssets.value
+  for (const item of active) {
+    if ((item.metadata as any)?.is_cover) {
+      const meta = { ...(item.metadata as any) }
       delete meta.is_cover
-      await $api(`/api/projects/${props.projectId}/assets/${img.id}`, {
+      await $api(`/api/projects/${props.projectId}/assets/${item.id}`, {
         method: 'PUT',
         body: { metadata: meta },
       }).catch(() => {})
@@ -101,9 +118,9 @@ async function setCover(asset: Asset) {
       method: 'PUT',
       body: { metadata: newMeta },
     })
-    toast.success('已设为封面')
+    toast.success('已设为选中')
   } catch {
-    toast.error('设置封面失败')
+    toast.error('设置失败')
   }
   await refresh()
   emit('refresh')
@@ -124,7 +141,7 @@ async function toggleActive(asset: Asset) {
   }
 }
 
-async function deleteImage(assetId: string) {
+async function deleteAsset(assetId: string) {
   try {
     await $api(`/api/projects/${props.projectId}/assets/${assetId}`, { method: 'DELETE' })
     toast.success('已删除')
@@ -135,20 +152,33 @@ async function deleteImage(assetId: string) {
   }
 }
 
+const acceptTypes = computed(() => {
+  if (props.mediaType === 'video') return 'video/*'
+  if (props.mediaType === 'all') return 'image/*,video/*'
+  return 'image/*'
+})
+
 async function uploadFiles(files: File[]) {
   if (!files.length) return
-  const imageFiles = files.filter(f => f.type.startsWith('image/'))
-  if (!imageFiles.length) {
-    toast.error('请选择图片文件')
+  let validFiles: File[]
+  if (props.mediaType === 'video') {
+    validFiles = files.filter(f => f.type.startsWith('video/'))
+  } else if (props.mediaType === 'all') {
+    validFiles = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'))
+  } else {
+    validFiles = files.filter(f => f.type.startsWith('image/'))
+  }
+  if (!validFiles.length) {
+    toast.error(`请选择${mediaLabel.value}文件`)
     return
   }
 
   uploading.value = true
-  totalFiles.value = imageFiles.length
+  totalFiles.value = validFiles.length
   uploadProgress.value = 0
 
   let successCount = 0
-  for (const file of imageFiles) {
+  for (const file of validFiles) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('category', 'reference')
@@ -168,7 +198,7 @@ async function uploadFiles(files: File[]) {
   uploading.value = false
   uploadProgress.value = 0
   totalFiles.value = 0
-  if (successCount > 0) toast.success(`已上传 ${successCount} 张图片`)
+  if (successCount > 0) toast.success(`已上传 ${successCount} 个${mediaLabel.value}`)
   else toast.error('上传失败')
   await refresh()
   emit('refresh')
@@ -213,7 +243,7 @@ function onDragLeave() {
     >
       <div class="text-center">
         <Upload class="h-6 w-6 text-indigo-500 mx-auto mb-1" />
-        <p class="text-xs text-indigo-600 font-medium">拖放图片到此处</p>
+        <p class="text-xs text-indigo-600 font-medium">拖放{{ mediaLabel }}到此处</p>
       </div>
     </div>
 
@@ -231,38 +261,65 @@ function onDragLeave() {
       <p class="text-xs text-amber-900 whitespace-pre-wrap line-clamp-3">{{ imagePrompt }}</p>
     </div>
 
-    <!-- Active images grid -->
-    <div v-if="activeImages.length" class="grid gap-1.5" :class="compact ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'">
+    <!-- Active assets grid -->
+    <div v-if="activeAssets.length" class="grid gap-1.5" :class="compact ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'">
       <div
-        v-for="img in activeImages"
-        :key="img.id"
+        v-for="item in activeAssets"
+        :key="item.id"
         class="group/img relative aspect-square rounded-lg overflow-hidden border bg-zinc-50 transition-all"
-        :class="isCover(img) ? 'border-indigo-400 ring-1 ring-indigo-200' : 'border-zinc-200'"
+        :class="isCover(item) ? 'border-indigo-400 ring-1 ring-indigo-200' : 'border-zinc-200'"
       >
-        <img
-          :src="`/uploads/${img.file_path}`"
-          :alt="img.file_name || ''"
-          class="w-full h-full object-cover"
-        />
+        <!-- Video thumbnail -->
+        <template v-if="isAssetVideo(item)">
+          <video
+            :src="`/uploads/${item.file_path}`"
+            class="w-full h-full object-cover"
+            muted
+            preload="metadata"
+          />
+          <div class="absolute bottom-1 right-1">
+            <div class="h-5 w-5 rounded-full bg-black/60 flex items-center justify-center">
+              <Play class="h-3 w-3 text-white fill-white" />
+            </div>
+          </div>
+        </template>
+        <!-- Image -->
+        <template v-else>
+          <img
+            :src="`/uploads/${item.file_path}`"
+            :alt="item.file_name || ''"
+            class="w-full h-full object-cover"
+          />
+        </template>
+
         <!-- Cover badge -->
-        <div v-if="isCover(img)" class="absolute top-1 left-1">
+        <div v-if="isCover(item)" class="absolute top-1 left-1">
           <Star class="h-3.5 w-3.5 text-indigo-500 fill-indigo-500 drop-shadow-sm" />
         </div>
+
+        <!-- Generation prompt tooltip -->
+        <div v-if="getGenerationPrompt(item)" class="absolute top-1 right-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
+          <div class="bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded max-w-[120px] truncate" :title="getGenerationPrompt(item) ?? ''">
+            {{ getGenerationPrompt(item) }}
+          </div>
+        </div>
+
+        <!-- Hover actions -->
         <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 transition-colors flex items-center justify-center gap-1.5 opacity-0 group-hover/img:opacity-100">
           <button
             type="button"
             class="h-7 w-7 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
             title="预览"
-            @click="openPreview(`/uploads/${img.file_path}`)"
+            @click="openPreview(`/uploads/${item.file_path}`)"
           >
             <ZoomIn class="h-3.5 w-3.5 text-zinc-700" />
           </button>
           <button
-            v-if="!isCover(img)"
+            v-if="!isCover(item)"
             type="button"
             class="h-7 w-7 rounded-full bg-indigo-500/90 flex items-center justify-center hover:bg-indigo-600 transition-colors"
-            title="设为封面"
-            @click.stop="setCover(img)"
+            title="设为选中"
+            @click.stop="setCover(item)"
           >
             <Star class="h-3.5 w-3.5 text-white" />
           </button>
@@ -270,7 +327,7 @@ function onDragLeave() {
             type="button"
             class="h-7 w-7 rounded-full bg-amber-500/90 flex items-center justify-center hover:bg-amber-600 transition-colors"
             title="废弃"
-            @click.stop="toggleActive(img)"
+            @click.stop="toggleActive(item)"
           >
             <Ban class="h-3.5 w-3.5 text-white" />
           </button>
@@ -278,20 +335,21 @@ function onDragLeave() {
       </div>
     </div>
 
-    <!-- Discarded images section -->
-    <div v-if="showDiscarded && discardedImages.length" class="space-y-1.5">
+    <!-- Discarded assets section -->
+    <div v-if="showDiscarded && discardedAssets.length" class="space-y-1.5">
       <p class="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">已废弃 ({{ discardedCount }})</p>
       <div class="grid gap-1.5" :class="compact ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-3'">
         <div
-          v-for="img in discardedImages"
-          :key="img.id"
+          v-for="item in discardedAssets"
+          :key="item.id"
           class="group/img relative aspect-square rounded-lg overflow-hidden border border-zinc-200 bg-zinc-50 opacity-40 grayscale hover:opacity-70 hover:grayscale-0 transition-all"
         >
-          <img
-            :src="`/uploads/${img.file_path}`"
-            :alt="img.file_name || ''"
-            class="w-full h-full object-cover"
-          />
+          <template v-if="isAssetVideo(item)">
+            <video :src="`/uploads/${item.file_path}`" class="w-full h-full object-cover" muted preload="metadata" />
+          </template>
+          <template v-else>
+            <img :src="`/uploads/${item.file_path}`" :alt="item.file_name || ''" class="w-full h-full object-cover" />
+          </template>
           <div class="absolute top-1 right-1">
             <Badge variant="secondary" class="text-[9px] bg-zinc-800/70 text-zinc-200 border-0 px-1 py-0">废弃</Badge>
           </div>
@@ -300,7 +358,7 @@ function onDragLeave() {
               type="button"
               class="h-7 w-7 rounded-full bg-green-500/90 flex items-center justify-center hover:bg-green-600 transition-colors"
               title="恢复启用"
-              @click.stop="toggleActive(img)"
+              @click.stop="toggleActive(item)"
             >
               <RotateCcw class="h-3.5 w-3.5 text-white" />
             </button>
@@ -308,7 +366,7 @@ function onDragLeave() {
               type="button"
               class="h-7 w-7 rounded-full bg-red-500/90 flex items-center justify-center hover:bg-red-600 transition-colors"
               title="彻底删除"
-              @click.stop="deleteImage(img.id)"
+              @click.stop="deleteAsset(item.id)"
             >
               <Trash2 class="h-3.5 w-3.5 text-white" />
             </button>
@@ -319,7 +377,7 @@ function onDragLeave() {
 
     <!-- Actions -->
     <div class="flex items-center gap-2 flex-wrap">
-      <input ref="inputRef" type="file" multiple accept="image/*" class="hidden" @change="onFileSelect" />
+      <input ref="inputRef" type="file" multiple :accept="acceptTypes" class="hidden" @change="onFileSelect" />
       <Button
         variant="outline"
         size="sm"
@@ -328,7 +386,7 @@ function onDragLeave() {
         @click="inputRef?.click()"
       >
         <Upload class="h-3 w-3" />
-        {{ uploading ? '上传中...' : '上传图片' }}
+        {{ uploading ? '上传中...' : `上传${mediaLabel}` }}
       </Button>
       <button
         v-if="discardedCount > 0 || showDiscarded"
@@ -338,28 +396,33 @@ function onDragLeave() {
       >
         {{ showDiscarded ? '隐藏废弃' : `显示废弃 (${discardedCount})` }}
       </button>
-      <span v-if="!activeImages.length && !discardedCount" class="text-[10px] text-zinc-400">暂无图片</span>
+      <span v-if="!activeAssets.length && !discardedCount" class="text-[10px] text-zinc-400">暂无{{ mediaLabel }}</span>
     </div>
 
     <!-- Preview dialog with navigation -->
     <Dialog :open="showPreview" @update:open="(v: boolean) => { if (!v) showPreview = false }">
       <DialogContent class="max-w-3xl p-0 overflow-hidden">
         <div class="relative">
-          <img :src="previewUrl" class="w-full h-auto max-h-[80vh] object-contain" alt="Preview" />
+          <template v-if="previewItem && isAssetVideo(previewItem)">
+            <video :src="previewUrl" class="w-full h-auto max-h-[80vh]" controls autoplay />
+          </template>
+          <template v-else>
+            <img :src="previewUrl" class="w-full h-auto max-h-[80vh] object-contain" alt="Preview" />
+          </template>
           <!-- Navigation arrows -->
           <button
             v-if="previewIndex > 0"
             type="button"
             class="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
-            @click="prevImage"
+            @click="prevAsset"
           >
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
           </button>
           <button
-            v-if="previewIndex < activeImages.length - 1"
+            v-if="previewIndex < activeAssets.length - 1"
             type="button"
             class="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white transition-colors"
-            @click="nextImage"
+            @click="nextAsset"
           >
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
           </button>

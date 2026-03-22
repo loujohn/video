@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Plus, MapPin, Box, Pencil, Trash2, MessageSquare } from 'lucide-vue-next'
-import type { Project, Scene, Prop } from '~/core/types'
+import { Plus, MapPin, Box, Pencil, Trash2, MessageSquare, ChevronDown, ChevronRight, Layers } from 'lucide-vue-next'
+import type { Project, Scene, Prop, SceneVariant } from '~/core/types'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -106,6 +106,91 @@ async function submitProp() {
     propLoading.value = false
   }
 }
+
+const expandedScene = ref<string | null>(null)
+const variantsMap = ref<Record<string, SceneVariant[]>>({})
+const variantsLoading = ref<Record<string, boolean>>({})
+
+function toggleSceneExpand(sceneId: string) {
+  if (expandedScene.value === sceneId) {
+    expandedScene.value = null
+  } else {
+    expandedScene.value = sceneId
+    loadVariants(sceneId)
+  }
+}
+
+async function loadVariants(sceneId: string) {
+  if (variantsMap.value[sceneId]) return
+  variantsLoading.value[sceneId] = true
+  try {
+    const data = await $api<SceneVariant[]>(`/api/projects/${projectId}/scenes/${sceneId}/variants`)
+    variantsMap.value[sceneId] = data
+  } catch {}
+  variantsLoading.value[sceneId] = false
+}
+
+async function refreshVariants(sceneId: string) {
+  try {
+    const data = await $api<SceneVariant[]>(`/api/projects/${projectId}/scenes/${sceneId}/variants`)
+    variantsMap.value[sceneId] = data
+  } catch {}
+}
+
+const showVariantForm = ref(false)
+const editingVariant = ref<SceneVariant | null>(null)
+const variantParentSceneId = ref('')
+const variantForm = reactive({ name: '', description: '', image_prompt: '', variant_type: '' })
+const variantLoading = ref(false)
+const variantError = ref('')
+
+function openVariantCreate(sceneId: string) {
+  variantParentSceneId.value = sceneId
+  editingVariant.value = null
+  Object.assign(variantForm, { name: '', description: '', image_prompt: '', variant_type: '' })
+  variantError.value = ''
+  showVariantForm.value = true
+}
+
+function openVariantEdit(sceneId: string, variant: SceneVariant) {
+  variantParentSceneId.value = sceneId
+  editingVariant.value = variant
+  Object.assign(variantForm, {
+    name: variant.name,
+    description: variant.description || '',
+    image_prompt: variant.image_prompt || '',
+    variant_type: variant.variant_type || '',
+  })
+  variantError.value = ''
+  showVariantForm.value = true
+}
+
+async function submitVariant() {
+  variantError.value = ''
+  variantLoading.value = true
+  try {
+    if (editingVariant.value) {
+      await $api(`/api/projects/${projectId}/scenes/${variantParentSceneId.value}/variants/${editingVariant.value.id}`, { method: 'PUT', body: variantForm })
+    } else {
+      await $api(`/api/projects/${projectId}/scenes/${variantParentSceneId.value}/variants`, { method: 'POST', body: variantForm })
+    }
+    showVariantForm.value = false
+    await refreshVariants(variantParentSceneId.value)
+  } catch (e: any) {
+    variantError.value = e.data?.statusMessage || '操作失败'
+  } finally {
+    variantLoading.value = false
+  }
+}
+
+async function deleteVariant(sceneId: string, variantId: string) {
+  try {
+    await $api(`/api/projects/${projectId}/scenes/${sceneId}/variants/${variantId}`, { method: 'DELETE' })
+    await refreshVariants(sceneId)
+  } catch {}
+}
+
+const variantTypeMap: Record<string, string> = { time: '时间', weather: '天气', angle: '角度', composition: '构图' }
 
 const commentTarget = ref<{ type: 'scene' | 'prop'; id: string; name: string } | null>(null)
 const showCommentSheet = ref(false)
@@ -215,12 +300,51 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
               </div>
             </div>
             <div class="px-4 pb-3">
-              <ProjectEntityImageGallery
-                :project-id="projectId"
-                entity-type="scene"
-                :entity-id="s.id"
-                :image-prompt="s.image_prompt"
-              />
+              <button
+                type="button"
+                class="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
+                @click="toggleSceneExpand(s.id)"
+              >
+                <component :is="expandedScene === s.id ? ChevronDown : ChevronRight" class="h-3.5 w-3.5" />
+                <Layers class="h-3.5 w-3.5" />
+                变体 ({{ variantsMap[s.id]?.length ?? '...' }})
+              </button>
+
+              <div v-if="expandedScene === s.id" class="mt-2 space-y-2">
+                <div v-if="variantsLoading[s.id]" class="text-xs text-zinc-400 py-2">加载中...</div>
+                <template v-else-if="variantsMap[s.id]?.length">
+                  <div
+                    v-for="v in variantsMap[s.id]"
+                    :key="v.id"
+                    class="rounded-lg border border-zinc-100 p-2 space-y-1.5"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-medium text-zinc-700">{{ v.name }}</span>
+                        <Badge v-if="v.variant_type" variant="secondary" class="text-[9px] px-1 py-0">{{ variantTypeMap[v.variant_type] || v.variant_type }}</Badge>
+                      </div>
+                      <div class="flex items-center gap-0.5">
+                        <button type="button" class="h-6 w-6 rounded flex items-center justify-center text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" @click="openVariantEdit(s.id, v)">
+                          <Pencil class="h-3 w-3" />
+                        </button>
+                        <button type="button" class="h-6 w-6 rounded flex items-center justify-center text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors" @click="deleteVariant(s.id, v.id)">
+                          <Trash2 class="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                    <ProjectEntityImageGallery
+                      :project-id="projectId"
+                      entity-type="scene_variant"
+                      :entity-id="v.id"
+                      :image-prompt="v.image_prompt"
+                      compact
+                    />
+                  </div>
+                </template>
+                <Button variant="outline" size="sm" class="gap-1.5 text-xs h-7 w-full" @click="openVariantCreate(s.id)">
+                  <Plus class="h-3 w-3" /> 添加变体
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -379,6 +503,46 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
             :entity-id="commentTarget.id"
           />
         </div>
+      </SheetContent>
+    </Sheet>
+
+    <Sheet :open="showVariantForm" @update:open="(v: boolean) => { if (!v) showVariantForm = false }">
+      <SheetContent class="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{{ editingVariant ? '编辑变体' : '新建变体' }}</SheetTitle>
+        </SheetHeader>
+        <form @submit.prevent="submitVariant" class="space-y-4 mt-4">
+          <div class="space-y-2"><Label>变体名称 *</Label><Input v-model="variantForm.name" required placeholder="如 夜景版、雨天版" /></div>
+          <div class="space-y-2">
+            <Label>变体类型</Label>
+            <select v-model="variantForm.variant_type" class="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">不指定</option>
+              <option value="time">时间</option>
+              <option value="weather">天气</option>
+              <option value="angle">角度</option>
+              <option value="composition">构图</option>
+            </select>
+          </div>
+          <div class="space-y-2"><Label>描述</Label><Textarea v-model="variantForm.description" rows="3" placeholder="变体描述" /></div>
+          <Separator />
+          <div class="space-y-2">
+            <Label>图像提示词</Label>
+            <Textarea v-model="variantForm.image_prompt" placeholder="用于 AI 生成该变体图的提示词" rows="3" />
+          </div>
+          <div v-if="editingVariant" class="space-y-2">
+            <Label>关联图片</Label>
+            <ProjectEntityImageGallery
+              :project-id="projectId"
+              entity-type="scene_variant"
+              :entity-id="editingVariant.id"
+            />
+          </div>
+          <div v-if="variantError" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{{ variantError }}</div>
+          <div class="flex gap-2 pt-2">
+            <Button type="button" variant="outline" @click="showVariantForm = false" class="flex-1">取消</Button>
+            <Button type="submit" :disabled="variantLoading || !variantForm.name" class="flex-1">{{ variantLoading ? '保存中...' : '保存' }}</Button>
+          </div>
+        </form>
       </SheetContent>
     </Sheet>
   </LayoutAppLayout>

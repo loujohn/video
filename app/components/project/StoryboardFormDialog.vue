@@ -157,13 +157,25 @@ function handleSubmit() {
           <Textarea v-model="form.image_prompt" placeholder="用于 AI 生成分镜参考图的提示词" rows="3" />
         </div>
 
-        <div v-if="storyboard && projectId" class="space-y-2">
-          <Label>关联图片</Label>
-          <ProjectEntityImageGallery
-            :project-id="projectId"
-            entity-type="storyboard"
-            :entity-id="storyboard.id"
-          />
+        <div v-if="storyboard && projectId" class="space-y-4">
+          <div class="space-y-2">
+            <Label>分镜图片</Label>
+            <ProjectEntityImageGallery
+              :project-id="projectId"
+              entity-type="storyboard"
+              :entity-id="storyboard.id"
+              media-type="image"
+            />
+          </div>
+          <div class="space-y-2">
+            <Label>分镜视频</Label>
+            <ProjectEntityImageGallery
+              :project-id="projectId"
+              entity-type="storyboard"
+              :entity-id="storyboard.id"
+              media-type="video"
+            />
+          </div>
         </div>
 
         <div class="flex gap-2 pt-2">
