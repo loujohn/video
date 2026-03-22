@@ -1,24 +1,75 @@
 <script setup lang="ts">
-import { Plus, MapPin, Box, Pencil, Trash2, MessageSquare, ChevronDown, ChevronRight, Layers } from 'lucide-vue-next'
-import type { Project, Scene, Prop, SceneVariant } from '~/core/types'
+import { Plus, MapPin, Box, Pencil, Trash2, ExternalLink } from 'lucide-vue-next'
+import type { Project, Scene, Prop, SceneVariant, PropVariant, Asset } from '~/core/types'
+import type { ThumbnailItem } from '~/components/project/EntityThumbnailRow.vue'
 
 const route = useRoute()
 const projectId = route.params.id as string
 const { $api } = useApi()
-
 const activeTab = ref('scenes')
 
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () => $api<Project>(`/api/projects/${projectId}`))
-
 useHead({ title: computed(() => project.value ? `${project.value.title} - 场景与道具` : '场景管理') })
 
-const { data: scenes, refresh: refreshScenes } = useAsyncData(`scenes-${projectId}`, () =>
-  $api<Scene[]>(`/api/projects/${projectId}/scenes`),
-)
+const { data: scenes, refresh: refreshScenes } = useAsyncData(`scenes-${projectId}`, () => $api<Scene[]>(`/api/projects/${projectId}/scenes`))
+const { data: propsList, refresh: refreshProps } = useAsyncData(`props-${projectId}`, () => $api<Prop[]>(`/api/projects/${projectId}/props`))
 
-const { data: propsList, refresh: refreshProps } = useAsyncData(`props-${projectId}`, () =>
-  $api<Prop[]>(`/api/projects/${projectId}/props`),
-)
+const variantsMap = ref<Record<string, SceneVariant[]>>({})
+const variantCovers = ref<Record<string, string | null>>({})
+const propVariantsMap = ref<Record<string, PropVariant[]>>({})
+const propVariantCovers = ref<Record<string, string | null>>({})
+
+async function loadCoverForEntity(entityType: string, entityId: string): Promise<string | null> {
+  try {
+    const assets = await $api<Asset[]>(`/api/projects/${projectId}/assets?linked_entity_type=${entityType}&linked_entity_id=${entityId}&type=image`)
+    const active = assets.filter(a => a.is_active)
+    const cover = active.find(a => (a.metadata as any)?.is_cover) || active[0]
+    return cover ? `/uploads/${cover.file_path}` : null
+  } catch { return null }
+}
+
+async function loadSceneVariants() {
+  if (!scenes.value) return
+  for (const s of scenes.value) {
+    try {
+      const variants = await $api<SceneVariant[]>(`/api/projects/${projectId}/scenes/${s.id}/variants`)
+      variantsMap.value[s.id] = variants
+      for (const v of variants) {
+        variantCovers.value[v.id] = await loadCoverForEntity('scene_variant', v.id)
+      }
+    } catch {}
+  }
+}
+
+async function loadPropVariants() {
+  if (!propsList.value) return
+  for (const p of propsList.value) {
+    try {
+      const variants = await $api<PropVariant[]>(`/api/projects/${projectId}/props/${p.id}/variants`)
+      propVariantsMap.value[p.id] = variants
+      for (const v of variants) {
+        propVariantCovers.value[v.id] = await loadCoverForEntity('prop_variant', v.id)
+      }
+    } catch {}
+  }
+}
+
+watch(scenes, loadSceneVariants, { immediate: true })
+watch(propsList, loadPropVariants, { immediate: true })
+
+function getSceneVariantThumbs(sceneId: string): ThumbnailItem[] {
+  return (variantsMap.value[sceneId] || []).map(v => ({ id: v.id, name: v.name, coverUrl: variantCovers.value[v.id] ?? null }))
+}
+
+function getPropVariantThumbs(propId: string): ThumbnailItem[] {
+  return (propVariantsMap.value[propId] || []).map(v => ({ id: v.id, name: v.name, coverUrl: propVariantCovers.value[v.id] ?? null }))
+}
+
+function goToSceneDetail(sceneId: string) { navigateTo(`/projects/${projectId}/scenes/${sceneId}`) }
+function goToPropDetail(propId: string) { navigateTo(`/projects/${projectId}/props/${propId}`) }
+
+const locationMap: Record<string, string> = { int: '室内', ext: '室外' }
+const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '黎明', dusk: '黄昏' }
 
 const showSceneForm = ref(false)
 const editingScene = ref<any>(null)
@@ -29,42 +80,23 @@ const sceneError = ref('')
 function openSceneCreate() {
   editingScene.value = null
   Object.assign(sceneForm, { name: '', location_type: 'int', time_of_day: 'day', description: '', tags: '', image_prompt: '' })
-  sceneError.value = ''
-  showSceneForm.value = true
+  sceneError.value = ''; showSceneForm.value = true
 }
-
 function openSceneEdit(s: any) {
   editingScene.value = s
-  Object.assign(sceneForm, {
-    name: s.name,
-    location_type: s.location_type || 'int',
-    time_of_day: s.time_of_day || 'day',
-    description: s.description || '',
-    tags: (s.tags || []).join(', '),
-    image_prompt: s.image_prompt || '',
-  })
-  sceneError.value = ''
-  showSceneForm.value = true
+  Object.assign(sceneForm, { name: s.name, location_type: s.location_type || 'int', time_of_day: s.time_of_day || 'day', description: s.description || '', tags: (s.tags || []).join(', '), image_prompt: s.image_prompt || '' })
+  sceneError.value = ''; showSceneForm.value = true
 }
-
 async function submitScene() {
-  sceneError.value = ''
-  sceneLoading.value = true
+  sceneError.value = ''; sceneLoading.value = true
   try {
     const tagsArr = sceneForm.tags ? sceneForm.tags.split(/[,，、]/).map(s => s.trim()).filter(Boolean) : []
     const body = { ...sceneForm, tags: tagsArr }
-    if (editingScene.value) {
-      await $api(`/api/projects/${projectId}/scenes/${editingScene.value.id}`, { method: 'PUT', body })
-    } else {
-      await $api(`/api/projects/${projectId}/scenes`, { method: 'POST', body })
-    }
-    showSceneForm.value = false
-    refreshScenes()
-  } catch (e: any) {
-    sceneError.value = e.data?.statusMessage || '操作失败'
-  } finally {
-    sceneLoading.value = false
-  }
+    if (editingScene.value) await $api(`/api/projects/${projectId}/scenes/${editingScene.value.id}`, { method: 'PUT', body })
+    else await $api(`/api/projects/${projectId}/scenes`, { method: 'POST', body })
+    showSceneForm.value = false; await refreshScenes(); loadSceneVariants()
+  } catch (e: any) { sceneError.value = e.data?.message || e.data?.statusMessage || '操作失败' }
+  finally { sceneLoading.value = false }
 }
 
 const showPropForm = ref(false)
@@ -76,279 +108,79 @@ const propError = ref('')
 function openPropCreate() {
   editingProp.value = null
   Object.assign(propForm, { name: '', description: '', tags: '', image_prompt: '' })
-  propError.value = ''
-  showPropForm.value = true
+  propError.value = ''; showPropForm.value = true
 }
-
 function openPropEdit(p: any) {
   editingProp.value = p
   Object.assign(propForm, { name: p.name, description: p.description || '', tags: (p.tags || []).join(', '), image_prompt: p.image_prompt || '' })
-  propError.value = ''
-  showPropForm.value = true
+  propError.value = ''; showPropForm.value = true
 }
-
 async function submitProp() {
-  propError.value = ''
-  propLoading.value = true
+  propError.value = ''; propLoading.value = true
   try {
     const tagsArr = propForm.tags ? propForm.tags.split(/[,，、]/).map(s => s.trim()).filter(Boolean) : []
     const body = { ...propForm, tags: tagsArr }
-    if (editingProp.value) {
-      await $api(`/api/projects/${projectId}/props/${editingProp.value.id}`, { method: 'PUT', body })
-    } else {
-      await $api(`/api/projects/${projectId}/props`, { method: 'POST', body })
-    }
-    showPropForm.value = false
-    refreshProps()
-  } catch (e: any) {
-    propError.value = e.data?.statusMessage || '操作失败'
-  } finally {
-    propLoading.value = false
-  }
-}
-
-const expandedScene = ref<string | null>(null)
-const variantsMap = ref<Record<string, SceneVariant[]>>({})
-const variantsLoading = ref<Record<string, boolean>>({})
-
-function toggleSceneExpand(sceneId: string) {
-  if (expandedScene.value === sceneId) {
-    expandedScene.value = null
-  } else {
-    expandedScene.value = sceneId
-    loadVariants(sceneId)
-  }
-}
-
-async function loadVariants(sceneId: string) {
-  if (variantsMap.value[sceneId]) return
-  variantsLoading.value[sceneId] = true
-  try {
-    const data = await $api<SceneVariant[]>(`/api/projects/${projectId}/scenes/${sceneId}/variants`)
-    variantsMap.value[sceneId] = data
-  } catch {}
-  variantsLoading.value[sceneId] = false
-}
-
-async function refreshVariants(sceneId: string) {
-  try {
-    const data = await $api<SceneVariant[]>(`/api/projects/${projectId}/scenes/${sceneId}/variants`)
-    variantsMap.value[sceneId] = data
-  } catch {}
-}
-
-const showVariantForm = ref(false)
-const editingVariant = ref<SceneVariant | null>(null)
-const variantParentSceneId = ref('')
-const variantForm = reactive({ name: '', description: '', image_prompt: '', variant_type: '' })
-const variantLoading = ref(false)
-const variantError = ref('')
-
-function openVariantCreate(sceneId: string) {
-  variantParentSceneId.value = sceneId
-  editingVariant.value = null
-  Object.assign(variantForm, { name: '', description: '', image_prompt: '', variant_type: '' })
-  variantError.value = ''
-  showVariantForm.value = true
-}
-
-function openVariantEdit(sceneId: string, variant: SceneVariant) {
-  variantParentSceneId.value = sceneId
-  editingVariant.value = variant
-  Object.assign(variantForm, {
-    name: variant.name,
-    description: variant.description || '',
-    image_prompt: variant.image_prompt || '',
-    variant_type: variant.variant_type || '',
-  })
-  variantError.value = ''
-  showVariantForm.value = true
-}
-
-async function submitVariant() {
-  variantError.value = ''
-  variantLoading.value = true
-  try {
-    const body = {
-      ...variantForm,
-      variant_type: variantForm.variant_type || undefined,
-    }
-    if (editingVariant.value) {
-      await $api(`/api/projects/${projectId}/scenes/${variantParentSceneId.value}/variants/${editingVariant.value.id}`, { method: 'PUT', body })
-    } else {
-      await $api(`/api/projects/${projectId}/scenes/${variantParentSceneId.value}/variants`, { method: 'POST', body })
-    }
-    showVariantForm.value = false
-    await refreshVariants(variantParentSceneId.value)
-  } catch (e: any) {
-    variantError.value = e.data?.message || e.data?.statusMessage || '操作失败'
-  } finally {
-    variantLoading.value = false
-  }
-}
-
-async function deleteVariant(sceneId: string, variantId: string) {
-  try {
-    await $api(`/api/projects/${projectId}/scenes/${sceneId}/variants/${variantId}`, { method: 'DELETE' })
-    await refreshVariants(sceneId)
-  } catch {}
-}
-
-const variantTypeMap: Record<string, string> = { time: '时间', weather: '天气', angle: '角度', composition: '构图' }
-
-const commentTarget = ref<{ type: 'scene' | 'prop'; id: string; name: string } | null>(null)
-const showCommentSheet = ref(false)
-
-function openEntityComments(type: 'scene' | 'prop', item: any) {
-  commentTarget.value = { type, id: item.id, name: item.name }
-  showCommentSheet.value = true
+    if (editingProp.value) await $api(`/api/projects/${projectId}/props/${editingProp.value.id}`, { method: 'PUT', body })
+    else await $api(`/api/projects/${projectId}/props`, { method: 'POST', body })
+    showPropForm.value = false; await refreshProps(); loadPropVariants()
+  } catch (e: any) { propError.value = e.data?.message || e.data?.statusMessage || '操作失败' }
+  finally { propLoading.value = false }
 }
 
 const deleteTarget = ref<{ type: 'scene' | 'prop'; id: string } | null>(null)
 const showDeleteConfirm = ref(false)
-
-function openDeleteScene(s: any) {
-  deleteTarget.value = { type: 'scene', id: s.id }
-  showDeleteConfirm.value = true
-}
-
-function openDeleteProp(p: any) {
-  deleteTarget.value = { type: 'prop', id: p.id }
-  showDeleteConfirm.value = true
-}
-
+function openDeleteScene(s: any) { deleteTarget.value = { type: 'scene', id: s.id }; showDeleteConfirm.value = true }
+function openDeleteProp(p: any) { deleteTarget.value = { type: 'prop', id: p.id }; showDeleteConfirm.value = true }
 async function handleDelete() {
   if (!deleteTarget.value) return
   try {
-    if (deleteTarget.value.type === 'scene') {
-      await $api(`/api/projects/${projectId}/scenes/${deleteTarget.value.id}`, { method: 'DELETE' })
-      refreshScenes()
-    } else {
-      await $api(`/api/projects/${projectId}/props/${deleteTarget.value.id}`, { method: 'DELETE' })
-      refreshProps()
-    }
-    showDeleteConfirm.value = false
-    deleteTarget.value = null
-  } catch (e: any) {
-    sceneError.value = e.data?.statusMessage || '删除失败'
-  }
+    if (deleteTarget.value.type === 'scene') { await $api(`/api/projects/${projectId}/scenes/${deleteTarget.value.id}`, { method: 'DELETE' }); refreshScenes() }
+    else { await $api(`/api/projects/${projectId}/props/${deleteTarget.value.id}`, { method: 'DELETE' }); refreshProps() }
+    showDeleteConfirm.value = false; deleteTarget.value = null
+  } catch (e: any) { sceneError.value = e.data?.message || e.data?.statusMessage || '删除失败' }
 }
-
-const locationMap: Record<string, string> = { int: '室内', ext: '室外' }
-const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '黎明', dusk: '黄昏' }
 </script>
 
 <template>
   <LayoutAppLayout>
     <template #title>{{ project?.title || '项目' }} — 场景与道具</template>
-
     <CommonPageLoading v-if="projectStatus === 'pending'" />
     <CommonPageError v-else-if="projectError" :error="projectError" :retry-fn="refreshProject" />
     <div v-else class="max-w-5xl">
       <ProjectSubNav :project-id="projectId" />
-
       <div class="flex items-center gap-1 mb-6">
-        <button
-          v-for="tab in [{ key: 'scenes', label: '场景', icon: MapPin }, { key: 'props', label: '道具', icon: Box }]"
-          :key="tab.key"
-          :class="[
-            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-            activeTab === tab.key ? 'bg-indigo-50 text-indigo-700' : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50',
-          ]"
-          @click="activeTab = tab.key"
-        >
-          <component :is="tab.icon" class="h-4 w-4" />
-          {{ tab.label }}
+        <button v-for="tab in [{ key: 'scenes', label: '场景', icon: MapPin }, { key: 'props', label: '道具', icon: Box }]" :key="tab.key" :class="['flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors', activeTab === tab.key ? 'bg-indigo-50 text-indigo-700' : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50']" @click="activeTab = tab.key">
+          <component :is="tab.icon" class="h-4 w-4" /> {{ tab.label }}
         </button>
         <div class="flex-1" />
-        <Button v-if="activeTab === 'scenes'" @click="openSceneCreate" size="sm" class="gap-2">
-          <Plus class="h-3.5 w-3.5" /> 新建场景
-        </Button>
-        <Button v-else @click="openPropCreate" size="sm" class="gap-2">
-          <Plus class="h-3.5 w-3.5" /> 新建道具
-        </Button>
+        <Button v-if="activeTab === 'scenes'" @click="openSceneCreate" size="sm" class="gap-2"><Plus class="h-3.5 w-3.5" /> 新建场景</Button>
+        <Button v-else @click="openPropCreate" size="sm" class="gap-2"><Plus class="h-3.5 w-3.5" /> 新建道具</Button>
       </div>
 
+      <!-- Scenes -->
       <div v-if="activeTab === 'scenes'">
         <div v-if="scenes?.length" class="space-y-3">
-          <div
-            v-for="s in scenes"
-            :key="s.id"
-            class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-          >
+          <div v-for="s in scenes" :key="s.id" class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer" @click="goToSceneDetail(s.id)">
             <div class="flex items-center justify-between p-4">
               <div class="flex items-center gap-3">
-                <div class="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center">
-                  <MapPin class="h-4 w-4 text-emerald-600" />
-                </div>
+                <div class="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center"><MapPin class="h-4 w-4 text-emerald-600" /></div>
                 <div>
                   <h3 class="text-sm font-medium text-zinc-900">{{ s.name }}</h3>
-                  <p class="text-xs text-zinc-400">
-                    {{ (s.location_type && locationMap[s.location_type]) || s.location_type }} · {{ (s.time_of_day && todMap[s.time_of_day]) || s.time_of_day }}
-                  </p>
+                  <p class="text-xs text-zinc-400">{{ (s.location_type && locationMap[s.location_type]) || s.location_type }} · {{ (s.time_of_day && todMap[s.time_of_day]) || s.time_of_day }}</p>
                 </div>
                 <div v-if="s.tags?.length" class="flex gap-1 ml-2">
                   <span v-for="tag in s.tags.slice(0, 3)" :key="tag" class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600">{{ tag }}</span>
                 </div>
               </div>
-              <div class="flex items-center gap-1">
-                <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-400 hover:text-indigo-600" @click="openEntityComments('scene', s)">
-                  <MessageSquare class="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-400" @click="openSceneEdit(s)">
-                  <Pencil class="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="sm" class="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50" @click="openDeleteScene(s)">
-                  <Trash2 class="h-3 w-3" />
-                </Button>
-              </div>
             </div>
-            <div class="px-4 pb-3">
-              <button
-                type="button"
-                class="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
-                @click="toggleSceneExpand(s.id)"
-              >
-                <component :is="expandedScene === s.id ? ChevronDown : ChevronRight" class="h-3.5 w-3.5" />
-                <Layers class="h-3.5 w-3.5" />
-                变体 ({{ variantsMap[s.id]?.length ?? '...' }})
-              </button>
-
-              <div v-if="expandedScene === s.id" class="mt-2 space-y-2">
-                <div v-if="variantsLoading[s.id]" class="text-xs text-zinc-400 py-2">加载中...</div>
-                <template v-else-if="variantsMap[s.id]?.length">
-                  <div
-                    v-for="v in variantsMap[s.id]"
-                    :key="v.id"
-                    class="rounded-lg border border-zinc-100 p-2 space-y-1.5"
-                  >
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-medium text-zinc-700">{{ v.name }}</span>
-                        <Badge v-if="v.variant_type" variant="secondary" class="text-[9px] px-1 py-0">{{ variantTypeMap[v.variant_type] || v.variant_type }}</Badge>
-                      </div>
-                      <div class="flex items-center gap-0.5">
-                        <button type="button" class="h-6 w-6 rounded flex items-center justify-center text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" @click="openVariantEdit(s.id, v)">
-                          <Pencil class="h-3 w-3" />
-                        </button>
-                        <button type="button" class="h-6 w-6 rounded flex items-center justify-center text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors" @click="deleteVariant(s.id, v.id)">
-                          <Trash2 class="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                    <ProjectEntityImageGallery
-                      :project-id="projectId"
-                      entity-type="scene_variant"
-                      :entity-id="v.id"
-                      :image-prompt="v.image_prompt"
-                      compact
-                    />
-                  </div>
-                </template>
-                <Button variant="outline" size="sm" class="gap-1.5 text-xs h-7 w-full" @click="openVariantCreate(s.id)">
-                  <Plus class="h-3 w-3" /> 添加变体
-                </Button>
-              </div>
+            <div v-if="getSceneVariantThumbs(s.id).length" class="px-4 pb-3">
+              <p class="text-[10px] text-zinc-400 uppercase tracking-wider mb-1.5">变体</p>
+              <ProjectEntityThumbnailRow :items="getSceneVariantThumbs(s.id)" size="sm" @select="goToSceneDetail(s.id)" />
+            </div>
+            <div class="flex gap-1 px-4 pb-3 pt-2 border-t border-zinc-100">
+              <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-indigo-600" @click.stop="openSceneEdit(s)"><Pencil class="h-3 w-3 mr-1" /> 编辑</Button>
+              <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-indigo-600" @click.stop="goToSceneDetail(s.id)"><ExternalLink class="h-3 w-3 mr-1" /> 详情</Button>
+              <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-red-600" @click.stop="openDeleteScene(s)"><Trash2 class="h-3 w-3 mr-1" /> 删除</Button>
             </div>
           </div>
         </div>
@@ -357,42 +189,27 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
         </CommonEmptyState>
       </div>
 
+      <!-- Props -->
       <div v-if="activeTab === 'props'">
         <div v-if="propsList?.length" class="space-y-3">
-          <div
-            v-for="p in propsList"
-            :key="p.id"
-            class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-          >
+          <div v-for="p in propsList" :key="p.id" class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer" @click="goToPropDetail(p.id)">
             <div class="flex items-center justify-between p-4">
               <div class="flex items-center gap-3">
-                <div class="h-9 w-9 rounded-lg bg-amber-50 flex items-center justify-center">
-                  <Box class="h-4 w-4 text-amber-600" />
-                </div>
+                <div class="h-9 w-9 rounded-lg bg-amber-50 flex items-center justify-center"><Box class="h-4 w-4 text-amber-600" /></div>
                 <div>
                   <h3 class="text-sm font-medium text-zinc-900">{{ p.name }}</h3>
                   <p v-if="p.description" class="text-xs text-zinc-400 truncate max-w-xs">{{ p.description }}</p>
                 </div>
               </div>
-              <div class="flex items-center gap-1">
-                <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-400 hover:text-indigo-600" @click="openEntityComments('prop', p)">
-                  <MessageSquare class="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-400" @click="openPropEdit(p)">
-                  <Pencil class="h-3 w-3" />
-                </Button>
-                <Button variant="ghost" size="sm" class="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50" @click="openDeleteProp(p)">
-                  <Trash2 class="h-3 w-3" />
-                </Button>
-              </div>
             </div>
-            <div class="px-4 pb-3">
-              <ProjectEntityImageGallery
-                :project-id="projectId"
-                entity-type="prop"
-                :entity-id="p.id"
-                :image-prompt="p.image_prompt"
-              />
+            <div v-if="getPropVariantThumbs(p.id).length" class="px-4 pb-3">
+              <p class="text-[10px] text-zinc-400 uppercase tracking-wider mb-1.5">变体</p>
+              <ProjectEntityThumbnailRow :items="getPropVariantThumbs(p.id)" size="sm" @select="goToPropDetail(p.id)" />
+            </div>
+            <div class="flex gap-1 px-4 pb-3 pt-2 border-t border-zinc-100">
+              <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-indigo-600" @click.stop="openPropEdit(p)"><Pencil class="h-3 w-3 mr-1" /> 编辑</Button>
+              <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-indigo-600" @click.stop="goToPropDetail(p.id)"><ExternalLink class="h-3 w-3 mr-1" /> 详情</Button>
+              <Button variant="ghost" size="sm" class="h-7 text-xs text-zinc-500 hover:text-red-600" @click.stop="openDeleteProp(p)"><Trash2 class="h-3 w-3 mr-1" /> 删除</Button>
             </div>
           </div>
         </div>
@@ -402,45 +219,20 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
       </div>
     </div>
 
+    <!-- Scene edit Sheet -->
     <Sheet :open="showSceneForm" @update:open="(v: boolean) => { if (!v) showSceneForm = false }">
       <SheetContent class="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{{ editingScene ? '编辑场景' : '新建场景' }}</SheetTitle>
-        </SheetHeader>
+        <SheetHeader><SheetTitle>{{ editingScene ? '编辑场景' : '新建场景' }}</SheetTitle></SheetHeader>
         <form @submit.prevent="submitScene" class="space-y-4 mt-4">
           <div class="space-y-2"><Label>场景名 *</Label><Input v-model="sceneForm.name" required placeholder="如 念念甜品屋" /></div>
           <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label>内/外景</Label>
-              <select v-model="sceneForm.location_type" class="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-                <option value="int">室内</option><option value="ext">室外</option>
-              </select>
-            </div>
-            <div class="space-y-2">
-              <Label>时间</Label>
-              <select v-model="sceneForm.time_of_day" class="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-                <option value="day">日景</option><option value="night">夜景</option><option value="dawn">黎明</option><option value="dusk">黄昏</option>
-              </select>
-            </div>
+            <div class="space-y-2"><Label>内/外景</Label><select v-model="sceneForm.location_type" class="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="int">室内</option><option value="ext">室外</option></select></div>
+            <div class="space-y-2"><Label>时间</Label><select v-model="sceneForm.time_of_day" class="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="day">日景</option><option value="night">夜景</option><option value="dawn">黎明</option><option value="dusk">黄昏</option></select></div>
           </div>
           <div class="space-y-2"><Label>描述</Label><Textarea v-model="sceneForm.description" rows="3" placeholder="场景描述" /></div>
           <div class="space-y-2"><Label>标签</Label><Input v-model="sceneForm.tags" placeholder="温馨, 浪漫（逗号分隔）" /></div>
           <Separator />
-
-          <div class="space-y-2">
-            <Label>图像提示词</Label>
-            <Textarea v-model="sceneForm.image_prompt" placeholder="用于 AI 生成场景图的提示词" rows="3" />
-          </div>
-
-          <div v-if="editingScene" class="space-y-2">
-            <Label>关联图片</Label>
-            <ProjectEntityImageGallery
-              :project-id="projectId"
-              entity-type="scene"
-              :entity-id="editingScene.id"
-            />
-          </div>
-
+          <div class="space-y-2"><Label>图像提示词</Label><Textarea v-model="sceneForm.image_prompt" placeholder="用于 AI 生成场景图的提示词" rows="3" /></div>
           <div v-if="sceneError" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{{ sceneError }}</div>
           <div class="flex gap-2 pt-2">
             <Button type="button" variant="outline" @click="showSceneForm = false" class="flex-1">取消</Button>
@@ -450,31 +242,16 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
       </SheetContent>
     </Sheet>
 
+    <!-- Prop edit Sheet -->
     <Sheet :open="showPropForm" @update:open="(v: boolean) => { if (!v) showPropForm = false }">
       <SheetContent class="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{{ editingProp ? '编辑道具' : '新建道具' }}</SheetTitle>
-        </SheetHeader>
+        <SheetHeader><SheetTitle>{{ editingProp ? '编辑道具' : '新建道具' }}</SheetTitle></SheetHeader>
         <form @submit.prevent="submitProp" class="space-y-4 mt-4">
           <div class="space-y-2"><Label>道具名 *</Label><Input v-model="propForm.name" required placeholder="如 家族戒指" /></div>
           <div class="space-y-2"><Label>描述</Label><Textarea v-model="propForm.description" rows="3" placeholder="道具描述和用途" /></div>
           <div class="space-y-2"><Label>标签</Label><Input v-model="propForm.tags" placeholder="关键道具, 剧情推动（逗号分隔）" /></div>
           <Separator />
-
-          <div class="space-y-2">
-            <Label>图像提示词</Label>
-            <Textarea v-model="propForm.image_prompt" placeholder="用于 AI 生成道具图的提示词" rows="3" />
-          </div>
-
-          <div v-if="editingProp" class="space-y-2">
-            <Label>关联图片</Label>
-            <ProjectEntityImageGallery
-              :project-id="projectId"
-              entity-type="prop"
-              :entity-id="editingProp.id"
-            />
-          </div>
-
+          <div class="space-y-2"><Label>图像提示词</Label><Textarea v-model="propForm.image_prompt" placeholder="用于 AI 生成道具图的提示词" rows="3" /></div>
           <div v-if="propError" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{{ propError }}</div>
           <div class="flex gap-2 pt-2">
             <Button type="button" variant="outline" @click="showPropForm = false" class="flex-1">取消</Button>
@@ -484,70 +261,6 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
       </SheetContent>
     </Sheet>
 
-    <CommonConfirmDialog
-      :open="showDeleteConfirm"
-      title="确认删除"
-      :description="deleteTarget?.type === 'scene' ? '确定要删除该场景吗？' : '确定要删除该道具吗？'"
-      confirm-text="删除"
-      destructive
-      @confirm="handleDelete"
-      @cancel="showDeleteConfirm = false; deleteTarget = null"
-    />
-
-    <Sheet :open="showCommentSheet" @update:open="(v: boolean) => { if (!v) { showCommentSheet = false; commentTarget = null } }">
-      <SheetContent class="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{{ commentTarget?.name }} — 评论</SheetTitle>
-        </SheetHeader>
-        <div class="mt-4">
-          <CommonCommentThread
-            v-if="commentTarget"
-            :project-id="projectId"
-            :entity-type="commentTarget.type"
-            :entity-id="commentTarget.id"
-          />
-        </div>
-      </SheetContent>
-    </Sheet>
-
-    <Sheet :open="showVariantForm" @update:open="(v: boolean) => { if (!v) showVariantForm = false }">
-      <SheetContent class="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{{ editingVariant ? '编辑变体' : '新建变体' }}</SheetTitle>
-        </SheetHeader>
-        <form @submit.prevent="submitVariant" class="space-y-4 mt-4">
-          <div class="space-y-2"><Label>变体名称 *</Label><Input v-model="variantForm.name" required placeholder="如 夜景版、雨天版" /></div>
-          <div class="space-y-2">
-            <Label>变体类型</Label>
-            <select v-model="variantForm.variant_type" class="w-full h-10 rounded-md border border-input bg-background px-3 text-sm">
-              <option value="">不指定</option>
-              <option value="time">时间</option>
-              <option value="weather">天气</option>
-              <option value="angle">角度</option>
-              <option value="composition">构图</option>
-            </select>
-          </div>
-          <div class="space-y-2"><Label>描述</Label><Textarea v-model="variantForm.description" rows="3" placeholder="变体描述" /></div>
-          <Separator />
-          <div class="space-y-2">
-            <Label>图像提示词</Label>
-            <Textarea v-model="variantForm.image_prompt" placeholder="用于 AI 生成该变体图的提示词" rows="3" />
-          </div>
-          <div v-if="editingVariant" class="space-y-2">
-            <Label>关联图片</Label>
-            <ProjectEntityImageGallery
-              :project-id="projectId"
-              entity-type="scene_variant"
-              :entity-id="editingVariant.id"
-            />
-          </div>
-          <div v-if="variantError" class="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{{ variantError }}</div>
-          <div class="flex gap-2 pt-2">
-            <Button type="button" variant="outline" @click="showVariantForm = false" class="flex-1">取消</Button>
-            <Button type="submit" :disabled="variantLoading || !variantForm.name" class="flex-1">{{ variantLoading ? '保存中...' : '保存' }}</Button>
-          </div>
-        </form>
-      </SheetContent>
-    </Sheet>
+    <CommonConfirmDialog :open="showDeleteConfirm" title="确认删除" :description="deleteTarget?.type === 'scene' ? '确定要删除该场景吗？' : '确定要删除该道具吗？'" confirm-text="删除" destructive @confirm="handleDelete" @cancel="showDeleteConfirm = false; deleteTarget = null" />
   </LayoutAppLayout>
 </template>
