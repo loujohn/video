@@ -2,6 +2,9 @@ import { z } from 'zod/v4'
 
 export const createStoryboardSchema = z.object({
   scene_id: z.string().uuid().optional().nullable(),
+  scene_variant_id: z.string().uuid().optional().nullable(),
+  character_look_ids: z.array(z.string().uuid()).optional(),
+  prop_variant_ids: z.array(z.string().uuid()).optional(),
   sequence_number: z.number().int().min(1).optional(),
   shot_type: z.string().max(50).optional(),
   camera_angle: z.string().max(50).optional(),
