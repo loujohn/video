@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Storyboard, Project, Scene, Episode } from '~/core/types'
+import type { Storyboard, StoryboardWithAssociations, Project, Scene, Episode } from '~/core/types'
 import { ArrowLeft, Plus, Film, LayoutGrid, GalleryHorizontal, Trash2, Download, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 const draggable = defineAsyncComponent(() => import('vuedraggable'))
@@ -31,7 +31,7 @@ const nextEpisode = computed(() => {
 
 const { data: storyboards, refresh } = useAsyncData(
   `storyboards-${projectId}-${episodeNum}`,
-  () => $api<Storyboard[]>(`/api/projects/${projectId}/episodes/${episodeNum}/storyboards`),
+  () => $api<StoryboardWithAssociations[]>(`/api/projects/${projectId}/episodes/${episodeNum}/storyboards`),
 )
 
 const commentTarget = ref<Storyboard | null>(null)
@@ -64,7 +64,7 @@ const { data: scenes } = useAsyncData(`scenes-${projectId}`, () =>
   $api<Scene[]>(`/api/projects/${projectId}/scenes`),
 )
 
-const localList = ref<Storyboard[]>([])
+const localList = ref<StoryboardWithAssociations[]>([])
 watch(
   storyboards,
   (val) => {
@@ -318,6 +318,7 @@ function escapeHtml(str: string): string {
             <ProjectStoryboardCard
               :storyboard="element"
               :project-id="projectId"
+              :episode-num="episodeNum"
               :comment-count="commentCounts[element.id] || 0"
               @edit="openEdit(element)"
               @delete="openDelete(element)"
@@ -365,22 +366,9 @@ function escapeHtml(str: string): string {
             <div class="p-3">
               <p v-if="sb.description" class="text-xs text-zinc-700 line-clamp-2 mb-1">{{ sb.description }}</p>
               <p v-if="sb.dialogue" class="text-xs text-zinc-500 italic line-clamp-1">「{{ sb.dialogue }}」</p>
-              <div class="mt-2 space-y-1">
-                <ProjectEntityImageGallery
-                  :project-id="projectId"
-                  entity-type="storyboard"
-                  :entity-id="sb.id"
-                  :image-prompt="sb.image_prompt"
-                  media-type="image"
-                  compact
-                />
-                <ProjectEntityImageGallery
-                  :project-id="projectId"
-                  entity-type="storyboard"
-                  :entity-id="sb.id"
-                  media-type="video"
-                  compact
-                />
+              <div v-if="sb.scene_variant || sb.character_looks?.length || sb.prop_variants?.length" class="flex flex-wrap gap-1 mt-1.5">
+                <span v-if="sb.scene_variant" class="text-[9px] px-1 py-0.5 rounded-full bg-emerald-50 text-emerald-700">{{ sb.scene_variant.scene_name }}</span>
+                <span v-for="cl in sb.character_looks" :key="cl.id" class="text-[9px] px-1 py-0.5 rounded-full bg-violet-50 text-violet-700">{{ cl.character_name }}</span>
               </div>
               <div class="flex items-center justify-between mt-2">
                 <span v-if="sb.duration_seconds" class="text-[10px] text-zinc-400">{{ sb.duration_seconds }}秒</span>
