@@ -21,6 +21,7 @@ import { notificationTools, handleNotificationTool } from './tools/notification-
 import { adminTools, handleAdminTool } from './tools/admin-tools.js'
 import { characterLookTools, handleCharacterLookTool } from './tools/character-look-tools.js'
 import { sceneVariantTools, handleSceneVariantTool } from './tools/scene-variant-tools.js'
+import { propVariantTools, handlePropVariantTool } from './tools/prop-variant-tools.js'
 
 const allTools = [
   ...authTools,
@@ -39,6 +40,7 @@ const allTools = [
   ...adminTools,
   ...characterLookTools,
   ...sceneVariantTools,
+  ...propVariantTools,
 ]
 
 const toolHandlers: Record<string, (name: string, args: Record<string, unknown>) => Promise<string>> = {}
@@ -58,6 +60,7 @@ for (const t of notificationTools) toolHandlers[t.name] = handleNotificationTool
 for (const t of adminTools) toolHandlers[t.name] = handleAdminTool
 for (const t of characterLookTools) toolHandlers[t.name] = handleCharacterLookTool
 for (const t of sceneVariantTools) toolHandlers[t.name] = handleSceneVariantTool
+for (const t of propVariantTools) toolHandlers[t.name] = handlePropVariantTool
 
 const server = new Server(
   { name: 'video-drama-mcp', version: '1.0.0' },
