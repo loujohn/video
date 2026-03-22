@@ -83,7 +83,7 @@ linked_entity_type='character' & linked_entity_id=cid & category='reference'
 - 保留角色名称、身份、性格标签
 - 去掉角色级"评论"按钮
 - 新增「形象缩略图横排」：每个形象显示圆角缩略图（选中图 or 最新候选图 or 空占位），下方带形象名称
-- 缩略图尺寸约 48x48 ~ 56x56，横排最多显示 5 个，溢出显示 `+N`
+- 缩略图尺寸约 48x48 ~ 56x56，横排最多显示 5 个，溢出时显示翻页箭头可滚动查看
 - 点击缩略图或卡片主体 → 跳转角色详情页
 
 **卡片操作栏**：「编辑」（Sheet）| 「详情」（跳转）| 「删除」
@@ -411,6 +411,8 @@ coverAsset = 有 is_cover → 取它（绿色边框 + 星标）
 
 Props: `items`, `maxVisible` (默认5), `size` ('sm'|'md')
 Event: `@click(item)`
+
+溢出处理：当 items 超过 maxVisible 时，右侧显示翻页箭头按钮，点击可滚动查看下一页。不使用 `+N` 标记，而是提供左右翻页操作。
 
 ### 11.3 新组件：ReferenceImageGallery
 
