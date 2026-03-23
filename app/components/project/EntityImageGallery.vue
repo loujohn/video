@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Upload, ZoomIn, Trash2, Ban, RotateCcw, Star, Play, MessageSquare } from 'lucide-vue-next'
+import { Upload, ZoomIn, Trash2, Ban, RotateCcw, Star, Play, MessageSquare, Check, Copy } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import type { Asset } from '~/core/types/asset'
 
@@ -10,8 +10,10 @@ const props = withDefaults(defineProps<{
   imagePrompt?: string | null
   compact?: boolean
   mediaType?: 'image' | 'video' | 'all'
+  slot?: number | null
 }>(), {
   mediaType: 'image',
+  slot: null,
 })
 
 const emit = defineEmits<{
@@ -41,6 +43,7 @@ const { data: assets, refresh } = useAsyncData(
 const activeAssets = computed(() =>
   (assets.value ?? [])
     .filter(i => i.is_active)
+    .filter(i => props.slot == null || (i.metadata as any)?.slot === props.slot)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
 )
 const discardedAssets = computed(() => (assets.value ?? []).filter(i => !i.is_active))
@@ -133,6 +136,32 @@ function getGenerationPrompt(asset: Asset): string | null {
   return (asset.metadata as any)?.generation_prompt || null
 }
 
+const expandedPrompts = ref<Set<string>>(new Set())
+function togglePromptExpand(id: string) {
+  const s = new Set(expandedPrompts.value)
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
+  expandedPrompts.value = s
+}
+
+async function approveAsset(asset: Asset) {
+  const newMeta = { ...(asset.metadata as any), review_status: 'approved' }
+  try {
+    await $api(`/api/projects/${props.projectId}/assets/${asset.id}`, {
+      method: 'PUT', body: { metadata: newMeta },
+    })
+    toast.success('已确认')
+    await refresh()
+  } catch { toast.error('操作失败') }
+}
+
+async function copyPrompt(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    toast.success('已复制提示词')
+  } catch { toast.error('复制失败') }
+}
+
 async function setCover(asset: Asset) {
   const active = activeAssets.value
   for (const item of active) {
@@ -217,6 +246,9 @@ async function uploadFiles(files: File[]) {
     formData.append('category', 'reference')
     formData.append('linked_entity_type', props.entityType)
     formData.append('linked_entity_id', props.entityId)
+    if (props.slot != null) {
+      formData.append('metadata', JSON.stringify({ slot: props.slot }))
+    }
 
     try {
       await $fetch(`/api/projects/${props.projectId}/assets`, {
@@ -289,9 +321,19 @@ function onDragLeave() {
     </div>
 
     <!-- Image prompt display -->
-    <div v-if="imagePrompt" class="rounded-lg bg-amber-50 border border-amber-200/60 px-3 py-2">
-      <p class="text-[10px] font-medium text-amber-600 uppercase tracking-wider mb-0.5">提示词 Prompt</p>
-      <p class="text-xs text-amber-900 whitespace-pre-wrap line-clamp-3">{{ imagePrompt }}</p>
+    <div v-if="imagePrompt" class="rounded-lg bg-amber-50 border border-amber-200/60 px-3 py-2 flex items-start gap-2">
+      <div class="flex-1 min-w-0">
+        <p class="text-[10px] font-medium text-amber-600 uppercase tracking-wider mb-0.5">提示词 Prompt</p>
+        <p class="text-xs text-amber-900 whitespace-pre-wrap line-clamp-3">{{ imagePrompt }}</p>
+      </div>
+      <button
+        type="button"
+        class="shrink-0 mt-1 p-1 rounded hover:bg-amber-100 transition-colors"
+        title="复制提示词"
+        @click="copyPrompt(imagePrompt!)"
+      >
+        <Copy class="h-3 w-3 text-amber-600" />
+      </button>
     </div>
 
     <!-- Active assets grid -->
@@ -299,97 +341,119 @@ function onDragLeave() {
       <div
         v-for="item in activeAssets"
         :key="item.id"
-        class="group/img relative aspect-square rounded-lg overflow-hidden bg-zinc-50 transition-all"
+        class="group/img relative rounded-lg overflow-hidden bg-zinc-50 transition-all"
         :class="[
           isCover(item) && hasConfirmedCover ? 'border-2 border-indigo-400 ring-1 ring-indigo-200' :
           isCover(item) && !hasConfirmedCover ? 'border-2 border-dashed border-amber-400' :
           'border border-zinc-200',
         ]"
       >
-        <!-- Video thumbnail -->
-        <template v-if="isAssetVideo(item)">
-          <video
-            :src="`/uploads/${item.file_path}`"
-            class="w-full h-full object-cover"
-            muted
-            preload="metadata"
-          />
-          <div class="absolute bottom-1 right-1">
-            <div class="h-5 w-5 rounded-full bg-black/60 flex items-center justify-center">
-              <Play class="h-3 w-3 text-white fill-white" />
+        <div class="relative aspect-square">
+          <!-- Video thumbnail -->
+          <template v-if="isAssetVideo(item)">
+            <video
+              :src="`/uploads/${item.file_path}`"
+              class="w-full h-full object-cover"
+              muted
+              preload="metadata"
+            />
+            <div class="absolute bottom-1 right-1">
+              <div class="h-5 w-5 rounded-full bg-black/60 flex items-center justify-center">
+                <Play class="h-3 w-3 text-white fill-white" />
+              </div>
+            </div>
+          </template>
+          <!-- Image -->
+          <template v-else>
+            <img
+              :src="`/uploads/${item.file_path}`"
+              :alt="item.file_name || ''"
+              class="w-full h-full object-cover"
+            />
+          </template>
+
+          <!-- Cover badge -->
+          <div v-if="isCover(item) && hasConfirmedCover" class="absolute top-1 left-1">
+            <Star class="h-3.5 w-3.5 text-indigo-500 fill-indigo-500 drop-shadow-sm" />
+          </div>
+          <div v-else-if="isCover(item) && !hasConfirmedCover" class="absolute top-1 left-1">
+            <Badge variant="secondary" class="text-[8px] bg-amber-500/80 text-white border-0 px-1 py-0">待确认</Badge>
+          </div>
+
+          <!-- Review status badge -->
+          <div v-if="(item.metadata as any)?.review_status === 'approved'" class="absolute top-1 right-1">
+            <div class="h-4 w-4 rounded-full bg-emerald-500 flex items-center justify-center shadow">
+              <Check class="h-2.5 w-2.5 text-white" />
             </div>
           </div>
-        </template>
-        <!-- Image -->
-        <template v-else>
-          <img
-            :src="`/uploads/${item.file_path}`"
-            :alt="item.file_name || ''"
-            class="w-full h-full object-cover"
-          />
-        </template>
 
-        <!-- Cover / unconfirmed badge -->
-        <div v-if="isCover(item) && hasConfirmedCover" class="absolute top-1 left-1">
-          <Star class="h-3.5 w-3.5 text-indigo-500 fill-indigo-500 drop-shadow-sm" />
-        </div>
-        <div v-else-if="isCover(item) && !hasConfirmedCover" class="absolute top-1 left-1">
-          <Badge variant="secondary" class="text-[8px] bg-amber-500/80 text-white border-0 px-1 py-0">待确认</Badge>
-        </div>
+          <!-- Comment count badge -->
+          <button
+            v-if="getCommentCount(item.id) > 0"
+            type="button"
+            class="absolute bottom-1 left-1 flex items-center gap-0.5 bg-black/60 text-white rounded-full px-1.5 py-0.5 text-[9px]"
+            @click.stop="openAssetComments(item)"
+          >
+            <MessageSquare class="h-2.5 w-2.5" />
+            {{ getCommentCount(item.id) }}
+          </button>
 
-        <!-- Comment count badge -->
-        <button
-          v-if="getCommentCount(item.id) > 0"
-          type="button"
-          class="absolute bottom-1 left-1 flex items-center gap-0.5 bg-black/60 text-white rounded-full px-1.5 py-0.5 text-[9px]"
-          @click.stop="openAssetComments(item)"
-        >
-          <MessageSquare class="h-2.5 w-2.5" />
-          {{ getCommentCount(item.id) }}
-        </button>
-
-        <!-- Generation prompt tooltip -->
-        <div v-if="getGenerationPrompt(item)" class="absolute top-1 right-1 opacity-0 group-hover/img:opacity-100 transition-opacity">
-          <div class="bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded max-w-[120px] truncate" :title="getGenerationPrompt(item) ?? ''">
-            {{ getGenerationPrompt(item) }}
+          <!-- Hover actions -->
+          <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 transition-colors flex items-center justify-center gap-1.5 opacity-0 group-hover/img:opacity-100">
+            <button
+              type="button"
+              class="h-7 w-7 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
+              title="预览"
+              @click="openPreview(`/uploads/${item.file_path}`)"
+            >
+              <ZoomIn class="h-3.5 w-3.5 text-zinc-700" />
+            </button>
+            <button
+              v-if="!isCover(item)"
+              type="button"
+              class="h-7 w-7 rounded-full bg-indigo-500/90 flex items-center justify-center hover:bg-indigo-600 transition-colors"
+              title="设为选中"
+              @click.stop="setCover(item)"
+            >
+              <Star class="h-3.5 w-3.5 text-white" />
+            </button>
+            <button
+              v-if="(item.metadata as any)?.review_status !== 'approved'"
+              type="button"
+              class="h-7 w-7 rounded-full bg-emerald-500/90 flex items-center justify-center hover:bg-emerald-600 transition-colors"
+              title="确认"
+              @click.stop="approveAsset(item)"
+            >
+              <Check class="h-3.5 w-3.5 text-white" />
+            </button>
+            <button
+              type="button"
+              class="h-7 w-7 rounded-full bg-blue-500/90 flex items-center justify-center hover:bg-blue-600 transition-colors"
+              title="评论"
+              @click.stop="openAssetComments(item)"
+            >
+              <MessageSquare class="h-3.5 w-3.5 text-white" />
+            </button>
+            <button
+              type="button"
+              class="h-7 w-7 rounded-full bg-amber-500/90 flex items-center justify-center hover:bg-amber-600 transition-colors"
+              title="废弃"
+              @click.stop="toggleActive(item)"
+            >
+              <Ban class="h-3.5 w-3.5 text-white" />
+            </button>
           </div>
         </div>
 
-        <!-- Hover actions -->
-        <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/40 transition-colors flex items-center justify-center gap-1.5 opacity-0 group-hover/img:opacity-100">
-          <button
-            type="button"
-            class="h-7 w-7 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
-            title="预览"
-            @click="openPreview(`/uploads/${item.file_path}`)"
+        <!-- Generation prompt below image -->
+        <div v-if="getGenerationPrompt(item)" class="px-1.5 py-1 border-t border-zinc-100">
+          <p
+            class="text-[10px] text-zinc-500 cursor-pointer hover:text-zinc-700 transition-colors"
+            :class="expandedPrompts.has(item.id) ? '' : 'line-clamp-2'"
+            @click.stop="togglePromptExpand(item.id)"
           >
-            <ZoomIn class="h-3.5 w-3.5 text-zinc-700" />
-          </button>
-          <button
-            v-if="!isCover(item)"
-            type="button"
-            class="h-7 w-7 rounded-full bg-indigo-500/90 flex items-center justify-center hover:bg-indigo-600 transition-colors"
-            title="设为选中"
-            @click.stop="setCover(item)"
-          >
-            <Star class="h-3.5 w-3.5 text-white" />
-          </button>
-          <button
-            type="button"
-            class="h-7 w-7 rounded-full bg-blue-500/90 flex items-center justify-center hover:bg-blue-600 transition-colors"
-            title="评论"
-            @click.stop="openAssetComments(item)"
-          >
-            <MessageSquare class="h-3.5 w-3.5 text-white" />
-          </button>
-          <button
-            type="button"
-            class="h-7 w-7 rounded-full bg-amber-500/90 flex items-center justify-center hover:bg-amber-600 transition-colors"
-            title="废弃"
-            @click.stop="toggleActive(item)"
-          >
-            <Ban class="h-3.5 w-3.5 text-white" />
-          </button>
+            {{ getGenerationPrompt(item) }}
+          </p>
         </div>
       </div>
     </div>
@@ -507,6 +571,20 @@ function onDragLeave() {
         <div v-if="previewInfo" class="flex items-center justify-between px-4 py-2 bg-zinc-50 text-xs text-zinc-500 border-t border-zinc-100">
           <span class="truncate max-w-[60%]">{{ previewInfo.name }}</span>
           <span>{{ previewInfo.index }} / {{ previewInfo.total }}</span>
+        </div>
+        <!-- Prompt panel in preview -->
+        <div v-if="previewItem && getGenerationPrompt(previewItem)" class="px-4 py-3 bg-zinc-50 border-t border-zinc-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Generation Prompt</p>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-700 font-medium"
+              @click="copyPrompt(getGenerationPrompt(previewItem!)!)"
+            >
+              <Copy class="h-2.5 w-2.5" /> 复制
+            </button>
+          </div>
+          <p class="text-xs text-zinc-700 whitespace-pre-wrap">{{ getGenerationPrompt(previewItem) }}</p>
         </div>
       </DialogContent>
     </Dialog>
