@@ -82,7 +82,7 @@ const todMap: Record<string, string> = { day: '日景', night: '夜景', dawn: '
         <Button variant="ghost" size="sm" @click="navigateTo(`/projects/${projectId}/scenes`)"><ArrowLeft class="h-4 w-4" /></Button>
         <div class="flex-1 min-w-0">
           <h1 class="text-xl font-bold text-zinc-900 truncate">{{ scene?.name || '加载中...' }}</h1>
-          <p v-if="scene" class="text-sm text-zinc-500">{{ locationMap[scene.location_type] || scene.location_type }} · {{ todMap[scene.time_of_day] || scene.time_of_day }}</p>
+          <p v-if="scene" class="text-sm text-zinc-500">{{ (scene.location_type && locationMap[scene.location_type]) || scene.location_type }} · {{ (scene.time_of_day && todMap[scene.time_of_day]) || scene.time_of_day }}</p>
         </div>
         <ProjectAssigneePicker
           v-if="scene"

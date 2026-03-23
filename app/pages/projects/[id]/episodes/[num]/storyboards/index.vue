@@ -65,13 +65,6 @@ const { data: scenes } = useAsyncData(`scenes-${projectId}`, () =>
 )
 
 const localList = ref<StoryboardWithAssociations[]>([])
-watch(
-  filteredStoryboards,
-  (val) => {
-    localList.value = val ? [...val] : []
-  },
-  { immediate: true },
-)
 
 const viewMode = ref<'grid' | 'timeline'>('grid')
 const showForm = ref(false)
@@ -175,6 +168,12 @@ const filteredStoryboards = computed(() => {
   if (filterAssignee.value) list = list.filter(sb => sb.assigned_to === filterAssignee.value)
   return list
 })
+
+watch(
+  filteredStoryboards,
+  (val) => { localList.value = val ? [...val] : [] },
+  { immediate: true },
+)
 
 const sceneOptions = computed(() =>
   (scenes.value ?? []).map((s) => ({ id: s.id, name: s.name })),

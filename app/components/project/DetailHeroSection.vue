@@ -6,7 +6,7 @@ export interface HeroItem {
   name: string
   imageUrl: string | null
   reviewStatus: string
-  hasConfirmedCover: boolean
+  hasConfirmedCover?: boolean
 }
 
 const props = defineProps<{
@@ -100,9 +100,9 @@ const statusConfig: Record<string, { label: string; class: string }> = {
           <span
             v-if="statusConfig[item.reviewStatus]"
             class="text-[9px] px-1.5 py-0.5 rounded-full whitespace-nowrap"
-            :class="statusConfig[item.reviewStatus].class"
+            :class="statusConfig[item.reviewStatus]?.class"
           >
-            {{ statusConfig[item.reviewStatus].label }}
+            {{ statusConfig[item.reviewStatus]?.label }}
           </span>
         </div>
       </div>
