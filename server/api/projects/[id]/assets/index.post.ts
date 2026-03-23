@@ -32,6 +32,12 @@ export default defineApiHandler(async (event) => {
   else if (mimetype.startsWith('audio/')) assetType = 'audio'
   else if (mimetype.startsWith('video/')) assetType = 'video'
 
+  let metadata: Record<string, unknown> | undefined
+  const metadataRaw = getField('metadata')
+  if (metadataRaw) {
+    try { metadata = JSON.parse(metadataRaw) } catch { /* ignore malformed metadata */ }
+  }
+
   const asset = await AssetService.create(
     projectId,
     {
@@ -41,6 +47,7 @@ export default defineApiHandler(async (event) => {
       file_name: fileField.filename,
       file_size: fileField.data.length,
       mime_type: mimetype,
+      metadata,
       linked_entity_type: getField('linked_entity_type'),
       linked_entity_id: getField('linked_entity_id'),
     },

@@ -84,4 +84,24 @@ describe('updateSceneVariantSchema', () => {
     const result = updateSceneVariantSchema.safeParse({ name: '' })
     expect(result.success).toBe(false)
   })
+
+  it('accepts pending review_status', () => {
+    const result = updateSceneVariantSchema.safeParse({ review_status: 'pending' })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts approved review_status', () => {
+    const result = updateSceneVariantSchema.safeParse({ review_status: 'approved' })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects old draft review_status', () => {
+    const result = updateSceneVariantSchema.safeParse({ review_status: 'draft' })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects invalid review_status', () => {
+    const result = updateSceneVariantSchema.safeParse({ review_status: 'invalid' })
+    expect(result.success).toBe(false)
+  })
 })

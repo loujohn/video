@@ -33,7 +33,7 @@ const heroItems = computed(() =>
     id: look.id,
     name: look.name,
     imageUrl: look.cover_asset_url || null,
-    reviewStatus: look.review_status || 'draft',
+    reviewStatus: look.review_status || 'pending',
     hasConfirmedCover: !!look.cover_asset_url,
   })),
 )
@@ -97,6 +97,25 @@ async function deleteLook(lookId: string) {
   } catch (e: any) {
     toast.error(e.data?.message || '删除失败')
   }
+}
+
+const reviewStatusOptions = [
+  { value: 'pending', label: '待审核', class: 'bg-amber-100 text-amber-700' },
+  { value: 'approved', label: '已通过', class: 'bg-emerald-100 text-emerald-700' },
+]
+
+async function updateLookReviewStatus(lookId: string, status: string) {
+  try {
+    await $api(`/api/projects/${projectId}/characters/${characterId}/looks/${lookId}`, {
+      method: 'PUT', body: { review_status: status },
+    })
+    await refreshLooks()
+    toast.success('状态已更新')
+  } catch { toast.error('更新失败') }
+}
+
+async function onLookConfirmed(lookId: string) {
+  await updateLookReviewStatus(lookId, 'approved')
 }
 
 const charRelations = computed(() => {
@@ -190,13 +209,15 @@ function goBack() {
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-zinc-700">{{ look.name }}</span>
                   <Badge v-if="look.is_base" variant="secondary" class="text-[9px] px-1 py-0">基础</Badge>
-                  <span
-                    v-if="look.review_status && look.review_status !== 'draft'"
-                    class="text-[9px] px-1.5 py-0.5 rounded-full"
-                    :class="look.review_status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
+                  <select
+                    :value="look.review_status || 'pending'"
+                    class="text-[10px] px-1.5 py-0.5 rounded-full border-0 cursor-pointer appearance-none pr-4 font-medium"
+                    :class="reviewStatusOptions.find(o => o.value === (look.review_status || 'pending'))?.class"
+                    @change="updateLookReviewStatus(look.id, ($event.target as HTMLSelectElement).value)"
+                    @click.stop
                   >
-                    {{ look.review_status === 'confirmed' ? '已确认' : '审查中' }}
-                  </span>
+                    <option v-for="opt in reviewStatusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  </select>
                 </div>
                 <div class="flex items-center gap-1">
                   <button type="button" class="h-6 w-6 rounded flex items-center justify-center text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50" @click.stop="openLookEdit(look)">
@@ -215,6 +236,7 @@ function goBack() {
                   :entity-id="look.id"
                   :image-prompt="look.image_prompt"
                   @refresh="refreshLooks()"
+                  @confirmed="onLookConfirmed(look.id)"
                 />
               </div>
             </div>

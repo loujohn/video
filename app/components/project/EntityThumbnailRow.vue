@@ -83,8 +83,8 @@ const thumbImgSize = computed(() => props.size === 'sm' ? 'h-10 w-10' : 'h-14 w-
             />
             <ImageIcon v-else class="h-5 w-5 text-zinc-300" />
           </div>
-          <div v-if="item.reviewStatus === 'confirmed'" class="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white z-10" />
-          <div v-else-if="item.reviewStatus === 'in_review'" class="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-amber-400 border-2 border-white z-10" />
+          <div v-if="item.reviewStatus === 'approved'" class="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white z-10" />
+          <div v-else-if="item.reviewStatus === 'pending'" class="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-amber-400 border-2 border-white z-10" />
         </div>
         <span class="text-[9px] text-zinc-500 max-w-[4rem] truncate leading-tight">{{ item.name }}</span>
       </button>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Upload, ZoomIn, Trash2, Ban, RotateCcw, Star, Play, MessageSquare, Check, Copy } from 'lucide-vue-next'
+import { Upload, ZoomIn, Trash2, Ban, RotateCcw, Play, MessageSquare, Check, Copy, Pencil } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import type { Asset } from '~/core/types/asset'
 
@@ -19,6 +19,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   (e: 'refresh'): void
   (e: 'cover-change', url: string | null): void
+  (e: 'confirmed'): void
 }>()
 const { $api } = useApi()
 const token = useCookie('token')
@@ -121,11 +122,11 @@ function openPreview(url: string) {
 }
 
 function prevAsset() {
-  if (previewIndex.value > 0) previewIndex.value--
+  if (previewIndex.value > 0) { previewIndex.value--; editingPrompt.value = false }
 }
 
 function nextAsset() {
-  if (previewIndex.value < activeAssets.value.length - 1) previewIndex.value++
+  if (previewIndex.value < activeAssets.value.length - 1) { previewIndex.value++; editingPrompt.value = false }
 }
 
 function isCover(asset: Asset): boolean {
@@ -144,14 +145,26 @@ function togglePromptExpand(id: string) {
   expandedPrompts.value = s
 }
 
-async function approveAsset(asset: Asset) {
-  const newMeta = { ...(asset.metadata as any), review_status: 'approved' }
+async function confirmAsset(asset: Asset) {
+  const active = activeAssets.value
+  for (const item of active) {
+    if ((item.metadata as any)?.is_cover) {
+      const meta = { ...(item.metadata as any) }
+      delete meta.is_cover
+      await $api(`/api/projects/${props.projectId}/assets/${item.id}`, {
+        method: 'PUT', body: { metadata: meta },
+      }).catch(() => {})
+    }
+  }
+  const newMeta = { ...(asset.metadata as any), is_cover: true }
   try {
     await $api(`/api/projects/${props.projectId}/assets/${asset.id}`, {
       method: 'PUT', body: { metadata: newMeta },
     })
-    toast.success('已确认')
+    toast.success('已确认为封面')
     await refresh()
+    emit('confirmed')
+    emit('refresh')
   } catch { toast.error('操作失败') }
 }
 
@@ -162,30 +175,30 @@ async function copyPrompt(text: string) {
   } catch { toast.error('复制失败') }
 }
 
-async function setCover(asset: Asset) {
-  const active = activeAssets.value
-  for (const item of active) {
-    if ((item.metadata as any)?.is_cover) {
-      const meta = { ...(item.metadata as any) }
-      delete meta.is_cover
-      await $api(`/api/projects/${props.projectId}/assets/${item.id}`, {
-        method: 'PUT',
-        body: { metadata: meta },
-      }).catch(() => {})
-    }
-  }
-  const newMeta = { ...(asset.metadata as any), is_cover: true }
+const editingPrompt = ref(false)
+const promptDraft = ref('')
+
+function startEditPrompt(asset: Asset) {
+  promptDraft.value = getGenerationPrompt(asset) || ''
+  editingPrompt.value = true
+}
+
+async function savePrompt(asset: Asset) {
+  const newMeta = { ...(asset.metadata as any), generation_prompt: promptDraft.value || undefined }
+  if (!promptDraft.value) delete newMeta.generation_prompt
   try {
     await $api(`/api/projects/${props.projectId}/assets/${asset.id}`, {
-      method: 'PUT',
-      body: { metadata: newMeta },
+      method: 'PUT', body: { metadata: newMeta },
     })
-    toast.success('已设为选中')
-  } catch {
-    toast.error('设置失败')
-  }
-  await refresh()
-  emit('refresh')
+    toast.success('提示词已保存')
+    editingPrompt.value = false
+    await refresh()
+  } catch { toast.error('保存失败') }
+}
+
+function cancelEditPrompt() {
+  editingPrompt.value = false
+  promptDraft.value = ''
 }
 
 async function toggleActive(asset: Asset) {
@@ -343,8 +356,7 @@ function onDragLeave() {
         :key="item.id"
         class="group/img relative rounded-lg overflow-hidden bg-zinc-50 transition-all"
         :class="[
-          isCover(item) && hasConfirmedCover ? 'border-2 border-indigo-400 ring-1 ring-indigo-200' :
-          isCover(item) && !hasConfirmedCover ? 'border-2 border-dashed border-amber-400' :
+          isCover(item) && hasConfirmedCover ? 'border-2 border-emerald-400 ring-1 ring-emerald-200' :
           'border border-zinc-200',
         ]"
       >
@@ -372,18 +384,11 @@ function onDragLeave() {
             />
           </template>
 
-          <!-- Cover badge -->
+          <!-- Cover/confirmed badge -->
           <div v-if="isCover(item) && hasConfirmedCover" class="absolute top-1 left-1">
-            <Star class="h-3.5 w-3.5 text-indigo-500 fill-indigo-500 drop-shadow-sm" />
-          </div>
-          <div v-else-if="isCover(item) && !hasConfirmedCover" class="absolute top-1 left-1">
-            <Badge variant="secondary" class="text-[8px] bg-amber-500/80 text-white border-0 px-1 py-0">待确认</Badge>
-          </div>
-
-          <!-- Review status badge -->
-          <div v-if="(item.metadata as any)?.review_status === 'approved'" class="absolute top-1 right-1">
-            <div class="h-4 w-4 rounded-full bg-emerald-500 flex items-center justify-center shadow">
-              <Check class="h-2.5 w-2.5 text-white" />
+            <div class="flex items-center gap-0.5 bg-emerald-500 text-white rounded-full px-1.5 py-0.5">
+              <Check class="h-2.5 w-2.5" />
+              <span class="text-[8px] font-medium">已确认</span>
             </div>
           </div>
 
@@ -411,18 +416,9 @@ function onDragLeave() {
             <button
               v-if="!isCover(item)"
               type="button"
-              class="h-7 w-7 rounded-full bg-indigo-500/90 flex items-center justify-center hover:bg-indigo-600 transition-colors"
-              title="设为选中"
-              @click.stop="setCover(item)"
-            >
-              <Star class="h-3.5 w-3.5 text-white" />
-            </button>
-            <button
-              v-if="(item.metadata as any)?.review_status !== 'approved'"
-              type="button"
               class="h-7 w-7 rounded-full bg-emerald-500/90 flex items-center justify-center hover:bg-emerald-600 transition-colors"
-              title="确认"
-              @click.stop="approveAsset(item)"
+              title="确认为封面"
+              @click.stop="confirmAsset(item)"
             >
               <Check class="h-3.5 w-3.5 text-white" />
             </button>
@@ -445,7 +441,7 @@ function onDragLeave() {
           </div>
         </div>
 
-        <!-- Generation prompt below image -->
+        <!-- Generation prompt below image (click to open preview for editing) -->
         <div v-if="getGenerationPrompt(item)" class="px-1.5 py-1 border-t border-zinc-100">
           <p
             class="text-[10px] text-zinc-500 cursor-pointer hover:text-zinc-700 transition-colors"
@@ -567,24 +563,79 @@ function onDragLeave() {
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
           </button>
         </div>
-        <!-- Info bar -->
-        <div v-if="previewInfo" class="flex items-center justify-between px-4 py-2 bg-zinc-50 text-xs text-zinc-500 border-t border-zinc-100">
-          <span class="truncate max-w-[60%]">{{ previewInfo.name }}</span>
+        <!-- Info bar with actions -->
+        <div v-if="previewInfo && previewItem" class="flex items-center justify-between px-4 py-2 bg-zinc-50 text-xs text-zinc-500 border-t border-zinc-100">
+          <span class="truncate max-w-[40%]">{{ previewInfo.name }}</span>
+          <div class="flex items-center gap-2">
+            <button
+              v-if="!isCover(previewItem)"
+              type="button"
+              class="inline-flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium"
+              @click="confirmAsset(previewItem!)"
+            >
+              <Check class="h-2.5 w-2.5" /> 确认为封面
+            </button>
+            <span v-else class="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
+              <Check class="h-2.5 w-2.5" /> 已确认
+            </span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-700 font-medium"
+              @click="toggleActive(previewItem!); showPreview = false"
+            >
+              <Ban class="h-2.5 w-2.5" /> 废弃
+            </button>
+          </div>
           <span>{{ previewInfo.index }} / {{ previewInfo.total }}</span>
         </div>
         <!-- Prompt panel in preview -->
-        <div v-if="previewItem && getGenerationPrompt(previewItem)" class="px-4 py-3 bg-zinc-50 border-t border-zinc-100">
-          <div class="flex items-center justify-between mb-1">
-            <p class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Generation Prompt</p>
+        <div v-if="previewItem" class="px-4 py-3 bg-zinc-50 border-t border-zinc-100">
+          <template v-if="editingPrompt">
+            <div class="flex items-center justify-between mb-1.5">
+              <p class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">编辑提示词</p>
+            </div>
+            <textarea
+              v-model="promptDraft"
+              class="w-full text-xs border border-zinc-300 rounded-md px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-y min-h-[60px]"
+              rows="3"
+              placeholder="输入该图片的生成提示词..."
+            />
+            <div class="flex items-center gap-2 mt-2">
+              <Button size="sm" class="text-xs h-6 px-3" @click="savePrompt(previewItem!)">保存</Button>
+              <Button variant="ghost" size="sm" class="text-xs h-6 px-3" @click="cancelEditPrompt">取消</Button>
+            </div>
+          </template>
+          <template v-else-if="getGenerationPrompt(previewItem)">
+            <div class="flex items-center justify-between mb-1">
+              <p class="text-[10px] font-medium text-zinc-500 uppercase tracking-wider">Generation Prompt</p>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 text-[10px] text-zinc-500 hover:text-indigo-600 font-medium"
+                  @click="startEditPrompt(previewItem!)"
+                >
+                  <Pencil class="h-2.5 w-2.5" /> 编辑
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-700 font-medium"
+                  @click="copyPrompt(getGenerationPrompt(previewItem!)!)"
+                >
+                  <Copy class="h-2.5 w-2.5" /> 复制
+                </button>
+              </div>
+            </div>
+            <p class="text-xs text-zinc-700 whitespace-pre-wrap">{{ getGenerationPrompt(previewItem) }}</p>
+          </template>
+          <template v-else>
             <button
               type="button"
-              class="inline-flex items-center gap-1 text-[10px] text-indigo-600 hover:text-indigo-700 font-medium"
-              @click="copyPrompt(getGenerationPrompt(previewItem!)!)"
+              class="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-indigo-600 transition-colors"
+              @click="startEditPrompt(previewItem!)"
             >
-              <Copy class="h-2.5 w-2.5" /> 复制
+              <Pencil class="h-3 w-3" /> 添加提示词
             </button>
-          </div>
-          <p class="text-xs text-zinc-700 whitespace-pre-wrap">{{ getGenerationPrompt(previewItem) }}</p>
+          </template>
         </div>
       </DialogContent>
     </Dialog>

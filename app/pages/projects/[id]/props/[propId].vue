@@ -21,7 +21,7 @@ const heroItems = computed(() =>
     id: v.id,
     name: v.name,
     imageUrl: v.cover_asset_url || null,
-    reviewStatus: v.review_status || 'draft',
+    reviewStatus: v.review_status || 'pending',
     hasConfirmedCover: !!v.cover_asset_url,
   })),
 )
@@ -69,6 +69,25 @@ async function deleteVariant(id: string) {
 }
 
 const variantTypeMap: Record<string, string> = { style: '样式', condition: '状态', angle: '角度', detail: '细节' }
+
+const reviewStatusOptions = [
+  { value: 'pending', label: '待审核', class: 'bg-amber-100 text-amber-700' },
+  { value: 'approved', label: '已通过', class: 'bg-emerald-100 text-emerald-700' },
+]
+
+async function updateVariantReviewStatus(variantId: string, status: string) {
+  try {
+    await $api(`/api/projects/${projectId}/props/${propId}/variants/${variantId}`, {
+      method: 'PUT', body: { review_status: status },
+    })
+    await refreshVariants()
+    toast.success('状态已更新')
+  } catch { toast.error('更新失败') }
+}
+
+async function onVariantConfirmed(variantId: string) {
+  await updateVariantReviewStatus(variantId, 'approved')
+}
 </script>
 
 <template>
@@ -125,13 +144,15 @@ const variantTypeMap: Record<string, string> = { style: '样式', condition: '�
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-zinc-700">{{ v.name }}</span>
                   <Badge v-if="v.variant_type" variant="secondary" class="text-[9px] px-1 py-0">{{ variantTypeMap[v.variant_type] || v.variant_type }}</Badge>
-                  <span
-                    v-if="v.review_status && v.review_status !== 'draft'"
-                    class="text-[9px] px-1.5 py-0.5 rounded-full"
-                    :class="v.review_status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
+                  <select
+                    :value="v.review_status || 'pending'"
+                    class="text-[10px] px-1.5 py-0.5 rounded-full border-0 cursor-pointer appearance-none pr-4 font-medium"
+                    :class="reviewStatusOptions.find(o => o.value === (v.review_status || 'pending'))?.class"
+                    @change="updateVariantReviewStatus(v.id, ($event.target as HTMLSelectElement).value)"
+                    @click.stop
                   >
-                    {{ v.review_status === 'confirmed' ? '已确认' : '审查中' }}
-                  </span>
+                    <option v-for="opt in reviewStatusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  </select>
                 </div>
                 <div class="flex items-center gap-1">
                   <button type="button" class="h-6 w-6 rounded flex items-center justify-center text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50" @click.stop="openVariantEdit(v)"><Pencil class="h-3 w-3" /></button>
@@ -140,7 +161,7 @@ const variantTypeMap: Record<string, string> = { style: '样式', condition: '�
               </div>
               <div class="px-4 pb-4">
                 <div v-if="v.description" class="text-xs text-zinc-500 mt-2 mb-2">{{ v.description }}</div>
-                <ProjectEntityImageGallery :project-id="projectId" entity-type="prop_variant" :entity-id="v.id" :image-prompt="v.image_prompt" @refresh="refreshVariants()" />
+                <ProjectEntityImageGallery :project-id="projectId" entity-type="prop_variant" :entity-id="v.id" :image-prompt="v.image_prompt" @refresh="refreshVariants()" @confirmed="onVariantConfirmed(v.id)" />
               </div>
             </div>
           </div>

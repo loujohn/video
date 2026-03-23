@@ -1,6 +1,6 @@
 import { z } from 'zod/v4'
 
-const reviewStatusEnum = z.enum(['draft', 'in_review', 'confirmed'])
+const reviewStatusEnum = z.enum(['pending', 'approved'])
 
 export const createCharacterLookSchema = z.object({
   name: z.string().min(1, '形象名称必填').max(100),

@@ -45,7 +45,7 @@ const heroItems = computed(() => {
       id: `slot-${i}`,
       name: `帧 ${i}`,
       imageUrl: cover ? `/uploads/${cover.file_path}` : null,
-      reviewStatus: (cover?.metadata as any)?.review_status || 'draft',
+      reviewStatus: (cover?.metadata as any)?.review_status || 'pending',
     })
   }
   return result

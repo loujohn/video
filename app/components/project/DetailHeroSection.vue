@@ -35,9 +35,8 @@ function scroll(dir: 'left' | 'right') {
 onMounted(() => { nextTick(checkScroll) })
 
 const statusConfig: Record<string, { label: string; class: string }> = {
-  draft: { label: '草稿', class: 'bg-zinc-100 text-zinc-500' },
-  in_review: { label: '审查中', class: 'bg-amber-100 text-amber-700' },
-  confirmed: { label: '已确认', class: 'bg-emerald-100 text-emerald-700' },
+  pending: { label: '待审核', class: 'bg-amber-100 text-amber-700' },
+  approved: { label: '已通过', class: 'bg-emerald-100 text-emerald-700' },
 }
 </script>
 
@@ -74,8 +73,8 @@ const statusConfig: Record<string, { label: string; class: string }> = {
         <div
           class="aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all"
           :class="[
-            item.reviewStatus === 'confirmed' ? 'border-emerald-400' :
-            item.reviewStatus === 'in_review' ? 'border-amber-400' :
+            item.reviewStatus === 'approved' ? 'border-emerald-400' :
+            item.reviewStatus === 'pending' ? 'border-amber-400' :
             'border-zinc-200',
             'group-hover:shadow-lg group-hover:scale-[1.02]',
           ]"

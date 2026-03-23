@@ -1,6 +1,6 @@
 import { z } from 'zod/v4'
 
-const reviewStatusEnum = z.enum(['draft', 'in_review', 'confirmed'])
+const reviewStatusEnum = z.enum(['pending', 'approved'])
 
 export const createSceneVariantSchema = z.object({
   name: z.string().min(1, '变体名称必填').max(100),
