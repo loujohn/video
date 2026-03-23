@@ -13,6 +13,8 @@ export interface Character {
   arc_description: string | null
   villain_level: number | null
   image_prompt: string | null
+  assigned_to: string | null
+  assigned_to_name?: string | null
   sort_order: number
   is_active: boolean
   created_at: Date
@@ -42,4 +44,5 @@ export interface CreateCharacterInput {
   villain_level?: number | null
   image_prompt?: string
   sort_order?: number
+  assigned_to?: string | null
 }

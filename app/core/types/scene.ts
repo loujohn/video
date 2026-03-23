@@ -7,6 +7,8 @@ export interface Scene {
   description: string | null
   tags: string[]
   image_prompt: string | null
+  assigned_to: string | null
+  assigned_to_name?: string | null
   is_active: boolean
   created_at: Date
   updated_at: Date
@@ -19,4 +21,5 @@ export interface CreateSceneInput {
   description?: string
   tags?: string[]
   image_prompt?: string
+  assigned_to?: string | null
 }
