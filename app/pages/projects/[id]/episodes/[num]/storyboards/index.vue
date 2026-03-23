@@ -66,7 +66,7 @@ const { data: scenes } = useAsyncData(`scenes-${projectId}`, () =>
 
 const localList = ref<StoryboardWithAssociations[]>([])
 watch(
-  storyboards,
+  filteredStoryboards,
   (val) => {
     localList.value = val ? [...val] : []
   },
@@ -161,6 +161,20 @@ async function onDragEnd() {
 function goBack() {
   navigateTo(`/projects/${projectId}/episodes`)
 }
+
+const filterAssignee = ref<string | null>(null)
+const assigneeOptions = computed(() => {
+  const map = new Map<string, string>()
+  for (const sb of storyboards.value ?? []) {
+    if (sb.assigned_to && sb.assigned_to_name) map.set(sb.assigned_to, sb.assigned_to_name)
+  }
+  return Array.from(map, ([id, name]) => ({ id, name }))
+})
+const filteredStoryboards = computed(() => {
+  let list = storyboards.value ?? []
+  if (filterAssignee.value) list = list.filter(sb => sb.assigned_to === filterAssignee.value)
+  return list
+})
 
 const sceneOptions = computed(() =>
   (scenes.value ?? []).map((s) => ({ id: s.id, name: s.name })),
@@ -276,6 +290,15 @@ function escapeHtml(str: string): string {
               <ChevronRight class="h-3.5 w-3.5" />
             </NuxtLink>
           </div>
+          <select
+            v-if="assigneeOptions.length"
+            :value="filterAssignee ?? ''"
+            class="h-8 rounded-md border border-input bg-background px-2 text-xs text-zinc-600 mr-1"
+            @change="filterAssignee = ($event.target as HTMLSelectElement).value || null"
+          >
+            <option value="">全部负责人</option>
+            <option v-for="opt in assigneeOptions" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
+          </select>
           <div class="flex items-center rounded-lg border border-zinc-200 p-0.5">
             <button
               :class="['px-2 py-1 rounded-md text-xs font-medium transition-colors', viewMode === 'grid' ? 'bg-zinc-900 text-white' : 'text-zinc-500 hover:text-zinc-700']"

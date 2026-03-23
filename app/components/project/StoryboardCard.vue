@@ -40,6 +40,11 @@ function goToDetail() {
         {{ String(storyboard.sequence_number).padStart(2, '0') }}
       </Badge>
     </div>
+    <div v-if="storyboard.assigned_to_name" class="absolute top-3 right-3">
+      <div class="h-6 w-6 rounded-full bg-rose-100 flex items-center justify-center" :title="storyboard.assigned_to_name">
+        <span class="text-[9px] font-semibold text-rose-600">{{ storyboard.assigned_to_name?.charAt(0) }}</span>
+      </div>
+    </div>
 
     <div class="pl-10">
       <div class="flex flex-wrap gap-1 mb-2">
