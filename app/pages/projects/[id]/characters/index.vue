@@ -49,23 +49,29 @@ async function loadAllLooks() {
 
 watch(characters, loadAllLooks, { immediate: true })
 
+const filterAssignee = ref<string | null>(null)
+const assigneeOptions = computed(() => {
+  const list = characters.value ?? []
+  const map = new Map<string, string>()
+  for (const c of list) {
+    if (c.assigned_to && c.assigned_to_name) map.set(c.assigned_to, c.assigned_to_name)
+  }
+  return Array.from(map, ([id, name]) => ({ id, name }))
+})
+const filteredCharacters = computed(() => {
+  let list = characters.value ?? []
+  if (filterAssignee.value) list = list.filter(c => c.assigned_to === filterAssignee.value)
+  return list
+})
+
 function getLookThumbnails(characterId: string): ThumbnailItem[] {
   const looks = looksMap.value[characterId] || []
   return looks.map(l => ({
     id: l.id,
     name: l.name,
     coverUrl: lookCovers.value[l.id] ?? null,
+    reviewStatus: l.review_status,
   }))
-}
-
-function getUnconfirmedIds(characterId: string): string[] {
-  const looks = looksMap.value[characterId] || []
-  return looks.filter(l => {
-    const url = lookCovers.value[l.id]
-    return url != null
-  }).filter(l => {
-    return false
-  }).map(l => l.id)
 }
 
 function goToDetail(characterId: string) {
@@ -232,19 +238,35 @@ async function handleDelete() {
 
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-bold text-zinc-900">角色管理</h2>
-        <Button @click="openCreate" size="sm" class="gap-2">
-          <Plus class="h-3.5 w-3.5" />
-          新建角色
-        </Button>
+        <div class="flex items-center gap-2">
+          <select
+            v-if="assigneeOptions.length"
+            :value="filterAssignee ?? ''"
+            class="h-8 rounded-md border border-input bg-background px-2 text-xs text-zinc-600"
+            @change="filterAssignee = ($event.target as HTMLSelectElement).value || null"
+          >
+            <option value="">全部负责人</option>
+            <option v-for="opt in assigneeOptions" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
+          </select>
+          <Button @click="openCreate" size="sm" class="gap-2">
+            <Plus class="h-3.5 w-3.5" />
+            新建角色
+          </Button>
+        </div>
       </div>
 
-      <div v-if="characters?.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-if="filteredCharacters.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
-          v-for="c in characters"
+          v-for="c in filteredCharacters"
           :key="c.id"
-          class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer"
+          class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer relative"
           @click="goToDetail(c.id)"
         >
+          <div v-if="c.assigned_to_name" class="absolute top-2 right-2 z-10">
+            <div class="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center" :title="c.assigned_to_name">
+              <span class="text-[9px] font-semibold text-indigo-600">{{ c.assigned_to_name?.charAt(0) }}</span>
+            </div>
+          </div>
           <div class="p-4">
             <div class="flex items-start gap-3">
               <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center shrink-0">
@@ -293,7 +315,7 @@ async function handleDelete() {
         </div>
       </div>
 
-      <CommonEmptyState v-else :icon="User" title="暂无角色" description="添加第一个角色开始创作">
+      <CommonEmptyState v-else-if="!filteredCharacters.length" :icon="User" :title="filterAssignee ? '无匹配角色' : '暂无角色'" :description="filterAssignee ? '当前筛选无结果' : '添加第一个角色开始创作'">
         <Button @click="openCreate" size="sm" class="gap-2">
           <Plus class="h-3.5 w-3.5" /> 新建角色
         </Button>

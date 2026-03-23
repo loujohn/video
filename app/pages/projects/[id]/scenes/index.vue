@@ -58,12 +58,30 @@ watch(scenes, loadSceneVariants, { immediate: true })
 watch(propsList, loadPropVariants, { immediate: true })
 
 function getSceneVariantThumbs(sceneId: string): ThumbnailItem[] {
-  return (variantsMap.value[sceneId] || []).map(v => ({ id: v.id, name: v.name, coverUrl: variantCovers.value[v.id] ?? null }))
+  return (variantsMap.value[sceneId] || []).map(v => ({ id: v.id, name: v.name, coverUrl: variantCovers.value[v.id] ?? null, reviewStatus: v.review_status }))
 }
 
 function getPropVariantThumbs(propId: string): ThumbnailItem[] {
-  return (propVariantsMap.value[propId] || []).map(v => ({ id: v.id, name: v.name, coverUrl: propVariantCovers.value[v.id] ?? null }))
+  return (propVariantsMap.value[propId] || []).map(v => ({ id: v.id, name: v.name, coverUrl: propVariantCovers.value[v.id] ?? null, reviewStatus: v.review_status }))
 }
+
+const filterAssignee = ref<string | null>(null)
+const sceneAssigneeOptions = computed(() => {
+  const map = new Map<string, string>()
+  for (const s of scenes.value ?? []) { if (s.assigned_to && s.assigned_to_name) map.set(s.assigned_to, s.assigned_to_name) }
+  for (const p of propsList.value ?? []) { if (p.assigned_to && p.assigned_to_name) map.set(p.assigned_to, p.assigned_to_name) }
+  return Array.from(map, ([id, name]) => ({ id, name }))
+})
+const filteredScenes = computed(() => {
+  let list = scenes.value ?? []
+  if (filterAssignee.value) list = list.filter(s => s.assigned_to === filterAssignee.value)
+  return list
+})
+const filteredProps = computed(() => {
+  let list = propsList.value ?? []
+  if (filterAssignee.value) list = list.filter(p => p.assigned_to === filterAssignee.value)
+  return list
+})
 
 function goToSceneDetail(sceneId: string) { navigateTo(`/projects/${projectId}/scenes/${sceneId}`) }
 function goToPropDetail(propId: string) { navigateTo(`/projects/${projectId}/props/${propId}`) }
@@ -153,14 +171,28 @@ async function handleDelete() {
           <component :is="tab.icon" class="h-4 w-4" /> {{ tab.label }}
         </button>
         <div class="flex-1" />
+        <select
+          v-if="sceneAssigneeOptions.length"
+          :value="filterAssignee ?? ''"
+          class="h-8 rounded-md border border-input bg-background px-2 text-xs text-zinc-600 mr-2"
+          @change="filterAssignee = ($event.target as HTMLSelectElement).value || null"
+        >
+          <option value="">全部负责人</option>
+          <option v-for="opt in sceneAssigneeOptions" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
+        </select>
         <Button v-if="activeTab === 'scenes'" @click="openSceneCreate" size="sm" class="gap-2"><Plus class="h-3.5 w-3.5" /> 新建场景</Button>
         <Button v-else @click="openPropCreate" size="sm" class="gap-2"><Plus class="h-3.5 w-3.5" /> 新建道具</Button>
       </div>
 
       <!-- Scenes -->
       <div v-if="activeTab === 'scenes'">
-        <div v-if="scenes?.length" class="space-y-3">
-          <div v-for="s in scenes" :key="s.id" class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer" @click="goToSceneDetail(s.id)">
+        <div v-if="filteredScenes.length" class="space-y-3">
+          <div v-for="s in filteredScenes" :key="s.id" class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer relative" @click="goToSceneDetail(s.id)">
+            <div v-if="s.assigned_to_name" class="absolute top-2 right-2 z-10">
+              <div class="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center" :title="s.assigned_to_name">
+                <span class="text-[9px] font-semibold text-emerald-600">{{ s.assigned_to_name?.charAt(0) }}</span>
+              </div>
+            </div>
             <div class="flex items-center justify-between p-4">
               <div class="flex items-center gap-3">
                 <div class="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center"><MapPin class="h-4 w-4 text-emerald-600" /></div>
@@ -184,15 +216,20 @@ async function handleDelete() {
             </div>
           </div>
         </div>
-        <CommonEmptyState v-else :icon="MapPin" title="暂无场景" description="添加拍摄场景">
+        <CommonEmptyState v-else-if="!filteredScenes.length" :icon="MapPin" :title="filterAssignee ? '无匹配场景' : '暂无场景'" :description="filterAssignee ? '当前筛选无结果' : '添加拍摄场景'">
           <Button @click="openSceneCreate" size="sm" class="gap-2"><Plus class="h-3.5 w-3.5" /> 新建场景</Button>
         </CommonEmptyState>
       </div>
 
       <!-- Props -->
       <div v-if="activeTab === 'props'">
-        <div v-if="propsList?.length" class="space-y-3">
-          <div v-for="p in propsList" :key="p.id" class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer" @click="goToPropDetail(p.id)">
+        <div v-if="filteredProps.length" class="space-y-3">
+          <div v-for="p in filteredProps" :key="p.id" class="bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer relative" @click="goToPropDetail(p.id)">
+            <div v-if="p.assigned_to_name" class="absolute top-2 right-2 z-10">
+              <div class="h-6 w-6 rounded-full bg-amber-100 flex items-center justify-center" :title="p.assigned_to_name">
+                <span class="text-[9px] font-semibold text-amber-600">{{ p.assigned_to_name?.charAt(0) }}</span>
+              </div>
+            </div>
             <div class="flex items-center justify-between p-4">
               <div class="flex items-center gap-3">
                 <div class="h-9 w-9 rounded-lg bg-amber-50 flex items-center justify-center"><Box class="h-4 w-4 text-amber-600" /></div>
@@ -213,7 +250,7 @@ async function handleDelete() {
             </div>
           </div>
         </div>
-        <CommonEmptyState v-else :icon="Box" title="暂无道具" description="添加关键道具">
+        <CommonEmptyState v-else-if="!filteredProps.length" :icon="Box" :title="filterAssignee ? '无匹配道具' : '暂无道具'" :description="filterAssignee ? '当前筛选无结果' : '添加关键道具'">
           <Button @click="openPropCreate" size="sm" class="gap-2"><Plus class="h-3.5 w-3.5" /> 新建道具</Button>
         </CommonEmptyState>
       </div>
