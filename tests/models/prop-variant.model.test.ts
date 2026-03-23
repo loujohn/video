@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockDb = {
   where: vi.fn().mockReturnThis(),
+  whereIn: vi.fn().mockReturnThis(),
+  andWhereRaw: vi.fn().mockReturnThis(),
+  select: vi.fn().mockResolvedValue([]),
+  distinctOn: vi.fn().mockReturnThis(),
+  orderByRaw: vi.fn().mockReturnThis(),
   first: vi.fn(),
   orderBy: vi.fn().mockReturnThis(),
   max: vi.fn().mockReturnThis(),
@@ -28,6 +33,11 @@ describe('PropVariantModel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockDb.where.mockReturnValue(mockDb)
+    mockDb.whereIn.mockReturnValue(mockDb)
+    mockDb.andWhereRaw.mockReturnValue(mockDb)
+    mockDb.select.mockResolvedValue([])
+    mockDb.distinctOn.mockReturnValue(mockDb)
+    mockDb.orderByRaw.mockReturnValue(mockDb)
     mockDb.orderBy.mockReturnValue(mockDb)
     mockDb.max.mockReturnValue(mockDb)
     mockDb.insert.mockReturnValue(mockDb)
