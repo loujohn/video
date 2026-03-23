@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Plus, Pencil, Trash2, ChevronDown, ChevronRight, User, Shirt, ImageIcon, Film } from 'lucide-vue-next'
+import { ArrowLeft, Plus, Pencil, Trash2, User, Shirt, ImageIcon, Film, ChevronDown, ChevronRight } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import type { Character, CharacterLook, Storyboard } from '~/core/types'
 
@@ -26,11 +26,29 @@ const { data: relations } = useAsyncData(`char-rels-${projectId}`, () =>
 
 useHead({ title: computed(() => character.value ? `${character.value.name} - 角色详情` : '角色详情') })
 
-const expandedLooks = ref<Set<string>>(new Set())
+const showBasicInfo = ref(false)
 
-function toggleLook(lookId: string) {
-  if (expandedLooks.value.has(lookId)) expandedLooks.value.delete(lookId)
-  else expandedLooks.value.add(lookId)
+const heroItems = computed(() =>
+  (looks.value ?? []).map(look => ({
+    id: look.id,
+    name: look.name,
+    imageUrl: look.cover_asset_url || null,
+    reviewStatus: look.review_status || 'draft',
+    hasConfirmedCover: !!look.cover_asset_url,
+  })),
+)
+
+function scrollToLook(lookId: string) {
+  document.getElementById(`look-${lookId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+async function updateAssignee(userId: string | null) {
+  try {
+    await $api(`/api/projects/${projectId}/characters/${characterId}`, {
+      method: 'PUT', body: { assigned_to: userId },
+    })
+    await refreshChar()
+  } catch { toast.error('更新负责人失败') }
 }
 
 const showLookForm = ref(false)
@@ -96,32 +114,54 @@ function goBack() {
     <template #title>角色详情</template>
 
     <div class="max-w-4xl">
-      <!-- Header -->
-      <div class="flex items-center gap-3 mb-6">
+      <!-- Header with assignee -->
+      <div class="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="sm" @click="goBack">
           <ArrowLeft class="h-4 w-4" />
         </Button>
         <div class="flex-1 min-w-0">
           <h1 class="text-xl font-bold text-zinc-900 truncate">{{ character?.name || '加载中...' }}</h1>
-          <p class="text-sm text-zinc-500">{{ character?.public_identity || '' }}</p>
+          <p v-if="character?.public_identity" class="text-sm text-zinc-500">{{ character.public_identity }}</p>
         </div>
+        <ProjectAssigneePicker
+          v-if="character"
+          :project-id="projectId"
+          :model-value="character.assigned_to"
+          @update:model-value="updateAssignee"
+        />
       </div>
 
-      <div v-if="character" class="space-y-8">
-        <!-- Basic info -->
-        <div class="bg-white rounded-xl border border-zinc-200/60 p-6 shadow-sm">
-          <h2 class="text-sm font-semibold text-zinc-700 mb-4 flex items-center gap-2">
-            <User class="h-4 w-4 text-indigo-500" /> 基本信息
-          </h2>
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <div v-if="character.age"><span class="text-zinc-400">年龄：</span><span class="text-zinc-700">{{ character.age }}</span></div>
-            <div v-if="character.real_identity"><span class="text-zinc-400">真实身份：</span><span class="text-zinc-700">{{ character.real_identity }}</span></div>
-            <div v-if="character.catchphrase" class="col-span-2"><span class="text-zinc-400">口头禅：</span><span class="text-zinc-700 italic">"{{ character.catchphrase }}"</span></div>
-            <div v-if="character.appearance" class="col-span-2"><span class="text-zinc-400">外貌：</span><span class="text-zinc-700">{{ character.appearance }}</span></div>
-            <div v-if="character.motivation" class="col-span-2"><span class="text-zinc-400">动机：</span><span class="text-zinc-700">{{ character.motivation }}</span></div>
-          </div>
-          <div v-if="character.personality_tags?.length" class="flex flex-wrap gap-1.5 mt-4">
-            <span v-for="tag in character.personality_tags" :key="tag" class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{{ tag }}</span>
+      <div v-if="character" class="space-y-6">
+        <!-- Hero Section -->
+        <ProjectDetailHeroSection
+          v-if="heroItems.length"
+          :items="heroItems"
+          @click="scrollToLook"
+        />
+
+        <!-- Basic info (collapsible) -->
+        <div class="bg-white rounded-xl border border-zinc-200/60 shadow-sm overflow-hidden">
+          <button
+            type="button"
+            class="w-full flex items-center justify-between px-6 py-4 hover:bg-zinc-50/50 transition-colors"
+            @click="showBasicInfo = !showBasicInfo"
+          >
+            <h2 class="text-sm font-semibold text-zinc-700 flex items-center gap-2">
+              <User class="h-4 w-4 text-indigo-500" /> 基本信息
+            </h2>
+            <component :is="showBasicInfo ? ChevronDown : ChevronRight" class="h-4 w-4 text-zinc-400" />
+          </button>
+          <div v-if="showBasicInfo" class="px-6 pb-6 border-t border-zinc-100">
+            <div class="grid grid-cols-2 gap-4 text-sm mt-4">
+              <div v-if="character.age"><span class="text-zinc-400">年龄：</span><span class="text-zinc-700">{{ character.age }}</span></div>
+              <div v-if="character.real_identity"><span class="text-zinc-400">真实身份：</span><span class="text-zinc-700">{{ character.real_identity }}</span></div>
+              <div v-if="character.catchphrase" class="col-span-2"><span class="text-zinc-400">口头禅：</span><span class="text-zinc-700 italic">"{{ character.catchphrase }}"</span></div>
+              <div v-if="character.appearance" class="col-span-2"><span class="text-zinc-400">外貌：</span><span class="text-zinc-700">{{ character.appearance }}</span></div>
+              <div v-if="character.motivation" class="col-span-2"><span class="text-zinc-400">动机：</span><span class="text-zinc-700">{{ character.motivation }}</span></div>
+            </div>
+            <div v-if="character.personality_tags?.length" class="flex flex-wrap gap-1.5 mt-4">
+              <span v-for="tag in character.personality_tags" :key="tag" class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{{ tag }}</span>
+            </div>
           </div>
         </div>
 
@@ -133,7 +173,7 @@ function goBack() {
           <ProjectReferenceImageGallery :project-id="projectId" entity-type="character" :entity-id="characterId" />
         </div>
 
-        <!-- Looks management -->
+        <!-- Looks management (all expanded) -->
         <div class="bg-white rounded-xl border border-zinc-200/60 p-6 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-sm font-semibold text-zinc-700 flex items-center gap-2">
@@ -144,17 +184,19 @@ function goBack() {
             </Button>
           </div>
 
-          <div v-if="looks?.length" class="space-y-3">
-            <div v-for="look in looks" :key="look.id" class="rounded-lg border border-zinc-100 overflow-hidden">
-              <button
-                type="button"
-                class="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-50/50 transition-colors"
-                @click="toggleLook(look.id)"
-              >
+          <div v-if="looks?.length" class="space-y-4">
+            <div v-for="look in looks" :key="look.id" :id="`look-${look.id}`" class="rounded-lg border border-zinc-100 overflow-hidden">
+              <div class="flex items-center justify-between px-4 py-3 bg-zinc-50/30">
                 <div class="flex items-center gap-2">
-                  <component :is="expandedLooks.has(look.id) ? ChevronDown : ChevronRight" class="h-4 w-4 text-zinc-400" />
                   <span class="text-sm font-medium text-zinc-700">{{ look.name }}</span>
                   <Badge v-if="look.is_base" variant="secondary" class="text-[9px] px-1 py-0">基础</Badge>
+                  <span
+                    v-if="look.review_status && look.review_status !== 'draft'"
+                    class="text-[9px] px-1.5 py-0.5 rounded-full"
+                    :class="look.review_status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
+                  >
+                    {{ look.review_status === 'confirmed' ? '已确认' : '审查中' }}
+                  </span>
                 </div>
                 <div class="flex items-center gap-1">
                   <button type="button" class="h-6 w-6 rounded flex items-center justify-center text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50" @click.stop="openLookEdit(look)">
@@ -164,14 +206,15 @@ function goBack() {
                     <Trash2 class="h-3 w-3" />
                   </button>
                 </div>
-              </button>
-              <div v-if="expandedLooks.has(look.id)" class="px-4 pb-4 border-t border-zinc-50">
+              </div>
+              <div class="px-4 pb-4">
                 <div v-if="look.description" class="text-xs text-zinc-500 mt-2 mb-2">{{ look.description }}</div>
                 <ProjectEntityImageGallery
                   :project-id="projectId"
                   entity-type="character_look"
                   :entity-id="look.id"
                   :image-prompt="look.image_prompt"
+                  @refresh="refreshLooks()"
                 />
               </div>
             </div>
