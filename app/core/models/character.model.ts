@@ -6,13 +6,19 @@ const RELATIONS_TABLE = 'character_relations'
 
 export const CharacterModel = {
   async findById(id: string): Promise<Character | undefined> {
-    return getDb()(TABLE).where({ id }).first()
+    return getDb()(TABLE)
+      .leftJoin('users', `${TABLE}.assigned_to`, 'users.id')
+      .where({ [`${TABLE}.id`]: id })
+      .select(`${TABLE}.*`, 'users.name as assigned_to_name')
+      .first()
   },
 
   async findByProject(projectId: string): Promise<Character[]> {
     return getDb()(TABLE)
-      .where({ project_id: projectId })
-      .orderBy('sort_order', 'asc')
+      .leftJoin('users', `${TABLE}.assigned_to`, 'users.id')
+      .where({ [`${TABLE}.project_id`]: projectId })
+      .orderBy(`${TABLE}.sort_order`, 'asc')
+      .select(`${TABLE}.*`, 'users.name as assigned_to_name')
   },
 
   async create(projectId: string, input: CreateCharacterInput): Promise<Character> {
@@ -35,6 +41,7 @@ export const CharacterModel = {
         arc_description: input.arc_description ?? null,
         villain_level: input.villain_level ?? null,
         image_prompt: input.image_prompt ?? null,
+        assigned_to: input.assigned_to ?? null,
         sort_order: input.sort_order ?? ((maxOrder?.max || 0) + 1),
       })
       .returning('*')
@@ -45,7 +52,7 @@ export const CharacterModel = {
     const fields = [
       'name', 'age', 'appearance', 'public_identity', 'real_identity',
       'motivation', 'conflict_point', 'catchphrase', 'arc_description',
-      'villain_level', 'image_prompt', 'sort_order', 'is_active',
+      'villain_level', 'image_prompt', 'sort_order', 'is_active', 'assigned_to',
     ] as const
     const updateData = buildUpdateData(data, fields)
     if (data.personality_tags !== undefined) {

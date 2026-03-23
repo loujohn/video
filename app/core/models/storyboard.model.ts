@@ -5,13 +5,19 @@ const TABLE = 'storyboards'
 
 export const StoryboardModel = {
   async findById(id: string): Promise<Storyboard | undefined> {
-    return getDb()(TABLE).where({ id }).first()
+    return getDb()(TABLE)
+      .leftJoin('users', `${TABLE}.assigned_to`, 'users.id')
+      .where({ [`${TABLE}.id`]: id })
+      .select(`${TABLE}.*`, 'users.name as assigned_to_name')
+      .first()
   },
 
   async findByEpisode(episodeId: string): Promise<Storyboard[]> {
     return getDb()(TABLE)
-      .where({ episode_id: episodeId, is_active: true })
-      .orderBy('sequence_number', 'asc')
+      .leftJoin('users', `${TABLE}.assigned_to`, 'users.id')
+      .where({ [`${TABLE}.episode_id`]: episodeId, [`${TABLE}.is_active`]: true })
+      .orderBy(`${TABLE}.sequence_number`, 'asc')
+      .select(`${TABLE}.*`, 'users.name as assigned_to_name')
   },
 
   async create(episodeId: string, input: CreateStoryboardInput): Promise<Storyboard> {
@@ -43,6 +49,7 @@ export const StoryboardModel = {
         camera_movement: input.camera_movement ?? null,
         transition_type: input.transition_type ?? null,
         image_prompt: input.image_prompt ?? null,
+        assigned_to: input.assigned_to ?? null,
       })
       .returning('*')
     return row
@@ -53,7 +60,7 @@ export const StoryboardModel = {
       'sequence_number', 'shot_type', 'camera_angle', 'scene_id', 'scene_variant_id',
       'description', 'dialogue', 'action_direction', 'music_cue', 'sound_effects',
       'notes', 'duration_seconds', 'reference_image_url', 'camera_movement',
-      'transition_type', 'image_prompt', 'is_active',
+      'transition_type', 'image_prompt', 'is_active', 'assigned_to',
     ] as const
     const updateData = buildUpdateData(data, fields)
 

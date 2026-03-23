@@ -5,11 +5,19 @@ const TABLE = 'props'
 
 export const PropModel = {
   async findById(id: string): Promise<Prop | undefined> {
-    return getDb()(TABLE).where({ id }).first()
+    return getDb()(TABLE)
+      .leftJoin('users', `${TABLE}.assigned_to`, 'users.id')
+      .where({ [`${TABLE}.id`]: id })
+      .select(`${TABLE}.*`, 'users.name as assigned_to_name')
+      .first()
   },
 
   async findByProject(projectId: string): Promise<Prop[]> {
-    return getDb()(TABLE).where({ project_id: projectId }).orderBy('created_at', 'desc')
+    return getDb()(TABLE)
+      .leftJoin('users', `${TABLE}.assigned_to`, 'users.id')
+      .where({ [`${TABLE}.project_id`]: projectId })
+      .orderBy(`${TABLE}.created_at`, 'desc')
+      .select(`${TABLE}.*`, 'users.name as assigned_to_name')
   },
 
   async create(projectId: string, input: CreatePropInput): Promise<Prop> {
@@ -20,13 +28,14 @@ export const PropModel = {
         description: input.description ?? null,
         tags: JSON.stringify(input.tags || []),
         image_prompt: input.image_prompt ?? null,
+        assigned_to: input.assigned_to ?? null,
       })
       .returning('*')
     return prop
   },
 
   async update(id: string, data: Partial<CreatePropInput> & { is_active?: boolean }): Promise<Prop | undefined> {
-    const fields = ['name', 'description', 'image_prompt', 'is_active'] as const
+    const fields = ['name', 'description', 'image_prompt', 'is_active', 'assigned_to'] as const
     const updateData = buildUpdateData(data, fields)
     if (data.tags !== undefined) {
       updateData.tags = JSON.stringify(data.tags)

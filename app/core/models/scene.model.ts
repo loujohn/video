@@ -5,11 +5,19 @@ const TABLE = 'scenes'
 
 export const SceneModel = {
   async findById(id: string): Promise<Scene | undefined> {
-    return getDb()(TABLE).where({ id }).first()
+    return getDb()(TABLE)
+      .leftJoin('users', `${TABLE}.assigned_to`, 'users.id')
+      .where({ [`${TABLE}.id`]: id })
+      .select(`${TABLE}.*`, 'users.name as assigned_to_name')
+      .first()
   },
 
   async findByProject(projectId: string): Promise<Scene[]> {
-    return getDb()(TABLE).where({ project_id: projectId }).orderBy('created_at', 'desc')
+    return getDb()(TABLE)
+      .leftJoin('users', `${TABLE}.assigned_to`, 'users.id')
+      .where({ [`${TABLE}.project_id`]: projectId })
+      .orderBy(`${TABLE}.created_at`, 'desc')
+      .select(`${TABLE}.*`, 'users.name as assigned_to_name')
   },
 
   async create(projectId: string, input: CreateSceneInput): Promise<Scene> {
@@ -22,6 +30,7 @@ export const SceneModel = {
         description: input.description ?? null,
         tags: JSON.stringify(input.tags || []),
         image_prompt: input.image_prompt ?? null,
+        assigned_to: input.assigned_to ?? null,
       })
       .returning('*')
     return scene
@@ -30,7 +39,7 @@ export const SceneModel = {
   async update(id: string, data: Partial<CreateSceneInput> & { is_active?: boolean }): Promise<Scene | undefined> {
     const fields = [
       'name', 'location_type', 'time_of_day', 'description',
-      'image_prompt', 'is_active',
+      'image_prompt', 'is_active', 'assigned_to',
     ] as const
     const updateData = buildUpdateData(data, fields)
     if (data.tags !== undefined) {
