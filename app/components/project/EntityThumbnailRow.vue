@@ -5,6 +5,7 @@ export interface ThumbnailItem {
   id: string
   name: string
   coverUrl?: string | null
+  reviewStatus?: string | null
 }
 
 const props = withDefaults(defineProps<{
@@ -65,21 +66,25 @@ const thumbImgSize = computed(() => props.size === 'sm' ? 'h-10 w-10' : 'h-14 w-
         class="flex flex-col items-center gap-0.5 shrink-0 group"
         @click.stop="emit('select', item)"
       >
-        <div
-          class="rounded-lg overflow-hidden bg-zinc-100 flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-indigo-300"
-          :class="[
-            thumbSize,
-            isUnconfirmed(item.id) ? 'border-2 border-dashed border-amber-400' : 'border border-zinc-200',
-          ]"
-        >
-          <img
-            v-if="item.coverUrl"
-            :src="item.coverUrl"
-            :alt="item.name"
-            class="object-cover rounded-md"
-            :class="thumbImgSize"
-          />
-          <ImageIcon v-else class="h-5 w-5 text-zinc-300" />
+        <div class="relative">
+          <div
+            class="rounded-lg overflow-hidden bg-zinc-100 flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-indigo-300"
+            :class="[
+              thumbSize,
+              isUnconfirmed(item.id) ? 'border-2 border-dashed border-amber-400' : 'border border-zinc-200',
+            ]"
+          >
+            <img
+              v-if="item.coverUrl"
+              :src="item.coverUrl"
+              :alt="item.name"
+              class="object-cover rounded-md"
+              :class="thumbImgSize"
+            />
+            <ImageIcon v-else class="h-5 w-5 text-zinc-300" />
+          </div>
+          <div v-if="item.reviewStatus === 'confirmed'" class="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white z-10" />
+          <div v-else-if="item.reviewStatus === 'in_review'" class="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-amber-400 border-2 border-white z-10" />
         </div>
         <span class="text-[9px] text-zinc-500 max-w-[4rem] truncate leading-tight">{{ item.name }}</span>
       </button>
