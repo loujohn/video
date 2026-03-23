@@ -14,6 +14,7 @@ export const createCharacterSchema = z.object({
   villain_level: z.number().int().min(0).max(10).optional().nullable(),
   image_prompt: z.string().max(5000).optional(),
   sort_order: z.number().int().optional(),
+  assigned_to: z.string().uuid().optional().nullable(),
 })
 
 export const updateCharacterSchema = createCharacterSchema.partial()

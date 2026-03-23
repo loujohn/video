@@ -19,6 +19,7 @@ export const createStoryboardSchema = z.object({
   duration_seconds: z.number().min(0).max(3600).optional().nullable(),
   reference_image_url: z.string().url().max(2000).optional().nullable(),
   image_prompt: z.string().max(5000).optional(),
+  assigned_to: z.string().uuid().optional().nullable(),
 })
 
 export const updateStoryboardSchema = createStoryboardSchema.partial()
