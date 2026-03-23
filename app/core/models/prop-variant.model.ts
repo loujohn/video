@@ -9,9 +9,39 @@ export const PropVariantModel = {
   },
 
   async findByProp(propId: string): Promise<PropVariant[]> {
-    return getDb()(TABLE)
+    const db = getDb()
+    const variants = await db(TABLE)
       .where({ prop_id: propId, is_active: true })
       .orderBy('sort_order', 'asc')
+
+    if (!variants.length) return variants
+
+    const variantIds = variants.map((v: PropVariant) => v.id)
+    const covers = await db('assets')
+      .whereIn('linked_entity_id', variantIds)
+      .where({ linked_entity_type: 'prop_variant', is_active: true })
+      .andWhereRaw("(metadata->>'is_cover')::boolean = true")
+      .select('linked_entity_id', 'file_path')
+
+    const coverMap = new Map(covers.map((c: any) => [c.linked_entity_id, `/uploads/${c.file_path}`]))
+
+    const fallbackIds = variantIds.filter((id: string) => !coverMap.has(id))
+    if (fallbackIds.length) {
+      const latestAssets = await db('assets')
+        .whereIn('linked_entity_id', fallbackIds)
+        .where({ linked_entity_type: 'prop_variant', is_active: true, type: 'image' })
+        .distinctOn('linked_entity_id')
+        .orderByRaw('linked_entity_id, created_at DESC')
+        .select('linked_entity_id', 'file_path')
+
+      for (const a of latestAssets) {
+        if (!coverMap.has(a.linked_entity_id)) {
+          coverMap.set(a.linked_entity_id, `/uploads/${a.file_path}`)
+        }
+      }
+    }
+
+    return variants.map((v: PropVariant) => ({ ...v, cover_asset_url: coverMap.get(v.id) || null }))
   },
 
   async create(propId: string, input: CreatePropVariantInput): Promise<PropVariant> {
@@ -33,7 +63,7 @@ export const PropVariantModel = {
   },
 
   async update(id: string, data: Partial<CreatePropVariantInput> & { is_active?: boolean }): Promise<PropVariant | undefined> {
-    const fields = ['name', 'description', 'image_prompt', 'variant_type', 'sort_order', 'is_active'] as const
+    const fields = ['name', 'description', 'image_prompt', 'variant_type', 'sort_order', 'is_active', 'review_status'] as const
     const updateData = buildUpdateData(data, fields)
     const [row] = await getDb()(TABLE).where({ id }).update(updateData).returning('*')
     return row
