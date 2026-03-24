@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { StoryboardWithAssociations } from '~/core/types/storyboard'
-import { Pencil, Trash2, MessageSquare, ExternalLink, MapPin, User, Box } from 'lucide-vue-next'
+import { Pencil, Trash2, MessageSquare, ExternalLink, MapPin, User, Box, ImageIcon, Film } from 'lucide-vue-next'
 
 const props = defineProps<{
   storyboard: StoryboardWithAssociations
@@ -80,6 +80,24 @@ function goToDetail() {
       </div>
 
       <p v-if="storyboard.duration_seconds != null" class="text-xs text-zinc-400 mt-1">{{ storyboard.duration_seconds }}秒</p>
+
+      <!-- Prompt status indicators -->
+      <div class="flex items-center gap-2 mt-2">
+        <span
+          class="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full"
+          :class="storyboard.image_prompt ? 'bg-indigo-50 text-indigo-600' : 'bg-zinc-50 text-zinc-400'"
+        >
+          <ImageIcon class="h-2.5 w-2.5" />
+          {{ storyboard.image_prompt ? '图片提示词' : '无图片提示词' }}
+        </span>
+        <span
+          class="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full"
+          :class="storyboard.video_prompt ? 'bg-rose-50 text-rose-600' : 'bg-zinc-50 text-zinc-400'"
+        >
+          <Film class="h-2.5 w-2.5" />
+          {{ storyboard.video_prompt ? '视频提示词' : '无视频提示词' }}
+        </span>
+      </div>
     </div>
 
     <div class="flex items-center justify-between gap-1 mt-3 pt-3 border-t border-zinc-100">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Image as ImageIcon, Film, MapPin, User, Box, MessageSquare, Plus, ChevronDown, ChevronRight } from 'lucide-vue-next'
+import { ArrowLeft, Image as ImageIcon, Film, MapPin, User, Box, MessageSquare, Plus, ChevronDown, ChevronRight, Sparkles, Copy, Check } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import type { StoryboardWithAssociations } from '~/core/types/storyboard'
 import type { Asset } from '~/core/types/asset'
@@ -26,6 +26,21 @@ const shotTypeLabels: Record<string, string> = { close: '近景', medium: '中�
 const transitionLabels: Record<string, string> = { cut: '直切', dissolve: '溶解', fade: '淡入淡出', wipe: '擦除' }
 
 const showBasicInfo = ref(false)
+const showImagePrompt = ref(false)
+const showVideoPrompt = ref(false)
+const copiedField = ref('')
+
+const parsedVideoPrompt = computed(() => {
+  const vp = storyboard.value?.video_prompt
+  if (!vp) return null
+  try { return JSON.parse(vp) } catch { return null }
+})
+
+async function copyToClipboard(text: string, field: string) {
+  await navigator.clipboard.writeText(text)
+  copiedField.value = field
+  setTimeout(() => { copiedField.value = '' }, 2000)
+}
 
 const slotCount = ref(1)
 
@@ -139,6 +154,70 @@ async function updateAssignee(userId: string | null) {
               </NuxtLink>
             </div>
             <p v-if="!storyboard.scene_variant && !storyboard.scene_id && !storyboard.character_looks?.length && !storyboard.prop_variants?.length" class="text-xs text-zinc-400">暂无关联</p>
+          </div>
+        </div>
+
+        <!-- Prompts Section -->
+        <div v-if="storyboard.image_prompt || storyboard.video_prompt" class="bg-white rounded-xl border border-zinc-200/60 shadow-sm overflow-hidden">
+          <div class="px-6 py-4">
+            <h2 class="text-sm font-semibold text-zinc-700 flex items-center gap-2">
+              <Sparkles class="h-4 w-4 text-amber-500" /> AI 提示词
+            </h2>
+          </div>
+
+          <!-- Image Prompt -->
+          <div v-if="storyboard.image_prompt" class="border-t border-zinc-100">
+            <button type="button" class="w-full flex items-center justify-between px-6 py-3 hover:bg-zinc-50/50 transition-colors" @click="showImagePrompt = !showImagePrompt">
+              <span class="flex items-center gap-2 text-xs font-medium text-indigo-600">
+                <ImageIcon class="h-3.5 w-3.5" /> 图片提示词
+              </span>
+              <div class="flex items-center gap-2">
+                <button
+                  class="p-1 rounded hover:bg-indigo-50 transition-colors"
+                  @click.stop="copyToClipboard(storyboard.image_prompt!, 'image')"
+                >
+                  <component :is="copiedField === 'image' ? Check : Copy" class="h-3.5 w-3.5 text-zinc-400" />
+                </button>
+                <component :is="showImagePrompt ? ChevronDown : ChevronRight" class="h-4 w-4 text-zinc-400" />
+              </div>
+            </button>
+            <div v-if="showImagePrompt" class="px-6 pb-4">
+              <pre class="text-xs text-zinc-600 whitespace-pre-wrap bg-zinc-50 rounded-lg p-3 max-h-48 overflow-y-auto">{{ storyboard.image_prompt }}</pre>
+            </div>
+          </div>
+
+          <!-- Video Prompt -->
+          <div v-if="storyboard.video_prompt" class="border-t border-zinc-100">
+            <button type="button" class="w-full flex items-center justify-between px-6 py-3 hover:bg-zinc-50/50 transition-colors" @click="showVideoPrompt = !showVideoPrompt">
+              <span class="flex items-center gap-2 text-xs font-medium text-rose-600">
+                <Film class="h-3.5 w-3.5" /> 视频提示词
+              </span>
+              <div class="flex items-center gap-2">
+                <button
+                  class="p-1 rounded hover:bg-rose-50 transition-colors"
+                  @click.stop="copyToClipboard(storyboard.video_prompt!, 'video')"
+                >
+                  <component :is="copiedField === 'video' ? Check : Copy" class="h-3.5 w-3.5 text-zinc-400" />
+                </button>
+                <component :is="showVideoPrompt ? ChevronDown : ChevronRight" class="h-4 w-4 text-zinc-400" />
+              </div>
+            </button>
+            <div v-if="showVideoPrompt" class="px-6 pb-4">
+              <div v-if="parsedVideoPrompt" class="space-y-2">
+                <div class="bg-zinc-50 rounded-lg p-3 text-xs space-y-1.5">
+                  <p v-if="parsedVideoPrompt.positive"><span class="text-zinc-400 font-medium">正面：</span><span class="text-zinc-700">{{ parsedVideoPrompt.positive }}</span></p>
+                  <p v-if="parsedVideoPrompt.negative"><span class="text-zinc-400 font-medium">负面：</span><span class="text-rose-600">{{ parsedVideoPrompt.negative }}</span></p>
+                  <div class="flex flex-wrap gap-3 pt-1">
+                    <span v-if="parsedVideoPrompt.duration" class="text-zinc-500">{{ parsedVideoPrompt.duration }}s</span>
+                    <span v-if="parsedVideoPrompt.camera_movement" class="text-zinc-500">{{ parsedVideoPrompt.camera_movement }}</span>
+                    <span v-if="parsedVideoPrompt.model">
+                      <Badge variant="secondary" class="text-[10px]">{{ parsedVideoPrompt.model }}</Badge>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <pre v-else class="text-xs text-zinc-600 whitespace-pre-wrap bg-zinc-50 rounded-lg p-3 max-h-48 overflow-y-auto">{{ storyboard.video_prompt }}</pre>
+            </div>
           </div>
         </div>
 

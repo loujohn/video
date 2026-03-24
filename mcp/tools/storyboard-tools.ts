@@ -119,6 +119,51 @@ export const storyboardTools = [
       required: ['project_id', 'episode_number'],
     },
   },
+  {
+    name: 'batch_update_storyboards',
+    description: '批量更新多个分镜的字段（如 shot_type、description、dialogue、prompts 等）',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        episode_number: { type: 'number', description: '集号' },
+        updates: {
+          type: 'array',
+          description: '更新数组，每项包含 storyboard_id 和要更新的字段',
+          items: {
+            type: 'object',
+            properties: {
+              storyboard_id: { type: 'string', description: '分镜 ID' },
+              shot_type: { type: 'string' },
+              description: { type: 'string' },
+              dialogue: { type: 'string' },
+              action_direction: { type: 'string' },
+              music_cue: { type: 'string' },
+              duration_seconds: { type: 'number' },
+              camera_movement: { type: 'string' },
+              transition_type: { type: 'string' },
+              image_prompt: { type: 'string' },
+              video_prompt: { type: 'string' },
+            },
+            required: ['storyboard_id'],
+          },
+        },
+      },
+      required: ['project_id', 'episode_number', 'updates'],
+    },
+  },
+  {
+    name: 'list_storyboards_prompt_status',
+    description: '列出分集中所有分镜的提示词状态概览（哪些有 image_prompt / video_prompt）',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        episode_number: { type: 'number', description: '集号' },
+      },
+      required: ['project_id', 'episode_number'],
+    },
+  },
 ]
 
 export async function handleStoryboardTool(name: string, args: Record<string, unknown>): Promise<string> {
@@ -143,6 +188,43 @@ export async function handleStoryboardTool(name: string, args: Record<string, un
       return JSON.stringify(await api.put(`/api/projects/${pid}/episodes/${num}/storyboards/reorder`, { order: args.order }), null, 2)
     case 'export_storyboards':
       return JSON.stringify(await api.get(`/api/projects/${pid}/episodes/${num}/storyboards/export`), null, 2)
+    case 'batch_update_storyboards': {
+      const updates = args.updates as Array<{ storyboard_id: string; [key: string]: unknown }>
+      const results: unknown[] = []
+      for (const item of updates) {
+        const { storyboard_id, ...data } = item
+        try {
+          results.push(await api.put(`/api/projects/${pid}/episodes/${num}/storyboards/${storyboard_id}`, data))
+        } catch (err) {
+          results.push({ storyboard_id, error: String(err) })
+        }
+      }
+      return JSON.stringify(results, null, 2)
+    }
+    case 'list_storyboards_prompt_status': {
+      const storyboards = await api.get(`/api/projects/${pid}/episodes/${num}/storyboards`) as Array<{
+        id: string; sequence_number: number; description?: string
+        image_prompt?: string | null; video_prompt?: string | null
+      }>
+      const summary = storyboards.map(sb => ({
+        id: sb.id,
+        sequence_number: sb.sequence_number,
+        description_preview: sb.description?.slice(0, 40) || '(无)',
+        has_image_prompt: !!sb.image_prompt,
+        has_video_prompt: !!sb.video_prompt,
+      }))
+      const total = summary.length
+      const withImage = summary.filter(s => s.has_image_prompt).length
+      const withVideo = summary.filter(s => s.has_video_prompt).length
+      return JSON.stringify({
+        total,
+        with_image_prompt: withImage,
+        with_video_prompt: withVideo,
+        missing_image_prompt: total - withImage,
+        missing_video_prompt: total - withVideo,
+        storyboards: summary,
+      }, null, 2)
+    }
     default:
       throw new Error(`Unknown storyboard tool: ${name}`)
   }

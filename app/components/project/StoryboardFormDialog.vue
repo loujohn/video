@@ -46,6 +46,7 @@ const form = reactive({
   transition_type: '',
   reference_image_url: '',
   image_prompt: '',
+  video_prompt: '',
   character_look_ids: [] as string[],
   prop_variant_ids: [] as string[],
 })
@@ -136,6 +137,7 @@ watch(
         form.transition_type = sb.transition_type ?? ''
         form.reference_image_url = sb.reference_image_url ?? ''
         form.image_prompt = sb.image_prompt ?? ''
+        form.video_prompt = sb.video_prompt ?? ''
         const withAssoc = sb as StoryboardWithAssociations
         form.character_look_ids = withAssoc.character_looks?.map(cl => cl.id) || []
         form.prop_variant_ids = withAssoc.prop_variants?.map(pv => pv.id) || []
@@ -145,7 +147,7 @@ watch(
           shot_type: '', scene_id: '', scene_variant_id: '', description: '',
           dialogue: '', action_direction: '', music_cue: '', duration_seconds: undefined,
           camera_movement: '', transition_type: '', reference_image_url: '', image_prompt: '',
-          character_look_ids: [], prop_variant_ids: [],
+          video_prompt: '', character_look_ids: [], prop_variant_ids: [],
         })
       }
     }
@@ -167,6 +169,7 @@ function handleSubmit() {
     transition_type: form.transition_type || undefined,
     reference_image_url: form.reference_image_url || undefined,
     image_prompt: form.image_prompt || undefined,
+    video_prompt: form.video_prompt || undefined,
     character_look_ids: form.character_look_ids,
     prop_variant_ids: form.prop_variant_ids,
   }
@@ -286,8 +289,13 @@ function handleSubmit() {
           <Input v-model="form.reference_image_url" placeholder="参考图URL" />
         </div>
         <div class="space-y-2">
-          <Label>图像提示词</Label>
+          <Label>图片提示词</Label>
           <Textarea v-model="form.image_prompt" placeholder="用于 AI 生成分镜参考图的提示词" rows="3" />
+        </div>
+        <div class="space-y-2">
+          <Label>视频提示词</Label>
+          <Textarea v-model="form.video_prompt" placeholder="用于 AI 生成视频的提示词（JSON 格式）" rows="4" />
+          <p class="text-[10px] text-zinc-400">格式：{"positive":"...","negative":"...","duration":5,"camera_movement":"...","model":"kling"}</p>
         </div>
 
         <div class="flex gap-2 pt-2">

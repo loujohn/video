@@ -57,6 +57,99 @@ const PROMPT_TEMPLATES: Record<string, Record<string, string>> = {
   },
 }
 
+const VIDEO_PROMPT_TEMPLATES: Record<string, Record<string, object>> = {
+  realistic: {
+    dialogue: {
+      positive: '[DURATION]s video. [SHOT_TYPE] of [CHARACTER_NAME]. [DESCRIPTION]. [ACTION]. Natural lighting, cinematic film grain, shallow depth of field. Camera: [CAMERA_MOVEMENT].',
+      negative: 'watermarks, blurry, low quality, text overlay, distorted faces, unnatural movement',
+      duration: 5,
+      camera_movement: '[CAMERA_MOVEMENT]',
+      model: 'kling',
+    },
+    action: {
+      positive: '[DURATION]s video. [SHOT_TYPE]. [DESCRIPTION]. Fast-paced, dynamic movement, sharp focus. Camera: [CAMERA_MOVEMENT]. Professional cinematography.',
+      negative: 'watermarks, blurry, slow, static, text overlay',
+      duration: 5,
+      camera_movement: '[CAMERA_MOVEMENT]',
+      model: 'kling',
+    },
+    establishing: {
+      positive: '[DURATION]s video. Wide establishing shot of [SCENE_NAME]. [DESCRIPTION]. [TIME_OF_DAY] lighting, atmospheric perspective, cinematic sweep. Camera: slow pan.',
+      negative: 'watermarks, text, blurry, people too close, indoor',
+      duration: 5,
+      camera_movement: 'slow pan',
+      model: 'kling',
+    },
+    transition: {
+      positive: '[DURATION]s video. [DESCRIPTION]. Smooth [TRANSITION_TYPE] transition. [TIME_OF_DAY]. Dreamlike quality.',
+      negative: 'jarring cuts, watermarks, text, glitch',
+      duration: 3,
+      camera_movement: 'static',
+      model: 'kling',
+    },
+  },
+  anime: {
+    dialogue: {
+      positive: '[DURATION]s anime video. [SHOT_TYPE] of [CHARACTER_NAME]. [DESCRIPTION]. [ACTION]. Anime cel shading, vibrant colors, studio quality animation.',
+      negative: 'realistic, 3D, watermarks, blurry, western cartoon style',
+      duration: 5,
+      camera_movement: '[CAMERA_MOVEMENT]',
+      model: 'kling',
+    },
+    action: {
+      positive: '[DURATION]s anime video. [SHOT_TYPE]. [DESCRIPTION]. Dynamic action lines, speed effects, dramatic angles. Ufotable quality animation.',
+      negative: 'realistic, 3D, static, watermarks, low framerate',
+      duration: 5,
+      camera_movement: '[CAMERA_MOVEMENT]',
+      model: 'kling',
+    },
+    establishing: {
+      positive: '[DURATION]s anime video. Wide shot of [SCENE_NAME]. [DESCRIPTION]. Makoto Shinkai style, atmospheric, detailed background art, gentle wind effects.',
+      negative: 'realistic, 3D, watermarks, people, urban decay',
+      duration: 5,
+      camera_movement: 'slow pan',
+      model: 'kling',
+    },
+    transition: {
+      positive: '[DURATION]s anime video. [DESCRIPTION]. Soft transition, light particles, ethereal atmosphere.',
+      negative: 'realistic, jarring, watermarks, text',
+      duration: 3,
+      camera_movement: 'static',
+      model: 'kling',
+    },
+  },
+  cinematic: {
+    dialogue: {
+      positive: '[DURATION]s video. [SHOT_TYPE] of [CHARACTER_NAME]. [DESCRIPTION]. [ACTION]. Film color grading, anamorphic lens, dramatic lighting. Camera: [CAMERA_MOVEMENT].',
+      negative: 'watermarks, amateur, flat lighting, overexposed, text overlay',
+      duration: 5,
+      camera_movement: '[CAMERA_MOVEMENT]',
+      model: 'kling',
+    },
+    action: {
+      positive: '[DURATION]s video. [SHOT_TYPE]. [DESCRIPTION]. IMAX quality, dramatic slow-motion impact moments, professional stunt choreography. Camera: [CAMERA_MOVEMENT].',
+      negative: 'watermarks, cheap VFX, blurry, shaky amateur footage',
+      duration: 5,
+      camera_movement: '[CAMERA_MOVEMENT]',
+      model: 'kling',
+    },
+    establishing: {
+      positive: '[DURATION]s video. Aerial/crane shot of [SCENE_NAME]. [DESCRIPTION]. Golden hour, IMAX quality, sweeping vista. Camera: crane up.',
+      negative: 'watermarks, flat, daytime noon, crowds',
+      duration: 5,
+      camera_movement: 'crane up',
+      model: 'kling',
+    },
+    transition: {
+      positive: '[DURATION]s video. [DESCRIPTION]. Match cut transition, film color grading, poetic visual rhythm.',
+      negative: 'jarring, amateur, watermarks, text',
+      duration: 3,
+      camera_movement: 'static',
+      model: 'kling',
+    },
+  },
+}
+
 export const imageTools = [
   {
     name: 'set_image_prompt',
@@ -139,6 +232,64 @@ export const imageTools = [
         },
       },
       required: ['style', 'entity_type'],
+    },
+  },
+  {
+    name: 'get_video_prompt_template',
+    description: '获取用于生成视频的提示词模板（JSON 结构），支持不同风格和场景类型',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        style: {
+          type: 'string',
+          enum: ['realistic', 'anime', 'cinematic'],
+          description: '视觉风格',
+        },
+        scene_type: {
+          type: 'string',
+          enum: ['dialogue', 'action', 'establishing', 'transition'],
+          description: '场景类型：dialogue（对话）、action（动作）、establishing（全景建立）、transition（过渡）',
+        },
+      },
+      required: ['style', 'scene_type'],
+    },
+  },
+  {
+    name: 'set_video_prompt',
+    description: '设置分镜的视频生成提示词',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        episode_number: { type: 'number', description: '集号' },
+        storyboard_id: { type: 'string', description: '分镜 ID' },
+        video_prompt: { type: 'string', description: '视频生成提示词（JSON 字符串）' },
+      },
+      required: ['project_id', 'episode_number', 'storyboard_id', 'video_prompt'],
+    },
+  },
+  {
+    name: 'batch_set_video_prompts',
+    description: '批量设置多个分镜的视频生成提示词',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: '项目 ID' },
+        episode_number: { type: 'number', description: '集号' },
+        prompts: {
+          type: 'array',
+          description: '提示词数组',
+          items: {
+            type: 'object',
+            properties: {
+              storyboard_id: { type: 'string' },
+              video_prompt: { type: 'string' },
+            },
+            required: ['storyboard_id', 'video_prompt'],
+          },
+        },
+      },
+      required: ['project_id', 'episode_number', 'prompts'],
     },
   },
 ]
@@ -278,6 +429,66 @@ export async function handleImageTool(name: string, args: Record<string, unknown
         null,
         2,
       )
+    }
+
+    case 'get_video_prompt_template': {
+      const style = args.style as string
+      const sceneType = args.scene_type as string
+      const styleTemplates = VIDEO_PROMPT_TEMPLATES[style]
+      if (!styleTemplates) {
+        throw new Error(`不支持的 style: ${style}。可选: realistic, anime, cinematic`)
+      }
+      const template = styleTemplates[sceneType]
+      if (!template) {
+        throw new Error(`不支持的 scene_type: ${sceneType}。可选: dialogue, action, establishing, transition`)
+      }
+      return JSON.stringify(
+        {
+          style,
+          scene_type: sceneType,
+          template,
+          placeholders: [
+            'DURATION', 'SHOT_TYPE', 'CHARACTER_NAME', 'DESCRIPTION',
+            'ACTION', 'CAMERA_MOVEMENT', 'SCENE_NAME', 'TIME_OF_DAY', 'TRANSITION_TYPE',
+          ],
+          usage: '替换模板中的 [PLACEHOLDER] 占位符，然后 JSON.stringify 整个对象作为 video_prompt',
+        },
+        null,
+        2,
+      )
+    }
+
+    case 'set_video_prompt': {
+      const episodeNumber = args.episode_number as number
+      const storyboardId = args.storyboard_id as string
+      const videoPrompt = args.video_prompt as string
+      return JSON.stringify(
+        await api.put(
+          `/api/projects/${pid}/episodes/${episodeNumber}/storyboards/${storyboardId}`,
+          { video_prompt: videoPrompt },
+        ),
+        null,
+        2,
+      )
+    }
+
+    case 'batch_set_video_prompts': {
+      const episodeNumber = args.episode_number as number
+      const prompts = args.prompts as Array<{ storyboard_id: string; video_prompt: string }>
+      const results: unknown[] = []
+      for (const p of prompts) {
+        try {
+          results.push(
+            await api.put(
+              `/api/projects/${pid}/episodes/${episodeNumber}/storyboards/${p.storyboard_id}`,
+              { video_prompt: p.video_prompt },
+            ),
+          )
+        } catch (err) {
+          results.push({ storyboard_id: p.storyboard_id, error: String(err) })
+        }
+      }
+      return JSON.stringify(results, null, 2)
     }
 
     default:
