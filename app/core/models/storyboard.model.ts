@@ -49,6 +49,7 @@ export const StoryboardModel = {
         camera_movement: input.camera_movement ?? null,
         transition_type: input.transition_type ?? null,
         image_prompt: input.image_prompt ?? null,
+        video_prompt: input.video_prompt ?? null,
         assigned_to: input.assigned_to ?? null,
       })
       .returning('*')
@@ -60,7 +61,7 @@ export const StoryboardModel = {
       'sequence_number', 'shot_type', 'camera_angle', 'scene_id', 'scene_variant_id',
       'description', 'dialogue', 'action_direction', 'music_cue', 'sound_effects',
       'notes', 'duration_seconds', 'reference_image_url', 'camera_movement',
-      'transition_type', 'image_prompt', 'is_active', 'assigned_to',
+      'transition_type', 'image_prompt', 'video_prompt', 'is_active', 'assigned_to',
     ] as const
     const updateData = buildUpdateData(data, fields)
 

@@ -17,6 +17,7 @@ export interface Storyboard {
   camera_movement: string | null
   transition_type: string | null
   image_prompt: string | null
+  video_prompt: string | null
   assigned_to: string | null
   assigned_to_name?: string | null
   is_active: boolean
@@ -43,6 +44,7 @@ export interface CreateStoryboardInput {
   camera_movement?: string
   transition_type?: string
   image_prompt?: string
+  video_prompt?: string
   assigned_to?: string | null
 }
 

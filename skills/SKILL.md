@@ -161,16 +161,71 @@
 **Input**：用户指定集数 N，可附带分镜创作重点或修改意见。
 
 **Process**：
+
+#### 阶段一：上下文收集
 1. 加载 `storyboard-guide.md`、`visual-style-guide.md` 参考
 2. 调用 `get_episode_script` 获取第 N 集剧本
-3. 调用 `list_storyboards` 查看已有分镜
-4. 调用 `list_scenes`、`list_characters`、`list_props` 获取场景、角色和道具信息
-5. 调用 `list_scene_variants`、`list_character_looks`、`list_prop_variants` 获取变体/形象信息
-6. 按剧本内容生成分镜序列，为每个镜头调用 `create_storyboard`，指定 `scene_variant_id`、`character_look_ids`、`prop_variant_ids` 关联具体的场景变体、角色形象和道具变体
-7. 必要时调用 `update_storyboard` 修改或 `delete_storyboard` 删除分镜
-8. 调用 `reorder_storyboards` 调整分镜顺序
+3. 调用 `get_creative_plan` 获取创作方案（含 `visual_style` 风格圣经）
+4. 调用 `list_characters`、`list_character_looks` 获取角色与形象信息
+5. 调用 `list_scenes`、`list_scene_variants` 获取已有场景与变体
+6. 调用 `list_storyboards` 查看已有分镜（避免重复创建）
 
-**Output**：第 N 集分镜摘要，提示用户导出分镜表（`export_storyboards`）或继续创作。
+#### 阶段二：场景与变体自动创建
+7. 从剧本中提取所有场景，与已有场景对比：
+   - 新场景 → 调用 `create_scene` 创建
+   - 已有场景 → 复用
+8. 为每个场景检查变体（如"日间"/"夜间"/"雨天"等）：
+   - 缺少对应变体 → 调用 `create_scene_variant` 创建
+   - 已有 → 复用
+9. 为每个新建的场景变体生成图片提示词（`image_prompt`）：
+   - 基于创作方案的 `visual_style` 风格圣经
+   - 包含场景描述、光影氛围、色调、构图
+   - 调用 `set_image_prompt`（entity_type: scene_variant）保存
+
+#### 阶段三：分镜序列生成
+10. 按剧本内容生成分镜序列，为每个镜头调用 `create_storyboard`：
+    - 指定 `scene_variant_id` 关联场景变体
+    - 指定 `character_look_ids` 关联角色形象
+    - 指定 `prop_variant_ids` 关联道具变体（如有）
+    - 填写 `shot_type`、`camera_angle`、`camera_movement`、`duration_seconds`
+    - 填写 `description`、`dialogue`、`action_direction`
+
+#### 阶段四：图片提示词生成
+11. 为每个分镜生成 `image_prompt`（关键帧图片提示词）：
+    - **角色锚点**：从角色形象的 `image_prompt` 中提取 identity block，保持一致
+    - **场景锚点**：从场景变体的 `image_prompt` 中提取环境描述
+    - **风格锚点**：从创作方案的 `visual_style` 中提取色调、光影、质感
+    - **镜头参数**：根据 `shot_type`、`camera_angle`、`camera_movement` 确定构图
+    - **动作表情**：根据 `action_direction` 和剧本情绪确定角色状态
+    - 组装完整提示词，调用 `update_storyboard` 保存 `image_prompt`
+
+#### 阶段五：视频提示词生成
+12. 为每个分镜生成 `video_prompt`（视频生成提示词，JSON 字符串）：
+    ```json
+    {
+      "positive": "视频正面提示词：主体+动作+运镜+风格",
+      "negative": "负面提示词：水印、模糊、变形等",
+      "duration": 3,
+      "motion_description": "角色动作描述",
+      "camera_movement": "推/拉/摇/跟/升降/手持",
+      "model": "jimeng/runway/kling"
+    }
+    ```
+    - 基于图片提示词 + `action_direction` 生成运动描述
+    - 根据 `camera_movement` 确定镜头运动
+    - 根据 `duration_seconds` 确定时长
+    - 调用 `update_storyboard` 保存 `video_prompt`
+
+#### 阶段六：调整与导出
+13. 调用 `reorder_storyboards` 确认分镜顺序
+14. 执行质量自检（角色锚点一致性、场景连续性、时长合理性）
+
+**Output**：第 N 集完整分镜表，包含：
+- 分镜序列摘要（镜号 | 场景 | 镜头类型 | 时长 | 角色）
+- 图片提示词状态（✅ 已生成）
+- 视频提示词状态（✅ 已生成）
+- 总时长统计
+- 提示用户导出分镜表（`export_storyboards`）或继续 `/分镜 N+1`
 
 ---
 
@@ -235,24 +290,30 @@
 
 ### /生成视频 N
 
-**Input**：用户指定集数 N，可附带视频生成工具偏好（Seedance 2.0 / Kling / Pika）。
+**Input**：用户指定集数 N，可附带视频生成工具偏好（Seedance 2.0 / Kling / Pika / 即梦）。
 
 **Process**：
 1. 加载 `video-generation-guide.md` 参考
 2. 调用 `list_storyboards` 获取第 N 集全部分镜
 3. 调用 `list_entity_images` 获取每个分镜的已确认关键帧图片
-4. 对每个分镜，基于关键帧图 + 分镜描述，生成 **图生视频（I2V）提示词**：
+4. 检查每个分镜的 `video_prompt` 字段：
+   - 已有 → 展示现有视频提示词
+   - 缺失 → 基于关键帧图 + 分镜描述自动生成
+5. 对需要生成的分镜，创建 **图生视频（I2V）提示词**：
    - 使用 Seedance 2.0 五段式结构：主体 + 动作 + 运镜 + 风格 + 约束
    - 包含 `@Image` 引用语法标记角色参考图
    - 标注时长（5s/10s）、分辨率（16:9/9:16）、转场方式
-5. 汇总为完整的视频生成脚本，包含：
+   - 生成 JSON 格式的 `video_prompt` 并调用 `update_storyboard` 保存
+6. 汇总为完整的视频生成脚本，包含：
    - 镜头序号与时间码
-   - 每个镜头的 I2V 提示词
+   - 每个镜头的 I2V 提示词（从 `video_prompt` 字段读取）
    - 角色参考图引用清单
    - 音频/配音提示（如有）
-6. 输出脚本可直接复制到 Seedance 2.0 / 其他视频生成工具使用
+7. 输出脚本可直接复制到 Seedance 2.0 / 其他视频生成工具使用
 
 **Output**：第 N 集完整视频生成脚本，含所有镜头的 I2V 提示词和参考图映射表。
+
+> **注意**：`/分镜 N` 命令已自动为每个分镜生成基础 `video_prompt`。`/生成视频 N` 用于查看、补全和优化视频提示词，以及导出完整视频制作脚本。
 
 ---
 
