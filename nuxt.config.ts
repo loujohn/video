@@ -53,5 +53,6 @@ export default defineNuxtConfig({
     jwtSecret: process.env.JWT_SECRET || 'dev-secret',
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     uploadDir: process.env.UPLOAD_DIR || './uploads',
+    agentEncryptionKey: process.env.AGENT_ENCRYPTION_KEY || 'dev-agent-encryption-key-32bytes!',
   },
 })

@@ -1,0 +1,7 @@
+{
+  "id": "drama-writer",
+  "name": "微短剧 AI 编剧",
+  "description": "从选题到成片的完整短剧创作流程，包括剧本、角色、场景、分镜等",
+  "icon": "🎬",
+  "tools": "*"
+}
