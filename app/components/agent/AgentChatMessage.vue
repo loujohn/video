@@ -1,13 +1,32 @@
 <script setup lang="ts">
 import { Bot, User } from 'lucide-vue-next'
+import { marked } from 'marked'
+import type { ToolCallInfo } from '~/composables/useAgentChat'
 
 interface Props {
   role: 'user' | 'assistant'
   content: string
   isStreaming?: boolean
+  toolCalls?: ToolCallInfo[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
+
+const renderedContent = computed(() => {
+  if (props.role === 'user') return ''
+  if (!props.content) return ''
+  try {
+    return marked.parse(props.content) as string
+  }
+  catch {
+    return props.content
+  }
+})
 </script>
 
 <template>
@@ -34,8 +53,31 @@ defineProps<Props>()
           {{ role === 'assistant' ? 'AI 创作助手' : '你' }}
         </span>
       </div>
-      <div class="pl-8 text-sm leading-relaxed text-zinc-700 whitespace-pre-wrap">
-        {{ content }}
+
+      <!-- Tool calls -->
+      <div v-if="toolCalls?.length" class="pl-8 mb-3 space-y-1.5">
+        <AgentToolCall
+          v-for="tc in toolCalls"
+          :key="tc.id"
+          :tool-call="tc"
+        />
+      </div>
+
+      <!-- Content -->
+      <div v-if="content" class="pl-8">
+        <!-- User: plain text -->
+        <div
+          v-if="role === 'user'"
+          class="text-sm leading-relaxed text-zinc-700 whitespace-pre-wrap"
+        >
+          {{ content }}
+        </div>
+        <!-- Assistant: Markdown -->
+        <div
+          v-else
+          class="prose prose-sm prose-zinc max-w-none [&_p]:leading-relaxed [&_li]:leading-relaxed [&_pre]:bg-zinc-900 [&_pre]:text-zinc-100 [&_code]:text-indigo-600 [&_code]:bg-indigo-50 [&_code]:px-1 [&_code]:rounded [&_pre_code]:text-zinc-100 [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_table]:text-xs [&_th]:bg-zinc-50"
+          v-html="renderedContent"
+        />
         <span
           v-if="isStreaming"
           class="inline-block w-1.5 h-4 bg-indigo-500 animate-pulse ml-0.5 align-text-bottom rounded-sm"

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent v2 - 全屏对话式设计</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafafa;
+    --bg-card: #ffffff;
+    --border: #e4e4e7;
+    --border-light: #f4f4f5;
+    --text: #18181b;
+    --text-2: #71717a;
+    --text-3: #a1a1aa;
+    --indigo-50: #eef2ff;
+    --indigo-100: #e0e7ff;
+    --indigo-500: #6366f1;
+    --indigo-600: #4f46e5;
+    --indigo-700: #4338ca;
+    --violet-600: #7c3aed;
+    --emerald-50: #ecfdf5;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --amber-50: #fffbeb;
+    --amber-500: #f59e0b;
+    --rose-50: #fff1f2;
+    --rose-500: #f43f5e;
+    --sky-50: #f0f9ff;
+    --sky-500: #0ea5e9;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+
+  .app { display: flex; height: 100vh; }
+
+  /* App Sidebar (narrow) */
+  .app-sidebar {
+    width: 64px; background: var(--bg-card); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; padding: 14px 0; gap: 4px;
+  }
+  .app-logo {
+    width: 34px; height: 34px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--indigo-600), var(--violet-600));
+    display: flex; align-items: center; justify-content: center; color: white;
+    font-size: 13px; font-weight: 700; margin-bottom: 20px;
+  }
+  .nav-item {
+    width: 44px; height: 44px; border-radius: 10px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px; cursor: pointer;
+    color: var(--text-3); transition: all 0.2s; font-size: 10px;
+  }
+  .nav-item:hover { background: #f4f4f5; color: var(--text-2); }
+  .nav-item.active { background: var(--indigo-50); color: var(--indigo-700); }
+  .nav-item svg { width: 18px; height: 18px; }
+
+  /* Main area */
+  .main { flex: 1; display: flex; overflow: hidden; }
+
+  /* Chat area (primary) */
+  .chat-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  /* Chat header */
+  .chat-header {
+    height: 54px; border-bottom: 1px solid var(--border); background: var(--bg-card);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+  }
+  .chat-header-left { display: flex; align-items: center; gap: 12px; }
+  .chat-header-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .project-selector {
+    font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+    background: white; cursor: pointer; color: var(--text-2); display: flex; align-items: center; gap: 4px;
+  }
+  .project-selector:hover { border-color: var(--indigo-500); }
+  .chat-header-right { display: flex; align-items: center; gap: 8px; }
+  .btn { font-size: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; color: var(--text-2); transition: all 0.15s; display: flex; align-items: center; gap: 4px; }
+  .btn:hover { border-color: var(--indigo-500); color: var(--indigo-600); }
+  .btn-icon { width: 32px; height: 32px; padding: 0; justify-content: center; }
+  .btn svg { width: 14px; height: 14px; }
+
+  /* Chat messages */
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 20px 0;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .msg-group { padding: 16px max(24px, calc((100% - 720px)/2)); }
+  .msg-group.user { background: transparent; }
+  .msg-group.ai { background: var(--bg-card); border-top: 1px solid var(--border-light); border-bottom: 1px solid var(--border-light); }
+
+  .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .msg-avatar {
+    width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+  .msg-group.ai .msg-avatar { background: linear-gradient(135deg, var(--indigo-600), var(--violet-600)); color: white; }
+  .msg-group.user .msg-avatar { background: var(--emerald-500); color: white; }
+  .msg-name { font-size: 13px; font-weight: 600; }
+  .msg-body { font-size: 14px; line-height: 1.7; color: var(--text); padding-left: 34px; }
+  .msg-body code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 3px; }
+
+  /* Tool call block */
+  .tool-call {
+    margin: 10px 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    background: white;
+  }
+  .tool-call-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; background: #fafafa; border-bottom: 1px solid var(--border-light);
+    cursor: pointer; user-select: none;
+  }
+  .tool-call-left { display: flex; align-items: center; gap: 8px; }
+  .tool-icon { font-size: 14px; }
+  .tool-name { font-size: 12px; font-weight: 600; color: var(--indigo-700); font-family: 'JetBrains Mono', monospace; }
+  .tool-status { font-size: 11px; color: var(--emerald-600); display: flex; align-items: center; gap: 4px; }
+  .tool-status.running { color: var(--amber-500); }
+  .tool-arrow { color: var(--text-3); font-size: 12px; transition: transform 0.2s; }
+  .tool-arrow.expanded { transform: rotate(90deg); }
+  .tool-call-body { padding: 10px 12px; font-size: 12px; display: none; }
+  .tool-call-body.show { display: block; }
+  .tool-params { color: var(--text-2); font-family: 'JetBrains Mono', monospace; white-space: pre-wrap; line-height: 1.6; }
+
+  /* Result card */
+  .result-card {
+    margin: 10px 0; border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; background: white;
+  }
+  .result-card-header {
+    padding: 10px 14px; background: linear-gradient(135deg, var(--indigo-50), #f5f3ff);
+    font-size: 13px; font-weight: 600; color: var(--indigo-700);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .result-card-body { padding: 12px 14px; font-size: 13px; line-height: 1.7; color: var(--text-2); }
+  .result-card-actions {
+    padding: 8px 14px; border-top: 1px solid var(--border-light);
+    display: flex; gap: 8px;
+  }
+  .rc-btn {
+    font-size: 11px; padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: white; cursor: pointer; color: var(--text-2); transition: all 0.15s;
+  }
+  .rc-btn:hover { border-color: var(--indigo-500); color: var(--indigo-600); }
+  .rc-btn.primary { background: var(--emerald-50); border-color: var(--emerald-500); color: var(--emerald-600); }
+
+  /* Typing indicator */
+  .typing { display: flex; gap: 4px; padding: 4px 0; }
+  .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); animation: blink 1.4s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,60%,100% { opacity:.3; transform:scale(.8); } 30% { opacity:1; transform:scale(1); } }
+
+  /* Chat input */
+  .chat-input-area {
+    border-top: 1px solid var(--border); background: var(--bg-card);
+    padding: 14px max(24px, calc((100% - 720px)/2)) 18px;
+  }
+  .input-wrapper {
+    border: 1px solid var(--border); border-radius: 12px; background: white;
+    display: flex; align-items: flex-end; padding: 6px; transition: border-color 0.2s;
+  }
+  .input-wrapper:focus-within { border-color: var(--indigo-500); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+  .chat-input {
+    flex: 1; padding: 8px 10px; border: none; outline: none; font-size: 14px;
+    font-family: inherit; resize: none; min-height: 24px; max-height: 120px; line-height: 1.5;
+  }
+  .send-btn {
+    width: 36px; height: 36px; border-radius: 8px; border: none;
+    background: linear-gradient(135deg, var(--indigo-600), var(--violet-600));
+    color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s; flex-shrink: 0;
+  }
+  .send-btn:hover { opacity: 0.9; }
+  .input-hint { font-size: 11px; color: var(--text-3); margin-top: 6px; }
+
+  /* Context sidebar */
+  .context-sidebar {
+    width: 280px; background: var(--bg-card); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow-y: auto; transition: width 0.3s, opacity 0.3s;
+  }
+  .context-sidebar.collapsed { width: 0; opacity: 0; overflow: hidden; }
+  .ctx-section { padding: 16px; border-bottom: 1px solid var(--border-light); }
+  .ctx-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-3); margin-bottom: 10px; }
+
+  /* Pipeline mini */
+  .pipeline-mini { display: flex; flex-direction: column; gap: 4px; }
+  .pipe-step { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: background 0.15s; }
+  .pipe-step:hover { background: #f4f4f5; }
+  .pipe-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .pipe-step.done .pipe-dot { background: var(--emerald-500); }
+  .pipe-step.active .pipe-dot { background: var(--indigo-500); animation: pulse 2s infinite; }
+  .pipe-step.pending .pipe-dot { background: var(--text-3); opacity: 0.3; }
+  .pipe-step.done { color: var(--emerald-600); }
+  .pipe-step.active { color: var(--indigo-700); background: var(--indigo-50); font-weight: 500; }
+  .pipe-step.pending { color: var(--text-3); }
+  .pipe-count { margin-left: auto; font-size: 11px; color: var(--text-3); }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+
+  /* Entity list */
+  .entity-list { display: flex; flex-direction: column; gap: 4px; }
+  .entity-item {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px;
+    font-size: 12px; cursor: pointer; transition: background 0.15s;
+  }
+  .entity-item:hover { background: #f4f4f5; }
+  .entity-emoji { font-size: 14px; }
+  .entity-name { flex: 1; font-weight: 500; }
+  .entity-badge {
+    font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 500;
+  }
+  .entity-badge.done { background: var(--emerald-50); color: var(--emerald-600); }
+  .entity-badge.gen { background: var(--amber-50); color: var(--amber-500); }
+  .entity-badge.pending { background: #f4f4f5; color: var(--text-3); }
+
+  /* Project info */
+  .project-info-card {
+    background: linear-gradient(135deg, var(--indigo-50), #f5f3ff);
+    border-radius: 8px; padding: 10px; font-size: 12px;
+  }
+  .project-info-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .project-info-meta { color: var(--text-2); display: flex; flex-direction: column; gap: 2px; }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 40px;
+  }
+  .empty-icon { font-size: 48px; opacity: 0.4; }
+  .empty-title { font-size: 18px; font-weight: 600; color: var(--text-2); }
+  .empty-desc { font-size: 13px; color: var(--text-3); text-align: center; line-height: 1.7; max-width: 400px; }
+  .empty-suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+  .suggestion-chip {
+    font-size: 12px; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+    background: white; cursor: pointer; color: var(--text-2); transition: all 0.15s;
+  }
+  .suggestion-chip:hover { border-color: var(--indigo-500); color: var(--indigo-600); background: var(--indigo-50); }
+
+  /* Demo bar */
+  .demo-bar {
+    position: fixed; bottom: 14px; right: 14px; z-index: 100;
+    display: flex; gap: 4px; background: rgba(0,0,0,0.85); padding: 5px; border-radius: 8px;
+  }
+  .demo-btn {
+    font-size: 11px; padding: 5px 10px; border-radius: 5px; border: none;
+    cursor: pointer; color: rgba(255,255,255,0.5); background: transparent;
+    transition: all 0.2s; font-family: inherit;
+  }
+  .demo-btn:hover { color: white; }
+  .demo-btn.active { background: var(--indigo-600); color: white; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- App Sidebar -->
+  <div class="app-sidebar">
+    <div class="app-logo">DS</div>
+    <div class="nav-item" title="仪表盘">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      <span>首页</span>
+    </div>
+    <div class="nav-item" title="项目">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M2 12h5"/></svg>
+      <span>项目</span>
+    </div>
+    <div class="nav-item active" title="Agent">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 1 3 3v1a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 14v4"/><path d="M8 22h8"/><circle cx="12" cy="5" r="1" fill="currentColor"/></svg>
+      <span>Agent</span>
+    </div>
+    <div class="nav-item" title="团队">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>团队</span>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Chat area -->
+    <div class="chat-area">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <span class="chat-header-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 1 3 3v1a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 14v4"/><path d="M8 22h8"/></svg>
+            AI 创作助手
+          </span>
+          <div class="project-selector" id="projectSelector">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M2 12h5"/></svg>
+            <span id="projectName">墨影惊锋</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="chat-header-right">
+          <button class="btn btn-icon" id="sidebarToggle" onclick="toggleSidebar()" title="切换侧边栏">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+          </button>
+          <button class="btn" onclick="alert('设置对话框')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            设置
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat-messages" id="chatMessages"></div>
+
+      <!-- Input -->
+      <div class="chat-input-area">
+        <div class="input-wrapper">
+          <textarea class="chat-input" placeholder="描述你的创意，或输入 /命令..." rows="1"></textarea>
+          <button class="send-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+        <div class="input-hint">Enter 发送 · Shift+Enter 换行 · 输入 / 查看可用命令</div>
+      </div>
+    </div>
+
+    <!-- Context Sidebar -->
+    <div class="context-sidebar" id="contextSidebar">
+      <div class="ctx-section">
+        <div class="ctx-title">当前项目</div>
+        <div class="project-info-card" id="projectInfoCard">
+          <div class="project-info-name">墨影惊锋</div>
+          <div class="project-info-meta">
+            <span>武侠 · 10集 · 国内</span>
+            <span>创建于 2026-03-24</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ctx-section">
+        <div class="ctx-title">创作流程</div>
+        <div class="pipeline-mini" id="pipelineMini"></div>
+      </div>
+
+      <div class="ctx-section" id="entitiesSection">
+        <div class="ctx-title" id="entitiesTitle">角色 (3)</div>
+        <div class="entity-list" id="entityList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Demo bar -->
+<div class="demo-bar">
+  <button class="demo-btn active" onclick="switchDemo('conversation', this)">对话中</button>
+  <button class="demo-btn" onclick="switchDemo('empty', this)">初始状态</button>
+  <button class="demo-btn" onclick="switchDemo('toolcall', this)">Tool调用</button>
+  <button class="demo-btn" onclick="switchDemo('nosidebar', this)">无侧边栏</button>
+</div>
+
+<script>
+const PIPELINE = [
+  { id:'plan', label:'创作方案', icon:'📝' },
+  { id:'episodes', label:'分集目录', icon:'📋' },
+  { id:'characters', label:'角色开发', icon:'👤' },
+  { id:'scenes', label:'场景设计', icon:'🏞️' },
+  { id:'storyboards', label:'分镜脚本', icon:'🎬' },
+  { id:'images', label:'图片生成', icon:'🖼️' },
+  { id:'videos', label:'视频生成', icon:'📹' },
+];
+
+const DEMOS = {
+  conversation: {
+    sidebarVisible: true,
+    projectSelected: true,
+    pipeline: { plan:'done', episodes:'done', characters:'active', scenes:'pending', storyboards:'pending', images:'pending', videos:'pending' },
+    pipelineCounts: { characters: '3/4' },
+    entities: {
+      title: '角色 (3)',
+      items: [
+        { emoji:'⚔️', name:'洛风', badge:'done', badgeText:'✓' },
+        { emoji:'🗡️', name:'颜如玉', badge:'done', badgeText:'✓' },
+        { emoji:'🦹', name:'黑衣人首领', badge:'gen', badgeText:'生成中' },
+        { emoji:'🧓', name:'陈老板', badge:'pending', badgeText:'待处理' },
+      ]
+    },
+    messages: [
+      { role:'ai', html:'你好！我已加载项目<b>「墨影惊锋」</b>的上下文。<br><br>目前创作方案和分集目录已完成，正在进行角色开发阶段。已从剧本中提取出 4 个角色，其中 2 个已完成详细设定。<br><br>需要我继续完善剩余角色设定吗？或者你有其他想法？' },
+      { role:'user', html:'继续角色开发，先做黑衣人首领' },
+      { role:'ai', html:'好的，正在为<b>黑衣人首领</b>生成角色设定...\n<div class="tool-call"><div class="tool-call-header" onclick="this.nextElementSibling.classList.toggle(\'show\');this.querySelector(\'.tool-arrow\').classList.toggle(\'expanded\')"><div class="tool-call-left"><span class="tool-icon">📦</span><span class="tool-name">get_creative_plan</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tool-status">✓ 完成</span><span class="tool-arrow">▸</span></div></div><div class="tool-call-body"><div class="tool-params">{ project_id: "p_墨影惊锋" }\n→ 返回创作方案（武侠题材、古风水墨风格...）</div></div></div>\n<div class="tool-call"><div class="tool-call-header" onclick="this.nextElementSibling.classList.toggle(\'show\');this.querySelector(\'.tool-arrow\').classList.toggle(\'expanded\')"><div class="tool-call-left"><span class="tool-icon">📦</span><span class="tool-name">create_character</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tool-status">✓ 完成</span><span class="tool-arrow">▸</span></div></div><div class="tool-call-body"><div class="tool-params">{ name: "黑衣人首领", description: "...", project_id: "..." }\n→ 角色创建成功，ID: chr_003</div></div></div>\n基于剧本和创作方案，为你生成了黑衣人首领的完整角色档案：\n<div class="result-card"><div class="result-card-header">👤 角色档案 · 黑衣人首领</div><div class="result-card-body"><b>核心性格：</b>深沉、多疑、不怒自威<br><b>角色弧光：</b>隐匿操控者 → 身份逐渐曝光 → 最终对决中的悲剧色彩<br><b>软肋与代价：</b>表面无情，实为守护一个不可告人的秘密<br><b>情绪触发：</b>有人触及其过去身份时，冷静外表下会微微失态<br><b>对白风格：</b>言简意赅，常用隐喻，声音低沉有磁性<br><b>行为惯性：</b>从不亲自出手，以话语操控局面<br><b>性格矛盾：</b>渴望被理解，却选择了最孤独的道路</div><div class="result-card-actions"><button class="rc-btn primary">✓ 采纳</button><button class="rc-btn">↻ 重新生成</button><button class="rc-btn">✏️ 修改</button></div></div>' },
+    ]
+  },
+  empty: {
+    sidebarVisible: true,
+    projectSelected: false,
+    pipeline: { plan:'pending', episodes:'pending', characters:'pending', scenes:'pending', storyboards:'pending', images:'pending', videos:'pending' },
+    pipelineCounts: {},
+    entities: null,
+    messages: 'empty'
+  },
+  toolcall: {
+    sidebarVisible: true,
+    projectSelected: true,
+    pipeline: { plan:'done', episodes:'done', characters:'done', scenes:'done', storyboards:'active', images:'pending', videos:'pending' },
+    pipelineCounts: { storyboards: '2/8' },
+    entities: {
+      title: '第1集分镜 (2/8)',
+      items: [
+        { emoji:'📷', name:'S01-001 开场', badge:'done', badgeText:'✓' },
+        { emoji:'📷', name:'S01-002 入场', badge:'gen', badgeText:'生成中' },
+      ]
+    },
+    messages: [
+      { role:'user', html:'/分镜 1' },
+      { role:'ai', html:'开始为第 1 集生成分镜脚本。先收集上下文...\n<div class="tool-call"><div class="tool-call-header" onclick="this.nextElementSibling.classList.toggle(\'show\');this.querySelector(\'.tool-arrow\').classList.toggle(\'expanded\')"><div class="tool-call-left"><span class="tool-icon">📦</span><span class="tool-name">get_episode_script</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tool-status">✓ 完成</span><span class="tool-arrow">▸</span></div></div><div class="tool-call-body"><div class="tool-params">{ episode_number: 1 }\n→ 第1集剧本 (680字)</div></div></div>\n<div class="tool-call"><div class="tool-call-header" onclick="this.nextElementSibling.classList.toggle(\'show\');this.querySelector(\'.tool-arrow\').classList.toggle(\'expanded\')"><div class="tool-call-left"><span class="tool-icon">📦</span><span class="tool-name">list_characters</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tool-status">✓ 完成</span><span class="tool-arrow">▸</span></div></div><div class="tool-call-body"><div class="tool-params">{ project_id: "..." }\n→ 4个角色</div></div></div>\n<div class="tool-call"><div class="tool-call-header" onclick="this.nextElementSibling.classList.toggle(\'show\');this.querySelector(\'.tool-arrow\').classList.toggle(\'expanded\')"><div class="tool-call-left"><span class="tool-icon">📦</span><span class="tool-name">list_scene_variants</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tool-status">✓ 完成</span><span class="tool-arrow">▸</span></div></div><div class="tool-call-body"><div class="tool-params">→ 3个场景变体</div></div></div>\n上下文收集完成。开始生成分镜序列...\n<div class="tool-call"><div class="tool-call-header" onclick="this.nextElementSibling.classList.toggle(\'show\');this.querySelector(\'.tool-arrow\').classList.toggle(\'expanded\')"><div class="tool-call-left"><span class="tool-icon">📦</span><span class="tool-name">create_storyboard</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tool-status">✓ 完成</span><span class="tool-arrow">▸</span></div></div><div class="tool-call-body show"><div class="tool-params">{\n  shot_type: "establishing",\n  camera_angle: "high_angle",\n  description: "月光下的废弃客栈全貌",\n  duration_seconds: 4,\n  scene_variant_id: "sv_001"\n}\n→ 分镜 S01-001 创建成功</div></div></div>\n<div class="result-card"><div class="result-card-header">🎬 分镜 S01-001 · 开场</div><div class="result-card-body"><b>远景·俯拍</b> | 4秒<br>月光下的废弃客栈全貌。镜头从高空缓慢推进，配乐低沉。雾气缭绕，远处山影如墨。<br><br><code>image_prompt: cinematic aerial shot of an abandoned inn...</code></div><div class="result-card-actions"><button class="rc-btn primary">✓ 采纳</button><button class="rc-btn">↻ 重新生成</button><button class="rc-btn">✏️ 修改</button></div></div>\n<div class="tool-call"><div class="tool-call-header"><div class="tool-call-left"><span class="tool-icon">📦</span><span class="tool-name">create_storyboard</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tool-status running">⏳ 执行中</span><span class="tool-arrow">▸</span></div></div></div>\n正在生成 S01-002...<div class="typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>' },
+    ]
+  },
+  nosidebar: {
+    sidebarVisible: false,
+    projectSelected: true,
+    pipeline: null,
+    entities: null,
+    messages: [
+      { role:'ai', html:'你好！我是 AI 创作助手。<br><br>我可以帮你完成从灵感到成片的完整创作流程。告诉我你的想法，或者选择一个已有项目继续创作。<br><br>你也可以使用 <code>/</code> 命令精确控制：<br>• <code>/开始</code> — 选题定位，创建项目<br>• <code>/创作方案</code> — 生成故事骨架<br>• <code>/角色开发</code> — 角色档案与关系<br>• <code>/目录</code> — 分集规划<br>• <code>/分集 N</code> — 撰写剧本<br>• <code>/分镜 N</code> — 生成分镜' },
+      { role:'user', html:'帮我创建一个都市甜宠短剧，目标受众是18-25岁女性' },
+      { role:'ai', html:'好的！让我先创建项目...\n<div class="tool-call"><div class="tool-call-header" onclick="this.nextElementSibling.classList.toggle(\'show\');this.querySelector(\'.tool-arrow\').classList.toggle(\'expanded\')"><div class="tool-call-left"><span class="tool-icon">📦</span><span class="tool-name">list_teams</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tool-status">✓ 完成</span><span class="tool-arrow">▸</span></div></div><div class="tool-call-body"><div class="tool-params">→ 找到团队: "默认工作室"</div></div></div>\n<div class="tool-call"><div class="tool-call-header" onclick="this.nextElementSibling.classList.toggle(\'show\');this.querySelector(\'.tool-arrow\').classList.toggle(\'expanded\')"><div class="tool-call-left"><span class="tool-icon">📦</span><span class="tool-name">create_project</span></div><div style="display:flex;align-items:center;gap:8px"><span class="tool-status">✓ 完成</span><span class="tool-arrow">▸</span></div></div><div class="tool-call-body show"><div class="tool-params">{\n  name: "甜蜜陷阱",\n  genre: "都市甜宠",\n  target_audience: "18-25岁女性",\n  total_episodes: 10,\n  team_id: "team_001"\n}\n→ 项目创建成功，ID: proj_new</div></div></div>\n<div class="result-card"><div class="result-card-header">🎬 项目已创建 · 甜蜜陷阱</div><div class="result-card-body"><b>题材：</b>都市甜宠<br><b>受众：</b>18-25岁女性<br><b>集数：</b>10集<br><br>接下来我将为你生成创作方案（故事骨架 + 风格圣经）。需要提供更多信息吗？比如：<br>• 有参考作品吗？<br>• 对男主/女主有什么偏好？<br>• 偏好哪种甜宠类型？（契约恋人、青梅竹马、总裁文...）</div><div class="result-card-actions"><button class="rc-btn primary">继续生成创作方案 →</button><button class="rc-btn">补充更多信息</button></div></div>' },
+    ]
+  }
+};
+
+let sidebarVisible = true;
+
+function renderPipeline(stages, counts) {
+  const el = document.getElementById('pipelineMini');
+  el.innerHTML = PIPELINE.map(p => {
+    const s = stages[p.id] || 'pending';
+    const count = counts && counts[p.id] ? `<span class="pipe-count">${counts[p.id]}</span>` : '';
+    return `<div class="pipe-step ${s}"><span class="pipe-dot"></span>${p.icon} ${p.label}${count}</div>`;
+  }).join('');
+}
+
+function renderEntities(data) {
+  const section = document.getElementById('entitiesSection');
+  if (!data) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  document.getElementById('entitiesTitle').textContent = data.title;
+  document.getElementById('entityList').innerHTML = data.items.map(e =>
+    `<div class="entity-item"><span class="entity-emoji">${e.emoji}</span><span class="entity-name">${e.name}</span><span class="entity-badge ${e.badge}">${e.badgeText}</span></div>`
+  ).join('');
+}
+
+function renderMessages(msgs) {
+  const el = document.getElementById('chatMessages');
+  if (msgs === 'empty') {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🤖</div>
+        <div class="empty-title">AI 创作助手</div>
+        <div class="empty-desc">告诉我你的创意灵感，我会帮你完成从剧本到成片的完整流程。<br>你也可以选择一个已有项目继续创作。</div>
+        <div class="empty-suggestions">
+          <div class="suggestion-chip">创建一个武侠短剧</div>
+          <div class="suggestion-chip">都市甜宠10集</div>
+          <div class="suggestion-chip">悬疑推理类型</div>
+          <div class="suggestion-chip">穿越+复仇题材</div>
+        </div>
+      </div>`;
+    return;
+  }
+  el.innerHTML = msgs.map(m => `
+    <div class="msg-group ${m.role}">
+      <div class="msg-header">
+        <div class="msg-avatar">${m.role === 'ai' ? 'AI' : 'U'}</div>
+        <span class="msg-name">${m.role === 'ai' ? 'AI 创作助手' : '你'}</span>
+      </div>
+      <div class="msg-body">${m.html}</div>
+    </div>
+  `).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function toggleSidebar() {
+  sidebarVisible = !sidebarVisible;
+  document.getElementById('contextSidebar').classList.toggle('collapsed', !sidebarVisible);
+}
+
+function switchDemo(name, btn) {
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const demo = DEMOS[name];
+
+  // sidebar
+  sidebarVisible = demo.sidebarVisible;
+  document.getElementById('contextSidebar').classList.toggle('collapsed', !sidebarVisible);
+
+  // project
+  document.getElementById('projectName').textContent = demo.projectSelected ? '墨影惊锋' : '选择项目...';
+  document.getElementById('projectInfoCard').innerHTML = demo.projectSelected
+    ? '<div class="project-info-name">墨影惊锋</div><div class="project-info-meta"><span>武侠 · 10集 · 国内</span><span>创建于 2026-03-24</span></div>'
+    : '<div style="color:var(--text-3);font-size:12px">未选择项目。开始对话后自动关联。</div>';
+
+  // pipeline
+  if (demo.pipeline) renderPipeline(demo.pipeline, demo.pipelineCounts);
+
+  // entities
+  renderEntities(demo.entities);
+
+  // messages
+  renderMessages(demo.messages);
+}
+
+// Init
+switchDemo('conversation', document.querySelector('.demo-btn'));
+</script>
+</body>
+</html>

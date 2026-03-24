@@ -2,6 +2,7 @@ import { getDb } from '~/core/db'
 import { encrypt, decrypt, maskApiKey } from '~~/server/utils/encryption'
 
 export default defineEventHandler(async (event) => {
+  const userId = event.context.userId
   const body = await readBody(event)
   const { provider, model, api_key, base_url, temperature, max_tokens } = body || {}
 
@@ -10,7 +11,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getDb()
-  const existing = await db('agent_settings').first()
+  const existing = userId
+    ? await db('agent_settings').where({ user_id: userId }).first()
+    : await db('agent_settings').first()
 
   const data: Record<string, unknown> = {
     provider,
@@ -30,10 +33,14 @@ export default defineEventHandler(async (event) => {
   }
   else {
     data.created_at = db.fn.now()
+    if (userId) data.user_id = userId
     await db('agent_settings').insert(data)
   }
 
-  const row = await db('agent_settings').first()
+  const row = userId
+    ? await db('agent_settings').where({ user_id: userId }).first()
+    : await db('agent_settings').first()
+
   let maskedKey = ''
   if (row?.api_key_encrypted) {
     try {

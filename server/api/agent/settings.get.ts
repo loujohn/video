@@ -1,9 +1,14 @@
 import { getDb } from '~/core/db'
 import { maskApiKey, decrypt } from '~~/server/utils/encryption'
 
-export default defineEventHandler(async () => {
+export default defineEventHandler(async (event) => {
+  const userId = event.context.userId
   const db = getDb()
-  const row = await db('agent_settings').first()
+
+  const row = userId
+    ? await db('agent_settings').where({ user_id: userId }).first()
+      || await db('agent_settings').whereNull('user_id').first()
+    : await db('agent_settings').first()
 
   if (!row) {
     return {

@@ -1,7 +1,16 @@
 const BASE_URL = process.env.NUXT_INTERNAL_URL || 'http://localhost:3000'
 
+let _authToken: string | undefined
+
+export function setAuthToken(token: string | undefined) {
+  _authToken = token
+}
+
 async function apiCall(method: string, path: string, body?: unknown): Promise<string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (_authToken) {
+    headers.Authorization = `Bearer ${_authToken}`
+  }
 
   const init: RequestInit = { method, headers }
   if (body !== undefined) init.body = JSON.stringify(body)

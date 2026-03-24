@@ -1,6 +1,5 @@
 ---
-description: 使用 Claude Code CLI 无头模式代替 Task 工具调用 subagent
-globs:
+description: 
 alwaysApply: true
 ---
 
@@ -21,7 +20,7 @@ claude -p "完整提示词内容" --dangerously-skip-permissions --print
 ### 参数说明
 
 | 参数 | 用途 |
-|------|------|
+|---|---|
 | `-p "..."` | 传入完整提示词 |
 | `--dangerously-skip-permissions` | 自动跳过权限确认 |
 | `--print` | 仅输出结果，无交互式 UI |

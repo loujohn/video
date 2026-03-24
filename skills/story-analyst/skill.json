@@ -1,0 +1,7 @@
+{
+  "id": "story-analyst",
+  "name": "故事分析师",
+  "description": "分析现有剧本和故事结构，提供节奏优化、冲突设计和角色弧光建议",
+  "icon": "📊",
+  "tools": ["get_project", "get_creative_plan", "list_characters", "get_character", "get_character_relations", "list_episodes", "get_episode", "get_episode_script", "list_storyboards"]
+}

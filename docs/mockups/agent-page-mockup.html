@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drama Studio - AI Agent 页面原型</title>
+<script type="importmap">{"imports":{"gsap":"https://esm.sh/gsap@3.12.5"}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #fafafa;
+    --bg-card: #ffffff;
+    --bg-sidebar: #ffffff;
+    --border: #e4e4e7;
+    --border-light: #f4f4f5;
+    --text-primary: #18181b;
+    --text-secondary: #71717a;
+    --text-muted: #a1a1aa;
+    --indigo-50: #eef2ff;
+    --indigo-100: #e0e7ff;
+    --indigo-500: #6366f1;
+    --indigo-600: #4f46e5;
+    --indigo-700: #4338ca;
+    --violet-600: #7c3aed;
+    --emerald-50: #ecfdf5;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --amber-50: #fffbeb;
+    --amber-500: #f59e0b;
+    --sky-50: #f0f9ff;
+    --sky-500: #0ea5e9;
+    --rose-50: #fff1f2;
+    --rose-500: #f43f5e;
+    --chat-user-bg: #eef2ff;
+    --chat-ai-bg: #f4f4f5;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg-primary); color: var(--text-primary); height: 100vh; overflow: hidden; }
+
+  .app { display: flex; height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 68px; background: var(--bg-sidebar); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; padding: 16px 0;
+    transition: width 0.3s;
+  }
+  .sidebar-logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--indigo-600), var(--violet-600));
+    display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 700;
+    margin-bottom: 24px;
+  }
+  .sidebar-nav { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0 10px; }
+  .sidebar-item {
+    display: flex; align-items: center; justify-content: center;
+    width: 48px; height: 48px; border-radius: 12px; cursor: pointer;
+    color: var(--text-muted); transition: all 0.2s; font-size: 11px; flex-direction: column; gap: 2px;
+  }
+  .sidebar-item:hover { background: #f4f4f5; color: var(--text-secondary); }
+  .sidebar-item.active {
+    background: linear-gradient(135deg, var(--indigo-50), #f5f3ff);
+    color: var(--indigo-700); box-shadow: var(--shadow-sm);
+  }
+  .sidebar-item svg { width: 20px; height: 20px; }
+  .sidebar-item span { font-size: 10px; font-weight: 500; }
+
+  /* Main content */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Header */
+  .header {
+    height: 56px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; background: var(--bg-card);
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-title { font-size: 16px; font-weight: 600; }
+  .header-project {
+    font-size: 13px; color: var(--text-secondary);
+    background: var(--indigo-50); padding: 4px 12px; border-radius: 6px;
+  }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .btn-sm {
+    font-size: 12px; padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: white; cursor: pointer; color: var(--text-secondary); transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn-sm:hover { border-color: var(--indigo-500); color: var(--indigo-600); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--indigo-600), var(--violet-600));
+    color: white; border: none;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+
+  /* Pipeline Bar */
+  .pipeline {
+    background: var(--bg-card); border-bottom: 1px solid var(--border);
+    padding: 16px 24px; display: flex; align-items: center; gap: 0;
+  }
+  .pipeline-step {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .pipeline-step .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .pipeline-step.completed .dot { background: var(--emerald-500); }
+  .pipeline-step.active .dot { background: var(--indigo-500); animation: pulse 2s infinite; }
+  .pipeline-step.pending .dot { background: var(--text-muted); opacity: 0.4; }
+  .pipeline-step.completed { color: var(--emerald-600); }
+  .pipeline-step.active { color: var(--indigo-700); background: var(--indigo-50); }
+  .pipeline-step.pending { color: var(--text-muted); }
+  .pipeline-arrow { color: var(--text-muted); margin: 0 4px; font-size: 12px; opacity: 0.4; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Content Area */
+  .content-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .content-area {
+    flex: 1; overflow-y: auto; padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  /* Stage Content */
+  .stage-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .stage-title { font-size: 18px; font-weight: 600; }
+  .stage-subtitle { font-size: 13px; color: var(--text-secondary); }
+
+  /* Cards Grid */
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .entity-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; transition: all 0.2s; cursor: pointer;
+  }
+  .entity-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .card-image {
+    height: 140px; background: linear-gradient(135deg, #ddd6fe, #c4b5fd);
+    display: flex; align-items: center; justify-content: center; color: white; font-size: 36px;
+    position: relative;
+  }
+  .card-image.scene { background: linear-gradient(135deg, #a7f3d0, #6ee7b7); }
+  .card-image.storyboard { background: linear-gradient(135deg, #fde68a, #fbbf24); }
+  .card-status {
+    position: absolute; top: 8px; right: 8px; font-size: 10px; padding: 2px 8px;
+    border-radius: 10px; font-weight: 500;
+  }
+  .card-status.done { background: var(--emerald-50); color: var(--emerald-600); }
+  .card-status.generating { background: var(--amber-50); color: var(--amber-500); }
+  .card-status.pending { background: #f4f4f5; color: var(--text-muted); }
+  .card-body { padding: 12px 14px; }
+  .card-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .card-btn {
+    font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
+    background: white; cursor: pointer; color: var(--text-secondary); transition: all 0.15s;
+  }
+  .card-btn:hover { border-color: var(--indigo-500); color: var(--indigo-600); }
+  .card-btn.confirm { background: var(--emerald-50); border-color: var(--emerald-500); color: var(--emerald-600); }
+
+  /* Chat Area */
+  .chat-area {
+    border-top: 1px solid var(--border); background: var(--bg-card);
+    display: flex; flex-direction: column;
+    height: 240px; min-height: 160px; max-height: 400px;
+    transition: height 0.3s;
+  }
+  .chat-area.collapsed { height: 48px; min-height: 48px; }
+  .chat-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 24px; cursor: pointer; user-select: none;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .chat-toggle-left { display: flex; align-items: center; gap: 8px; }
+  .chat-toggle-icon {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--indigo-600), var(--violet-600));
+    display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;
+  }
+  .chat-toggle-text { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+  .chat-toggle-arrow { color: var(--text-muted); font-size: 14px; transition: transform 0.3s; }
+  .chat-area.collapsed .chat-toggle-arrow { transform: rotate(180deg); }
+
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 12px 24px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .chat-msg {
+    display: flex; gap: 10px; max-width: 80%; animation: fadeIn 0.3s;
+  }
+  .chat-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .chat-avatar {
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
+  }
+  .chat-msg.ai .chat-avatar { background: linear-gradient(135deg, var(--indigo-600), var(--violet-600)); color: white; }
+  .chat-msg.user .chat-avatar { background: var(--emerald-500); color: white; }
+  .chat-bubble {
+    padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.6;
+  }
+  .chat-msg.ai .chat-bubble { background: var(--chat-ai-bg); border-bottom-left-radius: 4px; }
+  .chat-msg.user .chat-bubble { background: var(--chat-user-bg); color: var(--indigo-700); border-bottom-right-radius: 4px; }
+  .chat-bubble code {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    background: rgba(0,0,0,0.06); padding: 1px 4px; border-radius: 3px;
+  }
+
+  .chat-input-area {
+    padding: 10px 24px 14px; display: flex; gap: 8px; align-items: flex-end;
+  }
+  .chat-input {
+    flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
+    font-size: 13px; font-family: inherit; outline: none; resize: none;
+    min-height: 40px; max-height: 100px; transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--indigo-500); }
+  .chat-send {
+    width: 40px; height: 40px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--indigo-600), var(--violet-600));
+    color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s;
+  }
+  .chat-send:hover { opacity: 0.9; }
+
+  /* Result card in chat */
+  .result-card {
+    background: white; border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px; margin-top: 8px;
+  }
+  .result-card-header { font-size: 12px; font-weight: 600; color: var(--indigo-600); margin-bottom: 6px; }
+  .result-card-content { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+  .result-card-actions { display: flex; gap: 8px; margin-top: 8px; }
+
+  /* Streaming indicator */
+  .typing-indicator { display: flex; gap: 4px; padding: 4px 0; }
+  .typing-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted);
+    animation: typing 1.4s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing {
+    0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+    30% { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Demo switcher */
+  .demo-bar {
+    position: fixed; bottom: 16px; right: 16px; z-index: 100;
+    display: flex; gap: 6px; background: rgba(0,0,0,0.8); padding: 6px; border-radius: 10px;
+  }
+  .demo-btn {
+    font-size: 11px; padding: 6px 12px; border-radius: 6px; border: none;
+    cursor: pointer; color: rgba(255,255,255,0.6); background: transparent;
+    transition: all 0.2s; font-family: inherit;
+  }
+  .demo-btn:hover { color: white; }
+  .demo-btn.active { background: var(--indigo-600); color: white; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.8); color: white; font-size: 12px; padding: 8px 16px;
+    border-radius: 8px; z-index: 200; animation: fadeIn 0.3s;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">DS</div>
+    <div class="sidebar-nav">
+      <div class="sidebar-item" title="仪表盘">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        <span>首页</span>
+      </div>
+      <div class="sidebar-item" title="项目">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M2 12h5"/></svg>
+        <span>项目</span>
+      </div>
+      <div class="sidebar-item active" title="AI Agent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="12" cy="6" r="1.5" fill="currentColor"/><path d="M4 13l2-2m14 2l-2-2"/></svg>
+        <span>Agent</span>
+      </div>
+      <div class="sidebar-item" title="团队">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>团队</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <span class="header-title">🤖 AI 创作助手</span>
+        <span class="header-project" id="projectName">墨影惊锋</span>
+      </div>
+      <div class="header-right">
+        <button class="btn-sm" onclick="showTooltip('设置 AI 服务商和参数')">⚙️ 设置</button>
+        <button class="btn-sm btn-primary" id="autoRunBtn" onclick="toggleAutoRun()">▶️ 一键生成</button>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="pipeline" id="pipeline"></div>
+
+    <!-- Content + Chat -->
+    <div class="content-wrapper">
+      <!-- Content Area -->
+      <div class="content-area" id="contentArea"></div>
+
+      <!-- Chat Area -->
+      <div class="chat-area" id="chatArea">
+        <div class="chat-toggle" onclick="toggleChat()">
+          <div class="chat-toggle-left">
+            <div class="chat-toggle-icon">AI</div>
+            <span class="chat-toggle-text">AI 对话助手 · 随时修改和调整</span>
+          </div>
+          <span class="chat-toggle-arrow">▼</span>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-area">
+          <textarea class="chat-input" id="chatInput" placeholder="输入消息，或使用 / 命令..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+          <button class="chat-send" onclick="sendMessage()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Demo switcher -->
+<div class="demo-bar">
+  <button class="demo-btn active" data-stage="characters" onclick="switchStage('characters', this)">角色设计</button>
+  <button class="demo-btn" data-stage="scenes" onclick="switchStage('scenes', this)">场景设计</button>
+  <button class="demo-btn" data-stage="storyboards" onclick="switchStage('storyboards', this)">分镜脚本</button>
+  <button class="demo-btn" data-stage="empty" onclick="switchStage('empty', this)">初始状态</button>
+</div>
+
+<div class="tooltip" id="tooltip" style="display:none"></div>
+
+<script>
+const STAGES = [
+  { id: 'script', label: '剧本', icon: '📝' },
+  { id: 'episodes', label: '分集', icon: '📋' },
+  { id: 'characters', label: '角色', icon: '👤' },
+  { id: 'scenes', label: '场景', icon: '🏞️' },
+  { id: 'storyboards', label: '分镜', icon: '🎬' },
+  { id: 'images', label: '生图', icon: '🖼️' },
+  { id: 'videos', label: '生视频', icon: '📹' },
+  { id: 'composite', label: '合成', icon: '🎞️' },
+];
+
+const STAGE_DATA = {
+  characters: {
+    activeIdx: 2,
+    completedBefore: 2,
+    cards: [
+      { name: '洛风', desc: '年轻剑客，性格内敛却有着不屈意志。擅使"影锋剑法"，双目幽深如墨。', status: 'done', emoji: '⚔️' },
+      { name: '颜如玉', desc: '神秘女刺客，面容清冷，身手敏捷。以暗器"碎玉针"闻名。', status: 'done', emoji: '🗡️' },
+      { name: '黑衣人首领', desc: '反派首领，行事诡秘，武功高深莫测，身份成谜。', status: 'generating', emoji: '🦹' },
+      { name: '陈老板', desc: '废弃客栈的前任掌柜，知晓诸多江湖秘辛。', status: 'pending', emoji: '🧓' },
+    ],
+    chatMessages: [
+      { role: 'ai', text: '已从剧本中分析提取出 <b>4 个角色</b>。洛风和颜如玉的描述已生成完毕，正在生成黑衣人首领的详细设定...' },
+      { role: 'user', text: '洛风需要更年轻一些，大约18岁的少年感' },
+      { role: 'ai', text: '好的，已更新洛风的角色描述。年龄调整为18岁，增加了少年感特征：<div class="result-card"><div class="result-card-header">📝 角色更新 · 洛风</div><div class="result-card-content">年约十八的少年剑客，面容清秀中透着稚嫩的倔强。墨色长发随意束起，一双幽深的眼眸中闪烁着超越年龄的坚毅...</div><div class="result-card-actions"><button class="card-btn confirm">✓ 采纳</button><button class="card-btn">↻ 重新生成</button><button class="card-btn">✏️ 修改</button></div></div>' },
+    ],
+  },
+  scenes: {
+    activeIdx: 3,
+    completedBefore: 3,
+    cards: [
+      { name: '废弃客栈·大堂', desc: '月光透过破败的屋顶，照亮满是灰尘的桌椅。蛛网密布，空气中弥漫着陈年酒香。', status: 'done', emoji: '🏚️', type: 'scene' },
+      { name: '客栈·二楼走廊', desc: '狭窄幽暗的木质走廊，两侧门扉紧闭。地板吱呀作响，尽头悬挂一盏将灭的残灯。', status: 'done', emoji: '🚪', type: 'scene' },
+      { name: '客栈·后院', desc: '荒草丛生的后院，月色清冷。一棵枯树如鬼影般矗立，地面散落锈蚀的兵器碎片。', status: 'generating', emoji: '🌙', type: 'scene' },
+      { name: '山间小路', desc: '蜿蜒的山路，两侧竹林密布，薄雾缭绕。', status: 'pending', emoji: '🎋', type: 'scene' },
+    ],
+    chatMessages: [
+      { role: 'ai', text: '已从剧本中提取出 <b>4 个主要场景</b>。废弃客栈是本集的核心场景，我为它生成了 3 个子场景。' },
+      { role: 'user', text: '后院的氛围需要更阴森一些' },
+      { role: 'ai', text: '已更新后院的场景描述，增加了更多阴森元素。正在重新生成...<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>' },
+    ],
+  },
+  storyboards: {
+    activeIdx: 4,
+    completedBefore: 4,
+    cards: [
+      { name: 'S01-001 开场', desc: '远景·俯拍 | 月光下的废弃客栈全貌。镜头缓慢推进，配乐低沉。', status: 'done', emoji: '📷', type: 'storyboard' },
+      { name: 'S01-002 入场', desc: '中景·跟拍 | 洛风推开客栈大门，尘土飞扬。手按剑柄，警觉四顾。', status: 'done', emoji: '📷', type: 'storyboard' },
+      { name: 'S01-003 对峙', desc: '近景·正反打 | 颜如玉从暗处现身，手持碎玉针。二人对视，气氛凝重。', status: 'done', emoji: '📷', type: 'storyboard' },
+      { name: 'S01-004 交锋', desc: '特写+动态 | 剑光与暗器交错，快速剪辑。洛风的影锋剑法初显。', status: 'generating', emoji: '📷', type: 'storyboard' },
+      { name: 'S01-005 转折', desc: '中景·固定 | 黑衣人突然出现在屋顶，二人同时停手，望向上方。', status: 'pending', emoji: '📷', type: 'storyboard' },
+    ],
+    chatMessages: [
+      { role: 'ai', text: '已为第 1 集生成 <b>5 个分镜</b>。每个分镜包含镜头描述、角色动作和情绪指引。<br><br>提示词已按 <code>SACSC</code> 结构生成：主体(S) → 动作(A) → 构图(C) → 场景(S) → 画质(C)' },
+      { role: 'user', text: '003和004之间需要加一个慢镜头特写' },
+      { role: 'ai', text: '好的，在 003 和 004 之间插入一个新分镜：<div class="result-card"><div class="result-card-header">🎬 新增分镜 · S01-003.5</div><div class="result-card-content"><b>慢镜头·特写</b> | 碎玉针划过洛风面颊，一滴血珠缓缓滑落。洛风瞳孔微缩，剑身泛起寒光。<br><br><code>@洛风 close-up, slow-motion, blood drop falling, sword gleaming...</code></div><div class="result-card-actions"><button class="card-btn confirm">✓ 采纳并插入</button><button class="card-btn">↻ 重新生成</button></div></div>' },
+    ],
+  },
+  empty: {
+    activeIdx: -1,
+    completedBefore: 0,
+    cards: [],
+    chatMessages: [
+      { role: 'ai', text: '你好！我是 AI 创作助手 👋<br><br>我可以帮你完成从剧本到视频的完整创作流程：<br>• 📝 从灵感生成剧本<br>• 📋 自动拆分集数<br>• 👤 提取角色并生成形象<br>• 🏞️ 设计场景<br>• 🎬 生成分镜脚本<br>• 🖼️ 生成关键帧图片<br>• 📹 将图片转为视频<br><br>请选择一个项目开始，或输入你的创意灵感！' },
+    ],
+  },
+};
+
+let currentStage = 'characters';
+let chatCollapsed = false;
+
+function renderPipeline(activeIdx, completedBefore) {
+  const el = document.getElementById('pipeline');
+  el.innerHTML = STAGES.map((s, i) => {
+    let cls = 'pending';
+    if (i < completedBefore) cls = 'completed';
+    if (i === activeIdx) cls = 'active';
+    const arrow = i < STAGES.length - 1 ? '<span class="pipeline-arrow">→</span>' : '';
+    return `<div class="pipeline-step ${cls}" onclick="showTooltip('点击跳转到${s.label}阶段')"><span class="dot"></span>${s.icon} ${s.label}</div>${arrow}`;
+  }).join('');
+}
+
+function renderContent(stage) {
+  const data = STAGE_DATA[stage];
+  const el = document.getElementById('contentArea');
+
+  if (stage === 'empty') {
+    el.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:20px;opacity:0.6;">
+        <div style="font-size:48px;">🎬</div>
+        <div style="font-size:16px;font-weight:500;color:var(--text-secondary);">选择项目并开始 AI 创作</div>
+        <div style="font-size:13px;color:var(--text-muted);">输入 / 开头的命令或使用"一键生成"按钮</div>
+      </div>
+    `;
+    return;
+  }
+
+  const stageInfo = STAGES[data.activeIdx];
+  const cards = data.cards.map(c => `
+    <div class="entity-card">
+      <div class="card-image ${c.type || ''}">
+        <span>${c.emoji}</span>
+        <span class="card-status ${c.status}">${c.status === 'done' ? '✓ 已确认' : c.status === 'generating' ? '⏳ 生成中' : '○ 待处理'}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${c.name}</div>
+        <div class="card-desc">${c.desc}</div>
+        <div class="card-actions">
+          ${c.status === 'done' ? '<button class="card-btn confirm">✓ 已确认</button>' : '<button class="card-btn">↻ 重新生成</button>'}
+          <button class="card-btn">✏️ 编辑</button>
+          <button class="card-btn">👁️ 详情</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="stage-header">
+      <div>
+        <div class="stage-title">${stageInfo.icon} ${stageInfo.label}设计</div>
+        <div class="stage-subtitle">已完成 ${data.cards.filter(c=>c.status==='done').length}/${data.cards.length} · 基于剧本自动提取，可手动调整</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm" onclick="showTooltip('重新生成本阶段所有内容')">↻ 全部重新生成</button>
+        <button class="btn-sm btn-primary" onclick="showTooltip('确认并进入下一阶段')">确认并继续 →</button>
+      </div>
+    </div>
+    <div class="cards-grid">${cards}</div>
+  `;
+}
+
+function renderChat(stage) {
+  const data = STAGE_DATA[stage];
+  const el = document.getElementById('chatMessages');
+  el.innerHTML = data.chatMessages.map(m => `
+    <div class="chat-msg ${m.role}">
+      <div class="chat-avatar">${m.role === 'ai' ? 'AI' : 'U'}</div>
+      <div class="chat-bubble">${m.text}</div>
+    </div>
+  `).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function switchStage(stage, btn) {
+  currentStage = stage;
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const data = STAGE_DATA[stage];
+  renderPipeline(data.activeIdx, data.completedBefore);
+  renderContent(stage);
+  renderChat(stage);
+}
+
+function toggleChat() {
+  const el = document.getElementById('chatArea');
+  chatCollapsed = !chatCollapsed;
+  el.classList.toggle('collapsed', chatCollapsed);
+}
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const msgs = document.getElementById('chatMessages');
+  msgs.innerHTML += `
+    <div class="chat-msg user">
+      <div class="chat-avatar">U</div>
+      <div class="chat-bubble">${text}</div>
+    </div>
+  `;
+  input.value = '';
+
+  setTimeout(() => {
+    msgs.innerHTML += `
+      <div class="chat-msg ai">
+        <div class="chat-avatar">AI</div>
+        <div class="chat-bubble">收到，正在处理你的请求...<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>
+      </div>
+    `;
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 500);
+}
+
+function showTooltip(text) {
+  const el = document.getElementById('tooltip');
+  el.textContent = text;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 2000);
+}
+
+function toggleAutoRun() {
+  showTooltip('一键生成：将按顺序自动执行所有阶段，中途可暂停');
+}
+
+// Init
+switchStage('characters');
+</script>
+</body>
+</html>

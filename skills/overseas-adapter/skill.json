@@ -1,0 +1,7 @@
+{
+  "id": "overseas-adapter",
+  "name": "出海适配器",
+  "description": "将国内短剧适配为海外版本，处理文化差异、翻译优化和本地化策略",
+  "icon": "🌐",
+  "tools": ["get_project", "update_project", "get_creative_plan", "save_creative_plan", "list_characters", "update_character", "list_episodes", "get_episode", "update_episode", "get_episode_script", "save_episode_script", "list_storyboards", "update_storyboard"]
+}
