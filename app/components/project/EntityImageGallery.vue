@@ -50,12 +50,16 @@ const activeAssets = computed(() =>
 const discardedAssets = computed(() => (assets.value ?? []).filter(i => !i.is_active))
 const discardedCount = computed(() => discardedAssets.value.length)
 
-const hasConfirmedCover = computed(() => activeAssets.value.some(i => (i.metadata as any)?.is_cover))
+function isApproved(asset: Asset): boolean {
+  return (asset.metadata as any)?.review_status === 'approved'
+}
+
+const hasConfirmedCover = computed(() => activeAssets.value.some(i => isApproved(i)))
 
 const coverAsset = computed(() => {
   const active = activeAssets.value
-  const starred = active.find(i => (i.metadata as any)?.is_cover)
-  return starred || active[0] || null
+  const approved = active.find(i => isApproved(i))
+  return approved || active[0] || null
 })
 
 const commentCounts = ref<Record<string, number>>({})
@@ -130,7 +134,7 @@ function nextAsset() {
 }
 
 function isCover(asset: Asset): boolean {
-  return coverAsset.value?.id === asset.id
+  return isApproved(asset)
 }
 
 function getGenerationPrompt(asset: Asset): string | null {
@@ -145,23 +149,16 @@ function togglePromptExpand(id: string) {
   expandedPrompts.value = s
 }
 
-async function confirmAsset(asset: Asset) {
-  const active = activeAssets.value
-  for (const item of active) {
-    if ((item.metadata as any)?.is_cover) {
-      const meta = { ...(item.metadata as any) }
-      delete meta.is_cover
-      await $api(`/api/projects/${props.projectId}/assets/${item.id}`, {
-        method: 'PUT', body: { metadata: meta },
-      }).catch(() => {})
-    }
-  }
-  const newMeta = { ...(asset.metadata as any), is_cover: true }
+async function approveAsset(asset: Asset) {
+  const currentStatus = (asset.metadata as any)?.review_status
+  const newStatus = currentStatus === 'approved' ? 'pending' : 'approved'
+  const newMeta = { ...(asset.metadata as any), review_status: newStatus }
+
   try {
     await $api(`/api/projects/${props.projectId}/assets/${asset.id}`, {
       method: 'PUT', body: { metadata: newMeta },
     })
-    toast.success('已确认为封面')
+    toast.success(newStatus === 'approved' ? '已审核通过' : '已取消审核')
     await refresh()
     emit('confirmed')
     emit('refresh')
@@ -384,11 +381,11 @@ function onDragLeave() {
             />
           </template>
 
-          <!-- Cover/confirmed badge -->
-          <div v-if="isCover(item) && hasConfirmedCover" class="absolute top-1 left-1">
+          <!-- Review approved badge -->
+          <div v-if="isCover(item)" class="absolute top-1 left-1">
             <div class="flex items-center gap-0.5 bg-emerald-500 text-white rounded-full px-1.5 py-0.5">
               <Check class="h-2.5 w-2.5" />
-              <span class="text-[8px] font-medium">已确认</span>
+              <span class="text-[8px] font-medium">已审核</span>
             </div>
           </div>
 
@@ -414,11 +411,11 @@ function onDragLeave() {
               <ZoomIn class="h-3.5 w-3.5 text-zinc-700" />
             </button>
             <button
-              v-if="!isCover(item)"
               type="button"
-              class="h-7 w-7 rounded-full bg-emerald-500/90 flex items-center justify-center hover:bg-emerald-600 transition-colors"
-              title="确认为封面"
-              @click.stop="confirmAsset(item)"
+              class="h-7 w-7 rounded-full flex items-center justify-center transition-colors"
+              :class="isCover(item) ? 'bg-amber-500/90 hover:bg-amber-600' : 'bg-emerald-500/90 hover:bg-emerald-600'"
+              :title="isCover(item) ? '取消审核' : '审核通过'"
+              @click.stop="approveAsset(item)"
             >
               <Check class="h-3.5 w-3.5 text-white" />
             </button>
@@ -568,16 +565,13 @@ function onDragLeave() {
           <span class="truncate max-w-[40%]">{{ previewInfo.name }}</span>
           <div class="flex items-center gap-2">
             <button
-              v-if="!isCover(previewItem)"
               type="button"
-              class="inline-flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium"
-              @click="confirmAsset(previewItem!)"
+              class="inline-flex items-center gap-1 text-[10px] font-medium"
+              :class="isCover(previewItem!) ? 'text-amber-600 hover:text-amber-700' : 'text-emerald-600 hover:text-emerald-700'"
+              @click="approveAsset(previewItem!)"
             >
-              <Check class="h-2.5 w-2.5" /> 确认为封面
+              <Check class="h-2.5 w-2.5" /> {{ isCover(previewItem!) ? '取消审核' : '审核通过' }}
             </button>
-            <span v-else class="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
-              <Check class="h-2.5 w-2.5" /> 已确认
-            </span>
             <button
               type="button"
               class="inline-flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-700 font-medium"

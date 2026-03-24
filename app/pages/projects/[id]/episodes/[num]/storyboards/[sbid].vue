@@ -55,7 +55,7 @@ const heroItems = computed(() => {
   const result: Array<{ id: string; name: string; imageUrl: string | null; reviewStatus: string }> = []
   for (let i = 1; i <= slotCount.value; i++) {
     const slotImages = active.filter(a => (a.metadata as any)?.slot === i && a.type === 'image')
-    const cover = slotImages.find(a => (a.metadata as any)?.is_cover) || slotImages[0]
+    const cover = slotImages.find(a => (a.metadata as any)?.review_status === 'approved') || slotImages[0]
     result.push({
       id: `slot-${i}`,
       name: `帧 ${i}`,

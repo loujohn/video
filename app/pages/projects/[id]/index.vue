@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { Users, ListOrdered, MapPin, Pencil } from 'lucide-vue-next'
-import type { Project, Character, Episode, Scene } from '~/core/types'
+import { Users, ListOrdered, MapPin, Pencil, Download } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
+import type { Character, Episode, Scene } from '~/core/types'
+import type { ProjectWithProgress } from '~/core/types/project'
 
 const route = useRoute()
 const projectId = route.params.id as string
 const { $api } = useApi()
 
 const { data: project, status: projectStatus, error: projectError, refresh: refreshProject } = useAsyncData(`project-${projectId}`, () =>
-  $api<Project>(`/api/projects/${projectId}`),
+  $api<ProjectWithProgress>(`/api/projects/${projectId}`),
 )
 
 const showEdit = ref(false)
@@ -31,6 +33,36 @@ const { data: scenes } = useAsyncData(`scenes-${projectId}`, () =>
 )
 
 const statusMap = PROJECT_STATUS_MAP
+const exportLoading = ref(false)
+
+async function exportProject(format: 'json' | 'markdown') {
+  exportLoading.value = true
+  try {
+    const url = `/api/projects/${projectId}/export?format=${format}`
+    if (format === 'markdown') {
+      const text = await $api<string>(url, { responseType: 'text' } as any)
+      const blob = new Blob([text as unknown as string], { type: 'text/markdown' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `${project.value?.title || 'project'}.md`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } else {
+      const data = await $api(url)
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `${project.value?.title || 'project'}.json`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    }
+    toast.success('导出成功')
+  } catch {
+    toast.error('导出失败')
+  } finally {
+    exportLoading.value = false
+  }
+}
 
 const stats = computed(() => [
   { label: '角色', value: characters.value?.length || 0, icon: Users },
@@ -66,12 +98,34 @@ const stats = computed(() => [
                 <span>{{ project.total_episodes }}集</span>
               </div>
             </div>
-            <Badge
-              :class="statusMap[project.status]?.color"
-              variant="secondary"
-            >
-              {{ statusMap[project.status]?.label || project.status }}
-            </Badge>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="gap-1.5 text-xs"
+                  :disabled="exportLoading"
+                  @click="exportProject('markdown')"
+                >
+                  <Download class="h-3 w-3" /> Markdown
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="gap-1.5 text-xs"
+                  :disabled="exportLoading"
+                  @click="exportProject('json')"
+                >
+                  <Download class="h-3 w-3" /> JSON
+                </Button>
+              </div>
+              <Badge
+                :class="statusMap[project.status]?.color"
+                variant="secondary"
+              >
+                {{ statusMap[project.status]?.label || project.status }}
+              </Badge>
+            </div>
           </div>
         </div>
 
@@ -91,6 +145,10 @@ const stats = computed(() => [
               </div>
             </div>
           </div>
+        </div>
+
+        <div v-if="project.progress" class="bg-white rounded-2xl border border-zinc-200/60 p-6 shadow-sm">
+          <ProjectProgressPanel :progress="project.progress" detailed />
         </div>
 
         <div class="bg-white rounded-2xl border border-zinc-200/60 p-6 shadow-sm">

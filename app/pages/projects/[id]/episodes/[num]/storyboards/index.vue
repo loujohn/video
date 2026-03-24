@@ -350,61 +350,100 @@ function escapeHtml(str: string): string {
         </draggable>
       </ClientOnly>
 
-      <!-- Timeline horizontal view -->
-      <div
-        v-if="storyboards?.length && viewMode === 'timeline'"
-        class="overflow-x-auto pb-4"
-      >
-        <div class="flex gap-4" style="min-width: max-content">
-          <div
-            v-for="sb in localList"
-            :key="sb.id"
-            class="w-64 shrink-0 bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer"
-            @click="openEdit(sb)"
-          >
-            <!-- Thumbnail -->
-            <div class="h-36 bg-zinc-100 relative">
-              <img
-                v-if="sb.reference_image_url && (sb.reference_image_url.startsWith('/') || sb.reference_image_url.startsWith('http'))"
-                :src="sb.reference_image_url"
-                class="w-full h-full object-cover"
-                alt=""
-              />
-              <div v-else class="w-full h-full flex items-center justify-center">
-                <Film class="h-8 w-8 text-zinc-300" />
-              </div>
-              <div class="absolute top-2 left-2">
-                <Badge variant="secondary" class="h-6 min-w-6 rounded bg-black/60 text-white text-xs font-mono border-0">
-                  {{ String(sb.sequence_number).padStart(2, '0') }}
-                </Badge>
-              </div>
-              <div v-if="sb.shot_type" class="absolute bottom-2 left-2">
-                <Badge variant="secondary" class="text-[10px] bg-white/90 text-zinc-700 border-0">
-                  {{ sb.shot_type }}
-                </Badge>
-              </div>
-            </div>
-            <!-- Content -->
-            <div class="p-3">
-              <p v-if="sb.description" class="text-xs text-zinc-700 line-clamp-2 mb-1">{{ sb.description }}</p>
-              <p v-if="sb.dialogue" class="text-xs text-zinc-500 italic line-clamp-1">「{{ sb.dialogue }}」</p>
-              <div v-if="sb.scene_variant || sb.character_looks?.length || sb.prop_variants?.length" class="flex flex-wrap gap-1 mt-1.5">
-                <span v-if="sb.scene_variant" class="text-[9px] px-1 py-0.5 rounded-full bg-emerald-50 text-emerald-700">{{ sb.scene_variant.scene_name }}</span>
-                <span v-for="cl in sb.character_looks" :key="cl.id" class="text-[9px] px-1 py-0.5 rounded-full bg-violet-50 text-violet-700">{{ cl.character_name }}</span>
-              </div>
-              <div class="flex items-center justify-between mt-2">
-                <span v-if="sb.duration_seconds" class="text-[10px] text-zinc-400">{{ sb.duration_seconds }}秒</span>
-                <button
-                  class="text-red-500 hover:text-red-600 p-1"
-                  @click.stop="openDelete(sb)"
-                >
-                  <Trash2 class="h-3 w-3" />
-                </button>
-              </div>
+      <!-- Timeline horizontal view with draggable -->
+      <ClientOnly>
+        <div
+          v-if="storyboards?.length && viewMode === 'timeline'"
+          class="overflow-x-auto pb-4"
+        >
+          <!-- Timeline axis -->
+          <div class="relative px-2 mb-2">
+            <div class="h-0.5 bg-zinc-200 rounded-full" />
+            <div class="flex justify-between mt-1">
+              <span class="text-[9px] text-zinc-400">开场</span>
+              <span class="text-[9px] text-zinc-400">
+                {{ localList.length }} 镜
+                <template v-if="localList.reduce((s, sb) => s + (sb.duration_seconds || 0), 0)">
+                  · {{ Math.round(localList.reduce((s, sb) => s + (sb.duration_seconds || 0), 0)) }}秒
+                </template>
+              </span>
+              <span class="text-[9px] text-zinc-400">结尾</span>
             </div>
           </div>
+          <draggable
+            v-model="localList"
+            item-key="id"
+            class="flex gap-4"
+            style="min-width: max-content"
+            :disabled="reordering"
+            @end="onDragEnd"
+          >
+            <template #item="{ element: sb }">
+              <div
+                class="w-64 shrink-0 bg-white rounded-xl border border-zinc-200/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-grab active:cursor-grabbing"
+              >
+                <!-- Thumbnail -->
+                <div
+                  class="h-36 bg-zinc-100 relative cursor-pointer"
+                  @click="navigateTo(`/projects/${projectId}/episodes/${episodeNum}/storyboards/${sb.id}`)"
+                >
+                  <img
+                    v-if="sb.reference_image_url && (sb.reference_image_url.startsWith('/') || sb.reference_image_url.startsWith('http'))"
+                    :src="sb.reference_image_url"
+                    class="w-full h-full object-cover"
+                    alt=""
+                  />
+                  <div v-else class="w-full h-full flex items-center justify-center">
+                    <Film class="h-8 w-8 text-zinc-300" />
+                  </div>
+                  <div class="absolute top-2 left-2">
+                    <Badge variant="secondary" class="h-6 min-w-6 rounded bg-black/60 text-white text-xs font-mono border-0">
+                      {{ String(sb.sequence_number).padStart(2, '0') }}
+                    </Badge>
+                  </div>
+                  <div class="absolute top-2 right-2 flex gap-1">
+                    <Badge v-if="sb.image_prompt" variant="secondary" class="text-[9px] bg-indigo-500/80 text-white border-0">IMG</Badge>
+                    <Badge v-if="sb.video_prompt" variant="secondary" class="text-[9px] bg-rose-500/80 text-white border-0">VID</Badge>
+                  </div>
+                  <div v-if="sb.shot_type" class="absolute bottom-2 left-2">
+                    <Badge variant="secondary" class="text-[10px] bg-white/90 text-zinc-700 border-0">
+                      {{ shotTypeLabels[sb.shot_type] || sb.shot_type }}
+                    </Badge>
+                  </div>
+                  <div v-if="sb.duration_seconds" class="absolute bottom-2 right-2">
+                    <Badge variant="secondary" class="text-[10px] bg-black/60 text-white border-0">
+                      {{ sb.duration_seconds }}s
+                    </Badge>
+                  </div>
+                </div>
+                <!-- Content -->
+                <div class="p-3">
+                  <p v-if="sb.description" class="text-xs text-zinc-700 line-clamp-2 mb-1">{{ sb.description }}</p>
+                  <p v-if="sb.dialogue" class="text-xs text-zinc-500 italic line-clamp-1">「{{ sb.dialogue }}」</p>
+                  <div v-if="sb.scene_variant || sb.character_looks?.length || sb.prop_variants?.length" class="flex flex-wrap gap-1 mt-1.5">
+                    <span v-if="sb.scene_variant" class="text-[9px] px-1 py-0.5 rounded-full bg-emerald-50 text-emerald-700">{{ sb.scene_variant.scene_name }}</span>
+                    <span v-for="cl in sb.character_looks" :key="cl.id" class="text-[9px] px-1 py-0.5 rounded-full bg-violet-50 text-violet-700">{{ cl.character_name }}</span>
+                  </div>
+                  <div class="flex items-center justify-between mt-2 pt-2 border-t border-zinc-100">
+                    <button
+                      class="text-xs text-zinc-500 hover:text-indigo-600 transition-colors"
+                      @click.stop="openEdit(sb)"
+                    >
+                      编辑
+                    </button>
+                    <button
+                      class="text-red-400 hover:text-red-600 p-1 transition-colors"
+                      @click.stop="openDelete(sb)"
+                    >
+                      <Trash2 class="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </draggable>
         </div>
-      </div>
+      </ClientOnly>
 
       <CommonEmptyState
         v-if="!storyboards?.length"

@@ -366,6 +366,12 @@ async function handleDelete() {
       </div>
 
       <p v-else class="text-sm text-zinc-500 py-4">暂无角色关系。添加角色后，可在此管理角色之间的关系。</p>
+
+      <!-- Relation Graph Visualization -->
+      <div v-if="relations?.length && characters?.length" class="mt-6">
+        <h3 class="text-sm font-semibold text-zinc-700 mb-3">关系图谱</h3>
+        <ProjectCharacterRelationGraph :characters="characters" :relations="relations" />
+      </div>
     </div>
 
     <!-- Character edit Sheet -->

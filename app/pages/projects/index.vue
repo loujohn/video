@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Plus, Clapperboard } from 'lucide-vue-next'
-import type { Project, Team } from '~/core/types'
+import type { Team } from '~/core/types'
+import type { ProjectWithProgress } from '~/core/types/project'
 
 const { $api } = useApi()
 const showCreate = ref(false)
@@ -8,7 +9,7 @@ const showCreate = ref(false)
 useHead({ title: '项目列表 - Drama Studio' })
 
 const { data: projects, refresh, error: projectsError, status: projectsStatus } = useAsyncData('projects', () =>
-  $api<Project[]>('/api/projects'),
+  $api<ProjectWithProgress[]>('/api/projects?include=progress'),
 )
 
 const { data: teams } = useAsyncData('my-teams', () =>

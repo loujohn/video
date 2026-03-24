@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Clapperboard } from 'lucide-vue-next'
+import type { ProjectProgress } from '~/core/types/project'
 
 defineProps<{
   project: {
@@ -9,6 +10,7 @@ defineProps<{
     status: string
     total_episodes: number
     updated_at: string | Date
+    progress?: ProjectProgress
   }
 }>()
 
@@ -35,6 +37,9 @@ const statusMap = PROJECT_STATUS_MAP
       <Badge :class="statusMap[project.status]?.color || 'bg-zinc-100 text-zinc-600'" variant="secondary" class="text-xs shrink-0">
         {{ statusMap[project.status]?.label || project.status }}
       </Badge>
+    </div>
+    <div v-if="project.progress" class="mt-3 pt-3 border-t border-zinc-100">
+      <ProjectProgressPanel :progress="project.progress" />
     </div>
   </NuxtLink>
 </template>
