@@ -76,6 +76,53 @@ describe('createStoryboardSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts valid video_prompt string', () => {
+    const videoPrompt = JSON.stringify({
+      positive: '5s video. Close-up of face. Cold lighting.',
+      negative: 'watermarks, blurry',
+      duration: 5,
+      camera_movement: 'slow push',
+      model: 'kling',
+    })
+    const result = createStoryboardSchema.safeParse({ video_prompt: videoPrompt })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts video_prompt up to 10000 characters', () => {
+    const result = createStoryboardSchema.safeParse({ video_prompt: 'a'.repeat(10000) })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects video_prompt over 10000 characters', () => {
+    const result = createStoryboardSchema.safeParse({ video_prompt: 'a'.repeat(10001) })
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts storyboard with both image_prompt and video_prompt', () => {
+    const result = createStoryboardSchema.safeParse({
+      shot_type: 'close-up',
+      image_prompt: 'A cinematic close-up portrait. 9:16 vertical.',
+      video_prompt: JSON.stringify({ positive: 'video prompt', duration: 5 }),
+      duration_seconds: 5,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.image_prompt).toBeDefined()
+      expect(result.data.video_prompt).toBeDefined()
+    }
+  })
+
+  it('accepts storyboard without video_prompt (optional)', () => {
+    const result = createStoryboardSchema.safeParse({
+      shot_type: 'wide',
+      image_prompt: 'Wide shot prompt.',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.video_prompt).toBeUndefined()
+    }
+  })
+
   it('rejects description over 5000 characters', () => {
     const result = createStoryboardSchema.safeParse({ description: 'a'.repeat(5001) })
     expect(result.success).toBe(false)
@@ -101,6 +148,13 @@ describe('updateStoryboardSchema', () => {
   it('accepts partial update with just character_look_ids', () => {
     const result = updateStoryboardSchema.safeParse({
       character_look_ids: ['550e8400-e29b-41d4-a716-446655440000'],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts partial update with just video_prompt', () => {
+    const result = updateStoryboardSchema.safeParse({
+      video_prompt: JSON.stringify({ positive: 'updated video prompt', duration: 3 }),
     })
     expect(result.success).toBe(true)
   })
