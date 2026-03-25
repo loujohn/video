@@ -16,7 +16,10 @@ const emit = defineEmits<{
 }>()
 
 const shotTypeLabels: Record<string, string> = { close: '近景', medium: '中景', wide: '远景', pov: '主观', establishing: '全景' }
-const transitionLabels: Record<string, string> = { cut: '直切', dissolve: '溶解', fade: '淡入淡出', wipe: '擦除' }
+const transitionLabels: Record<string, string> = {
+  cut: '硬切', dissolve: '溶解', fade: '淡入淡出', wipe: '推移',
+  fade_black: '渐黑', fade_white: '渐白', match_cut: '匹配剪辑',
+}
 
 function truncate(str: string | null | undefined, maxLen: number): string {
   if (!str) return ''
@@ -54,7 +57,14 @@ function goToDetail() {
         <Badge v-if="storyboard.camera_movement" variant="secondary" class="text-[10px] bg-zinc-100 text-zinc-600">
           {{ storyboard.camera_movement }}
         </Badge>
-        <Badge v-if="storyboard.transition_type" variant="secondary" class="text-[10px] bg-zinc-100 text-zinc-500">
+        <Badge v-if="storyboard.transition_type" variant="secondary" :class="[
+          'text-[10px]',
+          storyboard.transition_type === 'fade_white' ? 'bg-amber-50 text-amber-700' :
+          storyboard.transition_type === 'fade_black' ? 'bg-zinc-200 text-zinc-600' :
+          storyboard.transition_type === 'dissolve' ? 'bg-blue-50 text-blue-600' :
+          storyboard.transition_type === 'cut' ? 'bg-green-50 text-green-600' :
+          'bg-zinc-100 text-zinc-500'
+        ]">
           {{ transitionLabels[storyboard.transition_type] || storyboard.transition_type }}
         </Badge>
       </div>

@@ -23,11 +23,14 @@ const { data: allAssets, refresh: refreshAssets } = useAsyncData(
 useHead({ title: computed(() => storyboard.value ? `分镜 #${String(storyboard.value.sequence_number).padStart(2, '0')} 详情` : '分镜详情') })
 
 const shotTypeLabels: Record<string, string> = { close: '近景', medium: '中景', wide: '远景', pov: '主观', establishing: '全景' }
-const transitionLabels: Record<string, string> = { cut: '直切', dissolve: '溶解', fade: '淡入淡出', wipe: '擦除' }
+const transitionLabels: Record<string, string> = {
+  cut: '硬切', dissolve: '溶解', fade: '淡入淡出', wipe: '推移',
+  fade_black: '渐黑', fade_white: '渐白', match_cut: '匹配剪辑',
+}
 
 const showBasicInfo = ref(false)
-const showImagePrompt = ref(false)
-const showVideoPrompt = ref(false)
+const showImagePrompt = ref(true)
+const showVideoPrompt = ref(true)
 const copiedField = ref('')
 
 const parsedVideoPrompt = computed(() => {
@@ -36,10 +39,22 @@ const parsedVideoPrompt = computed(() => {
   try { return JSON.parse(vp) } catch { return null }
 })
 
+const seedancePromptText = computed(() => {
+  const pvp = parsedVideoPrompt.value
+  if (pvp?.prompt) return pvp.prompt
+  if (pvp?.positive) return pvp.positive
+  return storyboard.value?.video_prompt || ''
+})
+
 async function copyToClipboard(text: string, field: string) {
   await navigator.clipboard.writeText(text)
   copiedField.value = field
+  toast.success('已复制到剪贴板')
   setTimeout(() => { copiedField.value = '' }, 2000)
+}
+
+function copySeedancePrompt() {
+  copyToClipboard(seedancePromptText.value, 'seedance')
 }
 
 const slotCount = ref(1)
@@ -173,16 +188,17 @@ async function updateAssignee(userId: string | null) {
               </span>
               <div class="flex items-center gap-2">
                 <button
-                  class="p-1 rounded hover:bg-indigo-50 transition-colors"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
                   @click.stop="copyToClipboard(storyboard.image_prompt!, 'image')"
                 >
-                  <component :is="copiedField === 'image' ? Check : Copy" class="h-3.5 w-3.5 text-zinc-400" />
+                  <component :is="copiedField === 'image' ? Check : Copy" class="h-3 w-3" />
+                  {{ copiedField === 'image' ? '已复制' : '复制提示词' }}
                 </button>
                 <component :is="showImagePrompt ? ChevronDown : ChevronRight" class="h-4 w-4 text-zinc-400" />
               </div>
             </button>
             <div v-if="showImagePrompt" class="px-6 pb-4">
-              <pre class="text-xs text-zinc-600 whitespace-pre-wrap bg-zinc-50 rounded-lg p-3 max-h-48 overflow-y-auto">{{ storyboard.image_prompt }}</pre>
+              <pre class="text-xs text-zinc-600 whitespace-pre-wrap bg-zinc-50 rounded-lg p-4 leading-relaxed overflow-y-auto" style="max-height: 400px;">{{ storyboard.image_prompt }}</pre>
             </div>
           </div>
 
@@ -190,33 +206,63 @@ async function updateAssignee(userId: string | null) {
           <div v-if="storyboard.video_prompt" class="border-t border-zinc-100">
             <button type="button" class="w-full flex items-center justify-between px-6 py-3 hover:bg-zinc-50/50 transition-colors" @click="showVideoPrompt = !showVideoPrompt">
               <span class="flex items-center gap-2 text-xs font-medium text-rose-600">
-                <Film class="h-3.5 w-3.5" /> 视频提示词
+                <Film class="h-3.5 w-3.5" /> 视频提示词 (Seedance 2.0)
               </span>
               <div class="flex items-center gap-2">
                 <button
-                  class="p-1 rounded hover:bg-rose-50 transition-colors"
-                  @click.stop="copyToClipboard(storyboard.video_prompt!, 'video')"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors"
+                  @click.stop="copySeedancePrompt()"
                 >
-                  <component :is="copiedField === 'video' ? Check : Copy" class="h-3.5 w-3.5 text-zinc-400" />
+                  <component :is="copiedField === 'seedance' ? Check : Copy" class="h-3 w-3" />
+                  {{ copiedField === 'seedance' ? '已复制' : '复制即梦提示词' }}
                 </button>
                 <component :is="showVideoPrompt ? ChevronDown : ChevronRight" class="h-4 w-4 text-zinc-400" />
               </div>
             </button>
             <div v-if="showVideoPrompt" class="px-6 pb-4">
-              <div v-if="parsedVideoPrompt" class="space-y-2">
-                <div class="bg-zinc-50 rounded-lg p-3 text-xs space-y-1.5">
-                  <p v-if="parsedVideoPrompt.positive"><span class="text-zinc-400 font-medium">正面：</span><span class="text-zinc-700">{{ parsedVideoPrompt.positive }}</span></p>
-                  <p v-if="parsedVideoPrompt.negative"><span class="text-zinc-400 font-medium">负面：</span><span class="text-rose-600">{{ parsedVideoPrompt.negative }}</span></p>
-                  <div class="flex flex-wrap gap-3 pt-1">
-                    <span v-if="parsedVideoPrompt.duration" class="text-zinc-500">{{ parsedVideoPrompt.duration }}s</span>
-                    <span v-if="parsedVideoPrompt.camera_movement" class="text-zinc-500">{{ parsedVideoPrompt.camera_movement }}</span>
-                    <span v-if="parsedVideoPrompt.model">
-                      <Badge variant="secondary" class="text-[10px]">{{ parsedVideoPrompt.model }}</Badge>
-                    </span>
+              <div v-if="parsedVideoPrompt" class="space-y-3">
+                <!-- Metadata badges -->
+                <div class="flex flex-wrap gap-2">
+                  <Badge v-if="parsedVideoPrompt.duration" variant="secondary" class="text-[10px]">
+                    <Film class="h-3 w-3 mr-1" /> {{ parsedVideoPrompt.duration }}s
+                  </Badge>
+                  <Badge v-if="parsedVideoPrompt.aspect_ratio" variant="secondary" class="text-[10px]">{{ parsedVideoPrompt.aspect_ratio }}</Badge>
+                  <Badge v-if="parsedVideoPrompt.shot_structure" variant="outline" class="text-[10px]">{{ parsedVideoPrompt.shot_structure }}</Badge>
+                  <Badge v-if="parsedVideoPrompt.camera_movement" variant="outline" class="text-[10px]">{{ parsedVideoPrompt.camera_movement }}</Badge>
+                  <Badge v-if="parsedVideoPrompt.transition_out" :class="[
+                    'text-[10px]',
+                    parsedVideoPrompt.transition_out === 'fade_white' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    parsedVideoPrompt.transition_out === 'fade_black' ? 'bg-zinc-100 text-zinc-700 border-zinc-300' :
+                    parsedVideoPrompt.transition_out === 'dissolve' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                    parsedVideoPrompt.transition_out === 'cut' ? 'bg-green-50 text-green-700 border-green-200' :
+                    ''
+                  ]" variant="outline">
+                    转场: {{ transitionLabels[parsedVideoPrompt.transition_out] || parsedVideoPrompt.transition_out }}
+                  </Badge>
+                </div>
+
+                <!-- Main prompt text -->
+                <div class="bg-zinc-50 rounded-lg p-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">即梦提示词 (可直接使用)</span>
+                    <button
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-zinc-500 hover:bg-zinc-200 transition-colors"
+                      @click.stop="copySeedancePrompt()"
+                    >
+                      <component :is="copiedField === 'seedance' ? Check : Copy" class="h-3 w-3" />
+                      复制
+                    </button>
                   </div>
+                  <pre class="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed overflow-y-auto font-sans" style="max-height: 500px;">{{ parsedVideoPrompt.prompt || parsedVideoPrompt.positive || '' }}</pre>
+                </div>
+
+                <!-- References -->
+                <div v-if="parsedVideoPrompt.references?.length" class="flex flex-wrap gap-1.5">
+                  <span class="text-[10px] text-zinc-400 mr-1">参考图:</span>
+                  <Badge v-for="ref in parsedVideoPrompt.references" :key="ref" variant="outline" class="text-[10px]">{{ ref }}</Badge>
                 </div>
               </div>
-              <pre v-else class="text-xs text-zinc-600 whitespace-pre-wrap bg-zinc-50 rounded-lg p-3 max-h-48 overflow-y-auto">{{ storyboard.video_prompt }}</pre>
+              <pre v-else class="text-xs text-zinc-600 whitespace-pre-wrap bg-zinc-50 rounded-lg p-4 leading-relaxed overflow-y-auto" style="max-height: 400px;">{{ storyboard.video_prompt }}</pre>
             </div>
           </div>
         </div>
