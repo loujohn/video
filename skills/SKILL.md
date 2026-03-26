@@ -40,6 +40,7 @@
 | /目录 | 生成分集目录 | list_episodes, get_episode, create_episode, update_episode, delete_episode |
 | /分集 N | 生成第 N 集剧本 | get_episode, get_episode_script, save_episode_script, list_characters, list_scenes, list_props |
 | /分镜 N | 生成第 N 集分镜 | list_storyboards, get_storyboard, create_storyboard, update_storyboard, delete_storyboard, reorder_storyboards, export_storyboards, list_scene_variants, create_scene_variant, list_prop_variants, create_prop_variant, list_character_looks |
+| /检查 N | 第 N 集分镜质量自动检查 | list_storyboards, list_assets, list_characters |
 | /出海 | 切换出海模式 | update_project (mode: overseas, language: en-US) |
 
 ### 视觉生成命令
@@ -48,6 +49,8 @@
 |------|------|----------|
 | /角色参考图 | 为角色生成多角度参考图提示词 | character-image-guide.md |
 | /场景图 | 为场景变体生成图片提示词 | visual-style-guide.md |
+| /生成场景图 | 生成场景参考图+变体图并上传到API | visual-style-guide.md §11 |
+| /生成角色图 | 生成角色参考图并上传到API | character-image-guide.md, visual-style-guide.md §11 |
 | /分镜图 | 为分镜关键帧生成图片提示词 | storyboard-guide.md, visual-style-guide.md |
 | /生成视频 N | 将第 N 集分镜转为 Seedance 2.0 视频提示词 | video-generation-guide.md |
 
@@ -239,7 +242,7 @@
 15. 为每个分镜生成 `video_prompt`（视频生成提示词，JSON 字符串）：
     ```json
     {
-      "prompt": "完整中文视频提示词：主体+动作+场景+光影+运镜+风格+画质+约束",
+      "prompt": "风格头\n【场景：{场景名}·{变体名}】\n分镜内容...",
       "duration": 10,
       "aspect_ratio": "16:9",
       "shot_structure": "单动作 / 多镜头叙事",
@@ -247,6 +250,7 @@
       "references": ["@图片1 角色A参考图", "@图片2 角色B参考图"]
     }
     ```
+    - **场景标签（必填）**：在风格头之后、分镜内容之前插入 `【场景：{场景名}·{变体名}】`，从分镜关联的 `scene_variant` 获取
     - **提示词公式**：主体 + 动作 + 场景 + 光影 + 运镜 + 风格 + 画质 + 约束
     - **动作描述**：写慢、写连续、写具体，使用缓慢/轻柔/自然/流畅等修饰词
     - **多镜头叙事段**：使用「第一个画面/切换到/第二个画面」格式
@@ -301,6 +305,43 @@
 
 ---
 
+### /检查 N
+
+**Input**：用户指定集数 N，对该集所有分镜执行自动化质量检查。
+
+**Process**：
+1. 调用 `list_storyboards` 获取第 N 集全部分镜
+2. 调用 `GET /api/projects/{pid}/assets` 获取所有项目资源
+3. 调用 `list_characters`、`list_character_looks` 获取角色信息
+4. 对每个分镜逐项检查：
+
+**检查维度与判定标准**：
+
+| 维度 | 检查项 | 通过标准 |
+|------|--------|---------|
+| 场景标签 | `video_prompt.prompt` 中是否含 `【场景：...】` | 必须包含 |
+| 台词嵌入 | 有 `dialogue` 的分镜，`prompt` 中是否含 `说:"..."`  | 有台词必须嵌入 |
+| 角色引用 | `video_prompt.references` 是否包含 @角色参考图 | 有角色必须引用 |
+| 时长合规 | `duration_seconds` ≤ 15 且 ≥ 5 | 必须在范围内 |
+| 时间戳匹配 | 多段分镜的时间戳总和是否等于 duration | 必须精确匹配 |
+| reference_image_url | 是否已设置有效的完整 URL | 建议设置 |
+| 约束词 | `prompt` 末尾是否含必加约束词（面部稳定不变形等） | 必须包含 |
+| 音效描述 | 是否含环境音效或动作音效词 | 建议包含 |
+| 转场设置 | `transition_type` 是否已设置 | 必须设置 |
+| 场景连续性 | 相邻同场景分镜的光线/色调描述是否一致 | 应一致 |
+
+5. 汇总检查结果，按严重程度分类：
+   - **❌ 必修**：场景标签缺失、时长超限、角色引用缺失
+   - **⚠️ 建议**：音效缺失、reference_image_url 未设置
+   - **✅ 通过**：所有检查项均合格
+
+**Output**：质量检查报告，包含：
+- 总览（通过率、必修项数、建议项数）
+- 逐分镜的检查详情（仅列出未通过的项）
+- 一键修复建议（如「执行 /生成视频 N 可修复场景标签和角色引用」）
+
+---
+
 ### /出海
 
 **Input**：用户确认切换出海模式。
@@ -334,13 +375,73 @@
 **Input**：用户指定场景名称或 ID，可附带氛围偏好。
 
 **Process**：
-1. 加载 `visual-style-guide.md` 参考
-2. 调用 `get_project` 获取项目题材与调性
-3. 调用 `list_scene_variants` 获取场景变体列表
-4. 根据题材色彩体系 + 场景描述 + 时间段/光线生成图片提示词
-5. 调用 `set_image_prompt` 保存到对应的 scene_variant
+1. 加载 `visual-style-guide.md` 参考（特别是第十一节：三阶段生成工作流）
+2. 调用 `get_project` 获取项目题材与调性（含风格圣经）
+3. 调用 `list_scenes` 获取场景列表
+4. 对每个场景调用 `GET /api/projects/{pid}/scenes/{id}/variants` 获取变体
+5. 根据题材色彩体系 + 场景描述 + 时间段/光线生成图片提示词
+6. 调用 `set_image_prompt` 保存到对应的 scene_variant
 
 **Output**：场景变体提示词摘要，标注色调与氛围。
+
+---
+
+### /生成场景图
+
+**Input**：用户指定生成全部或指定场景的参考图。
+
+**Process**（遵循三阶段工作流，见 `visual-style-guide.md` 第十一节）：
+
+#### 阶段一：场景参考图
+1. 获取所有场景（`list_scenes`）
+2. 为每个场景生成一张**风格锚定参考图**，提示词基于场景 `description`
+3. 统一使用项目风格圣经后缀，确保场景间风格一致
+4. 保存图片到本地 `assets/` 目录，命名 `ref_scene_{场景名}.png`
+
+#### 阶段二：场景变体图
+1. 为每个场景变体生成参考图
+2. **必须引用阶段一的场景参考图**作为 `reference_image_paths`
+3. 变体图保持场景空间一致，调整时间/天气/光线
+4. 保存图片到 `assets/scenes/`，命名 `scene_{场景名}_{变体名}.png`
+
+#### 阶段三：上传并关联
+1. **上传前**：调用 `GET /api/projects/{pid}/assets` 检查已有资源
+2. **去重**：若同一实体已有关联图片，先调用 `DELETE /api/projects/{pid}/assets/{id}` 删除旧资源
+3. 场景参考图上传时 `linked_entity_type=scene`，`linked_entity_id=场景ID`
+4. 场景变体图上传时 `linked_entity_type=scene_variant`，`linked_entity_id=变体ID`
+5. 每次上传间隔 0.5-1 秒，避免限流
+6. 上传后验证资源列表
+
+#### 阶段四：自动填充分镜 reference_image_url
+1. 获取所有资源 `GET /api/projects/{pid}/assets`，构建 `scene_variant_id → 完整图片URL` 映射
+2. 完整图片 URL 格式：`{DRAMA_API_URL}/uploads/{asset.file_path}`（**必须是绝对 URL**）
+3. 遍历所有分集的分镜 `GET /api/projects/{pid}/episodes/{ep}/storyboards`
+4. 对每个没有 `reference_image_url` 或需要更新的分镜：
+   - 从分镜的 `scene_variant` 找到对应的场景变体图 URL
+   - 若场景变体无图，回退到场景参考图
+   - 调用 `PUT` 更新分镜的 `reference_image_url`
+5. 每次更新间隔 0.15 秒
+
+**Output**：生成与上传结果摘要，标注成功/失败数量，以及自动填充的分镜数量。
+
+---
+
+### /生成角色图
+
+**Input**：用户指定生成全部或指定角色的参考图。
+
+**Process**：
+1. 获取所有角色（`list_characters`）
+2. 对每个角色调用 `GET /api/projects/{pid}/characters/{id}/looks` 获取造型数据
+3. 使用造型的 `image_prompt` 字段作为生成提示词基础
+4. **风格一致性**：使用与场景图相同的风格后缀（见项目风格圣经）
+5. 角色图使用简洁纯色背景，重点锁定外貌特征
+6. 保存图片到 `assets/`，命名 `ref_char_{角色名}.png`
+7. **上传前去重**：检查该 look 是否已有关联资源，有则先删除
+8. 上传到 API，`linked_entity_type=character_look`，`linked_entity_id=基础形象look_id`
+9. 每次上传间隔 0.5-1 秒
+
+**Output**：角色参考图生成与上传结果摘要。
 
 ---
 
@@ -374,6 +475,7 @@
    - 已有 → 展示现有视频提示词
    - 缺失 → 基于关键帧图 + 分镜描述自动生成
 5. 对需要生成/优化的分镜，创建 **Seedance 2.0 I2V 提示词**：
+   - **场景标签（必填）**：在风格头之后插入 `【场景：{场景名}·{变体名}】`，从分镜的 `scene_variant` 获取
    - **万能公式**：主体 + 动作 + 场景 + 光影 + 运镜 + 风格 + 画质 + 约束
    - **中文提示词**为主，@标签引用角色参考图
    - **动作描述**：写慢、写连续、写具体（缓慢/轻柔/自然/流畅）
@@ -504,6 +606,103 @@
 
 ---
 
+## 3.5 REST API 端点速查
+
+当 MCP 工具不可用时，通过 `curl` 调用 REST API。所有请求需带 `Authorization: Bearer {TOKEN}` 头。
+
+**基础 URL**：`{DRAMA_API_URL}/api`
+
+> **注意**：此 API 仅支持 `GET`、`POST`、`PUT`、`DELETE`、`OPTIONS` 方法，**不支持 `PATCH`**。更新资源统一使用 `PUT`。
+
+> **URL 格式要求**：所有需要填写 URL 的字段（如 `reference_image_url`）必须使用**完整绝对 URL**，格式为 `{DRAMA_API_URL}/uploads/{file_path}`。使用相对路径（如 `/uploads/...`）会导致 `Invalid URL` 错误。`file_path` 从 asset 的 `file_path` 字段获取。
+
+### 项目与资源
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| GET | `/projects/{pid}` | 获取项目详情 |
+| GET | `/projects/{pid}/assets` | 列出项目所有资源 |
+| POST | `/projects/{pid}/assets` | 上传资源（multipart/form-data） |
+| DELETE | `/projects/{pid}/assets/{id}` | 删除资源 |
+
+### 场景与变体
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| GET | `/projects/{pid}/scenes` | 列出所有场景 |
+| GET | `/projects/{pid}/scenes/{sid}/variants` | 获取场景下所有变体 |
+
+### 角色与造型
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| GET | `/projects/{pid}/characters` | 列出所有角色 |
+| GET | `/projects/{pid}/characters/{cid}/looks` | 获取角色所有造型 |
+
+### 分集与分镜
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| GET | `/projects/{pid}/episodes/{ep_num}/storyboards` | 获取分集分镜列表 |
+| PUT | `/projects/{pid}/episodes/{ep_num}/storyboards/{bid}` | 更新分镜字段 |
+
+### 资源上传 multipart/form-data 字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `file` | File | 图片文件 |
+| `type` | String | `"image"` |
+| `category` | String | `"general"` |
+| `linked_entity_type` | String | `"scene"` / `"scene_variant"` / `"character_look"` / `null` |
+| `linked_entity_id` | String | 对应实体 UUID / `null` |
+
+### API 常见错误与排查
+
+| 错误现象 | 原因 | 排查方法 | 解决方案 |
+|---------|------|---------|---------|
+| `302` 重定向到 `/login` | Token 过期或无效 | `curl -v` 查看响应头 | 重新调用 `login` 获取新 Token |
+| `reference_image_url: Invalid URL` | 使用了相对路径 | 检查 URL 格式 | 改用完整绝对 URL：`{DOMAIN}/uploads/{file_path}` |
+| `405 Method Not Allowed` | 使用了不支持的 HTTP 方法 | 检查 `Allow` 响应头 | 更新操作统一使用 `PUT`，不用 `PATCH` |
+| `401 Unauthorized` | Token 缺失或格式错误 | 检查 Authorization 头 | 确保格式为 `Bearer {token}`，无多余空格 |
+| `400 Bad Request` | 请求体格式错误 | 查看 `message` 字段 | 检查 JSON 格式、字段名、值类型 |
+| `PARSE ERROR` / HTML 响应 | API 返回了登录页面 | 检查 Content-Type 头 | Token 已过期，重新认证 |
+
+### Token 管理
+
+**Token 有效期**：JWT Token 有有效期限制，长时间操作前应检查 Token 是否仍有效。
+
+**Token 有效性检查**：
+```
+GET {DRAMA_API_URL}/api/projects/{pid}
+Authorization: Bearer {TOKEN}
+```
+- 返回 `200` + JSON → Token 有效
+- 返回 `302` 或 HTML → Token 过期，需重新认证
+
+**重新认证流程**：
+```
+POST {DRAMA_API_URL}/api/auth/login
+Content-Type: application/json
+{"email": "用户邮箱", "password": "密码"}
+```
+从响应中提取新的 `token` 值，更新后续所有请求的 `Authorization` 头。
+
+**建议**：在批量操作开始前、每 50 次 API 调用后，执行一次 Token 有效性检查。
+
+### 批量操作最佳实践
+
+| 规则 | 说明 |
+|------|------|
+| 请求间隔 | 上传操作：0.5-1 秒；更新操作：0.15-0.3 秒 |
+| 进度汇报 | 每 10 个操作输出一次进度（如 `已完成 30/92`） |
+| 错误处理 | 单个失败不中断整批，记录失败项，最后汇总报告 |
+| Token 刷新 | 批量开始前验证 Token，超过 50 次调用后再次验证 |
+| 去重检查 | 上传前检查已有资源，避免重复上传 |
+| 并发控制 | 不使用并发请求，逐个串行执行，避免触发限流 |
+| 结果验证 | 批量操作完成后，重新获取列表验证数量与状态 |
+
+---
+
 ## 4. 创作方案内容结构
 
 创作方案内容为 JSON 对象，包含以下字段：
@@ -554,32 +753,63 @@
 | satisfaction-matrix.md | 爽感设计 | /创作方案, /分集 |
 | villain-design.md | 反派体系 | /角色开发 |
 | storyboard-guide.md | 分镜指南 | /分镜, /分镜图 |
-| visual-style-guide.md | 视觉风格 | /分镜, /场景图, /分镜图 |
-| character-image-guide.md | 角色参考图生成 | /角色参考图 |
+| visual-style-guide.md | 视觉风格 | /分镜, /场景图, /生成场景图, /生成角色图, /分镜图 |
+| character-image-guide.md | 角色参考图生成 | /角色参考图, /生成角色图 |
 | video-generation-guide.md | 视频生成提示词 | /生成视频 |
 
 ---
 
 ## 6. AI 视频生成工作流总览
 
-完整的 AI 短剧生成采用 **六步流水线**：
+完整的 AI 短剧生成采用 **八步流水线**：
 
 ```
-剧本创作 → 角色参考图 → 场景/道具图 → 分镜关键帧 → 图生视频 → 后期合成
+剧本创作 → 角色参考图 → 场景/道具图 → 分镜关键帧 → 图生视频 → 质量检查 → 资源关联 → 后期合成
 ```
 
 | 阶段 | 命令 | 产出 | 下游消费者 |
 |------|------|------|-----------|
 | 1. 剧本 | /分集 N | 分场剧本 | 分镜、角色、场景 |
-| 2. 角色锁定 | /角色参考图 | 6 角度参考图 × 每造型 | 分镜图、视频生成 |
-| 3. 场景锁定 | /场景图 | 场景全景图 × 每变体 | 分镜图、视频生成 |
+| 2. 角色锁定 | /角色参考图 + /生成角色图 | 角色参考图（已上传） | 分镜图、视频生成 |
+| 3. 场景锁定 | /场景图 + /生成场景图 | 场景图（已上传 + 分镜已关联） | 分镜图、视频生成 |
 | 4. 分镜设计 | /分镜 N + /分镜图 | 分镜脚本 + 关键帧图 | 视频生成 |
-| 5. 视频生成 | /生成视频 N | I2V 提示词脚本 | 外部视频工具 |
-| 6. 后期合成 | 手工/外部工具 | 成片 | 发布 |
+| 5. 视频生成 | /生成视频 N | I2V 提示词脚本（含场景标签+台词+角色引用） | 外部视频工具 |
+| 6. 质量检查 | /检查 N | 质量报告（必修项+建议项） | 修复与优化 |
+| 7. 资源关联 | 自动 | 分镜 reference_image_url 已填充 | 前端展示 |
+| 8. 后期合成 | 手工/外部工具 | 成片 | 发布 |
 
-**关键原则**：
+### 端到端闭环流程
+
+```
+/生成角色图                /生成场景图
+     ↓                        ↓
+  上传角色参考图           上传场景参考图+变体图
+     ↓                        ↓
+     ↓                   自动填充分镜 reference_image_url
+     ↓                        ↓
+     └──────────┬─────────────┘
+                ↓
+         /生成视频 N
+      （插入场景标签、台词、角色引用）
+                ↓
+          /检查 N
+      （自动化质量验证）
+                ↓
+         修复未通过项
+                ↓
+       用户在系统上复制提示词
+      （含完整 prompt + references）
+                ↓
+        粘贴到即梦生成视频
+```
+
+### 关键原则
+
 - **角色参考图是锚点**：角色参考图确认后，场景图、分镜图、视频都应通过 @标签 引用角色参考图来保持一致性。
 - **风格圣经是统一器**：在 `/创作方案` 阶段建立项目风格圣经（Style Bible），作为所有提示词的固定后缀，确保全项目视觉统一。详见 `visual-style-guide.md` 第七节。
 - **分镜以叙事段落为单位**：一个分镜 = 一次 Seedance 2.0 生成（5-15 秒），可包含多镜头切换，不按传统单镜头拆分。详见 `storyboard-guide.md` 第一节。
 - **中文提示词为主**：Seedance 2.0 对中文理解极佳，提示词以中文为主，末尾附加稳定性约束词。
 - **迭代优化是常态**：先生成 5s 确认效果，满意后延长；每次只调整 1 个变量。详见 `video-generation-guide.md` 第十一节。
+- **资源关联闭环**：场景变体图上传后必须自动填充关联分镜的 `reference_image_url`，确保分镜卡片有缩略图。URL 必须使用完整绝对路径。
+- **质量先行**：视频提示词生成后必须执行 `/检查 N`，确保场景标签、台词、角色引用等关键要素无遗漏。
+- **复制即可用**：系统前端的提示词复制功能必须输出完整内容（prompt + references + 参数），用户粘贴到即梦后可直接使用。详见 `video-generation-guide.md` 第十六节。

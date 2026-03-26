@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Image as ImageIcon, Film, MapPin, User, Box, MessageSquare, Plus, ChevronDown, ChevronRight, Sparkles, Copy, Check } from 'lucide-vue-next'
+import { ArrowLeft, Image as ImageIcon, Film, MapPin, User, Box, MessageSquare, Plus, ChevronDown, ChevronRight, ChevronLeft, Sparkles, Copy, Check, Keyboard } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import type { StoryboardWithAssociations } from '~/core/types/storyboard'
 import type { Asset } from '~/core/types/asset'
@@ -19,6 +19,70 @@ const { data: allAssets, refresh: refreshAssets } = useAsyncData(
   `sb-assets-${sbId}`,
   () => $api<Asset[]>(`/api/projects/${projectId}/assets?linked_entity_type=storyboard&linked_entity_id=${sbId}`),
 )
+
+const { data: siblingBoards } = useAsyncData(
+  `sb-siblings-${projectId}-${episodeNum}`,
+  () => $api<StoryboardWithAssociations[]>(`/api/projects/${projectId}/episodes/${episodeNum}/storyboards`),
+)
+
+const currentIndex = computed(() =>
+  siblingBoards.value?.findIndex(sb => sb.id === sbId) ?? -1,
+)
+const prevBoard = computed(() => {
+  if (!siblingBoards.value || currentIndex.value <= 0) return null
+  return siblingBoards.value[currentIndex.value - 1]
+})
+const nextBoard = computed(() => {
+  if (!siblingBoards.value || currentIndex.value < 0 || currentIndex.value >= siblingBoards.value.length - 1) return null
+  return siblingBoards.value[currentIndex.value + 1]
+})
+
+function goToBoard(board: StoryboardWithAssociations) {
+  navigateTo(`/projects/${projectId}/episodes/${episodeNum}/storyboards/${board.id}`)
+}
+
+onMounted(() => {
+  const handler = (e: KeyboardEvent) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+    if (e.key === 'ArrowLeft' && prevBoard.value) goToBoard(prevBoard.value)
+    if (e.key === 'ArrowRight' && nextBoard.value) goToBoard(nextBoard.value)
+  }
+  window.addEventListener('keydown', handler)
+  onUnmounted(() => window.removeEventListener('keydown', handler))
+})
+
+const { data: projectAssets } = useAsyncData(
+  `project-assets-${projectId}`,
+  () => $api<Asset[]>(`/api/projects/${projectId}/assets`),
+)
+
+const sceneRefImage = computed(() => {
+  if (!storyboard.value?.scene_variant || !projectAssets.value) return null
+  const sceneId = storyboard.value.scene_variant.scene_id
+  return projectAssets.value.find(a =>
+    a.linked_entity_type === 'scene' && a.linked_entity_id === sceneId && a.type === 'image' && a.is_active,
+  ) ?? null
+})
+
+const sceneVariantImage = computed(() => {
+  if (!storyboard.value?.scene_variant || !projectAssets.value) return null
+  const variantId = storyboard.value.scene_variant.id
+  return projectAssets.value.find(a =>
+    a.linked_entity_type === 'scene_variant' && a.linked_entity_id === variantId && a.type === 'image' && a.is_active,
+  ) ?? null
+})
+
+const characterImages = computed(() => {
+  if (!storyboard.value?.character_looks?.length || !projectAssets.value) return []
+  const result: Array<{ look: any; asset: Asset | null }> = []
+  for (const cl of storyboard.value.character_looks) {
+    const asset = projectAssets.value.find(a =>
+      a.linked_entity_type === 'character_look' && a.linked_entity_id === cl.id && a.type === 'image' && a.is_active,
+    ) ?? null
+    result.push({ look: cl, asset })
+  }
+  return result
+})
 
 useHead({ title: computed(() => storyboard.value ? `分镜 #${String(storyboard.value.sequence_number).padStart(2, '0')} 详情` : '分镜详情') })
 
@@ -55,6 +119,14 @@ async function copyToClipboard(text: string, field: string) {
 
 function copySeedancePrompt() {
   copyToClipboard(seedancePromptText.value, 'seedance')
+}
+
+function copyFullPromptWithRefs() {
+  const parts: string[] = []
+  if (seedancePromptText.value) parts.push(seedancePromptText.value)
+  const refs = parsedVideoPrompt.value?.references
+  if (refs?.length) parts.push('\n参考图: ' + refs.join(', '))
+  copyToClipboard(parts.join('\n'), 'fullPrompt')
 }
 
 const slotCount = ref(1)
@@ -99,7 +171,7 @@ async function updateAssignee(userId: string | null) {
   <LayoutAppLayout>
     <template #title>分镜详情</template>
     <div class="max-w-4xl">
-      <!-- Header with assignee -->
+      <!-- Header with navigation and assignee -->
       <div class="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="sm" @click="navigateTo(`/projects/${projectId}/episodes/${episodeNum}/storyboards`)">
           <ArrowLeft class="h-4 w-4" />
@@ -107,6 +179,7 @@ async function updateAssignee(userId: string | null) {
         <div class="flex-1 min-w-0">
           <h1 class="text-xl font-bold text-zinc-900">
             分镜 #{{ storyboard ? String(storyboard.sequence_number).padStart(2, '0') : '...' }}
+            <span v-if="siblingBoards" class="text-sm font-normal text-zinc-400 ml-1">/ {{ siblingBoards.length }}</span>
           </h1>
           <p v-if="storyboard?.shot_type" class="text-sm text-zinc-500">
             {{ shotTypeLabels[storyboard.shot_type] || storyboard.shot_type }}
@@ -114,12 +187,50 @@ async function updateAssignee(userId: string | null) {
             <span v-if="storyboard.duration_seconds"> · {{ storyboard.duration_seconds }}秒</span>
           </p>
         </div>
+        <div class="flex items-center gap-1">
+          <Button
+            v-if="prevBoard"
+            variant="outline"
+            size="sm"
+            class="gap-1 text-xs h-8"
+            @click="goToBoard(prevBoard)"
+          >
+            <ChevronLeft class="h-3.5 w-3.5" />
+            上一镜
+          </Button>
+          <Button
+            v-if="nextBoard"
+            variant="outline"
+            size="sm"
+            class="gap-1 text-xs h-8"
+            @click="goToBoard(nextBoard)"
+          >
+            下一镜
+            <ChevronRight class="h-3.5 w-3.5" />
+          </Button>
+        </div>
         <ProjectAssigneePicker
           v-if="storyboard"
           :project-id="projectId"
           :model-value="storyboard.assigned_to"
           @update:model-value="updateAssignee"
         />
+      </div>
+
+      <!-- Quick jump & keyboard hint -->
+      <div v-if="siblingBoards && siblingBoards.length > 1" class="flex items-center gap-3 mb-4">
+        <select
+          :value="sbId"
+          class="h-7 rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-600"
+          @change="navigateTo(`/projects/${projectId}/episodes/${episodeNum}/storyboards/${($event.target as HTMLSelectElement).value}`)"
+        >
+          <option v-for="sb in siblingBoards" :key="sb.id" :value="sb.id">
+            #{{ String(sb.sequence_number).padStart(2, '0') }} {{ sb.scene_variant ? sb.scene_variant.scene_name + '·' + sb.scene_variant.name : '' }}
+          </option>
+        </select>
+        <p class="text-[10px] text-zinc-400 flex items-center gap-1">
+          <Keyboard class="h-3 w-3" /> ← → 快速切换
+        </p>
       </div>
 
       <div v-if="storyboard" class="space-y-6">
@@ -143,25 +254,62 @@ async function updateAssignee(userId: string | null) {
           </div>
         </div>
 
-        <!-- Associations -->
+        <!-- Associations with reference images -->
         <div class="bg-white rounded-xl border border-zinc-200/60 p-6 shadow-sm">
-          <h2 class="text-sm font-semibold text-zinc-700 mb-3">关联实体</h2>
-          <div class="space-y-2">
-            <div v-if="storyboard.scene_variant" class="flex items-center gap-2">
-              <MapPin class="h-4 w-4 text-emerald-500" />
-              <NuxtLink :to="`/projects/${projectId}/scenes/${storyboard.scene_variant.scene_id}`" class="text-sm text-emerald-700 hover:underline">
-                {{ storyboard.scene_variant.scene_name }} · {{ storyboard.scene_variant.name }}
-              </NuxtLink>
+          <h2 class="text-sm font-semibold text-zinc-700 mb-4">关联实体</h2>
+          <div class="space-y-4">
+            <!-- Scene with images -->
+            <div v-if="storyboard.scene_variant">
+              <div class="flex items-center gap-2 mb-2">
+                <MapPin class="h-4 w-4 text-emerald-500" />
+                <NuxtLink :to="`/projects/${projectId}/scenes/${storyboard.scene_variant.scene_id}`" class="text-sm font-medium text-emerald-700 hover:underline">
+                  {{ storyboard.scene_variant.scene_name }} · {{ storyboard.scene_variant.name }}
+                </NuxtLink>
+              </div>
+              <div v-if="sceneRefImage || sceneVariantImage" class="flex gap-3 ml-6">
+                <div v-if="sceneRefImage" class="group relative">
+                  <img :src="`/uploads/${sceneRefImage.file_path}`" class="h-20 w-32 object-cover rounded-lg border border-zinc-200 shadow-sm" alt="场景参考图" />
+                  <span class="absolute bottom-1 left-1 text-[9px] px-1.5 py-0.5 bg-black/60 text-white rounded">场景参考</span>
+                </div>
+                <div v-if="sceneVariantImage" class="group relative">
+                  <img :src="`/uploads/${sceneVariantImage.file_path}`" class="h-20 w-32 object-cover rounded-lg border border-zinc-200 shadow-sm" alt="场景变体图" />
+                  <span class="absolute bottom-1 left-1 text-[9px] px-1.5 py-0.5 bg-black/60 text-white rounded">{{ storyboard.scene_variant.name }}</span>
+                </div>
+              </div>
             </div>
             <div v-else-if="storyboard.scene_id" class="flex items-center gap-2 text-sm text-zinc-500">
               <MapPin class="h-4 w-4 text-zinc-400" /> 已关联场景（未指定变体）
             </div>
-            <div v-for="cl in storyboard.character_looks" :key="cl.id" class="flex items-center gap-2">
+
+            <!-- Characters with reference images -->
+            <div v-if="characterImages.length">
+              <div class="flex flex-wrap gap-4">
+                <div v-for="ci in characterImages" :key="ci.look.id">
+                  <div class="flex items-center gap-2 mb-1.5">
+                    <User class="h-4 w-4 text-violet-500" />
+                    <NuxtLink :to="`/projects/${projectId}/characters/${ci.look.character_id}`" class="text-sm font-medium text-violet-700 hover:underline">
+                      {{ ci.look.character_name }}
+                    </NuxtLink>
+                  </div>
+                  <div v-if="ci.asset" class="ml-6">
+                    <img :src="`/uploads/${ci.asset.file_path}`" class="h-24 w-20 object-cover rounded-lg border border-zinc-200 shadow-sm" :alt="ci.look.character_name" />
+                  </div>
+                  <div v-else class="ml-6">
+                    <div class="h-24 w-20 rounded-lg border border-dashed border-zinc-200 flex items-center justify-center bg-zinc-50">
+                      <User class="h-6 w-6 text-zinc-300" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else-if="storyboard.character_looks?.length" v-for="cl in storyboard.character_looks" :key="cl.id" class="flex items-center gap-2">
               <User class="h-4 w-4 text-violet-500" />
               <NuxtLink :to="`/projects/${projectId}/characters/${cl.character_id}`" class="text-sm text-violet-700 hover:underline">
                 {{ cl.character_name }} · {{ cl.name }}
               </NuxtLink>
             </div>
+
+            <!-- Props -->
             <div v-for="pv in storyboard.prop_variants" :key="pv.id" class="flex items-center gap-2">
               <Box class="h-4 w-4 text-amber-500" />
               <NuxtLink :to="`/projects/${projectId}/props/${pv.prop_id}`" class="text-sm text-amber-700 hover:underline">
@@ -256,10 +404,17 @@ async function updateAssignee(userId: string | null) {
                   <pre class="text-sm text-zinc-800 whitespace-pre-wrap leading-relaxed overflow-y-auto font-sans" style="max-height: 500px;">{{ parsedVideoPrompt.prompt || parsedVideoPrompt.positive || '' }}</pre>
                 </div>
 
-                <!-- References -->
-                <div v-if="parsedVideoPrompt.references?.length" class="flex flex-wrap gap-1.5">
+                <!-- References with copy -->
+                <div v-if="parsedVideoPrompt.references?.length" class="flex items-center flex-wrap gap-1.5">
                   <span class="text-[10px] text-zinc-400 mr-1">参考图:</span>
                   <Badge v-for="ref in parsedVideoPrompt.references" :key="ref" variant="outline" class="text-[10px]">{{ ref }}</Badge>
+                  <button
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-100 text-zinc-600 hover:bg-zinc-200 transition-colors ml-2"
+                    @click.stop="copyFullPromptWithRefs()"
+                  >
+                    <component :is="copiedField === 'fullPrompt' ? Check : Copy" class="h-3 w-3" />
+                    {{ copiedField === 'fullPrompt' ? '已复制' : '复制提示词+参考图' }}
+                  </button>
                 </div>
               </div>
               <pre v-else class="text-xs text-zinc-600 whitespace-pre-wrap bg-zinc-50 rounded-lg p-4 leading-relaxed overflow-y-auto" style="max-height: 400px;">{{ storyboard.video_prompt }}</pre>

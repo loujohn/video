@@ -341,3 +341,109 @@ smooth natural movements.
 | 提示词过长 | 模型忽略后半段 | 核心信息放在前 30 词，控制总长 |
 | 缺少运动描述 | 视频静止感强 | 至少一个主体运动 + 一个运镜描述 |
 | 动作太剧烈 | 穿模、变形 | 改为缓慢、自然、流畅的动作 |
+
+---
+
+## 十一、场景/角色参考图生成与上传工作流
+
+### 生成流程（三阶段）
+
+**阶段一：场景参考图**
+1. 为每个 `scene` 生成一张**风格锚定参考图**
+2. 统一使用项目风格圣经后缀，确保场景间风格一致
+3. 场景参考图重点表现：空间结构、光影氛围、色调基准
+
+**阶段二：场景变体图**
+1. 为每个 `scene_variant` 生成参考图
+2. **必须引用阶段一的场景参考图**作为 `reference_image_paths`
+3. 变体图在保持场景空间一致的基础上，调整时间/天气/光线
+
+**阶段三：角色参考图**
+1. 为每个角色生成参考图
+2. **必须使用与场景图相同的风格后缀**，确保角色与场景风格一致
+3. 角色图使用简洁纯色背景，重点锁定外貌特征
+
+### 风格一致性规则
+
+- 所有图片使用相同的**风格后缀**（见风格圣经）
+- 场景变体图**必须引用**对应场景参考图
+- 角色图与场景图使用相同的渲染风格关键词
+- 不同图片间保持一致的：色温范围、饱和度水平、渲染质感
+
+### API 上传端点
+
+```
+POST /api/projects/{project_id}/assets
+Content-Type: multipart/form-data
+Authorization: Bearer {token}
+
+Form Fields:
+  file: 图片文件 (filename=xxx.png)
+  type: "image"
+  category: "general"
+  linked_entity_type: "scene_variant" | "character_look" | null
+  linked_entity_id: 对应实体的 UUID | null
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "data": {
+    "id": "asset-uuid",
+    "file_path": "projects/{pid}/{uuid}.png",
+    "linked_entity_type": "scene_variant",
+    "linked_entity_id": "variant-uuid"
+  }
+}
+```
+
+### 上传关联规则
+
+| 图片类型 | linked_entity_type | linked_entity_id |
+|---------|-------------------|-----------------|
+| 场景参考图 | `scene` | 场景 ID |
+| 场景变体图 | `scene_variant` | 场景变体 ID |
+| 角色参考图 | `character_look` | 角色基础形象 look ID |
+| 角色造型图 | `character_look` | 对应 look ID |
+
+### 资源去重与清理
+
+重新生成图片后上传前，必须先清理已有的同类资源，避免产生重复：
+
+**去重流程**：
+```
+1. GET /api/projects/{pid}/assets → 获取所有现有资源
+2. 按 linked_entity_type + linked_entity_id 分组
+3. 对即将上传的每个实体，检查是否已有关联资源
+4. 若有旧资源 → DELETE /api/projects/{pid}/assets/{asset_id}
+5. 上传新资源
+```
+
+**去重脚本逻辑**：
+
+```python
+def cleanup_existing_assets(entity_type, entity_id, all_assets):
+    """删除指定实体的已有资源"""
+    for asset in all_assets:
+        if (asset.get("linked_entity_type") == entity_type and
+            asset.get("linked_entity_id") == entity_id):
+            # DELETE /api/projects/{pid}/assets/{asset["id"]}
+            pass
+```
+
+**何时需要去重**：
+- 重新生成参考图后重新上传
+- 更换风格圣经后重新生成所有图片
+- 修复某个角色/场景的参考图
+
+**何时不需要去重**：
+- 首次上传（数据库中无已有资源）
+- 添加额外角度的参考图（补充而非替换）
+
+### 批量操作注意事项
+
+- 每次上传间隔 0.5-1 秒，避免触发限流
+- 上传前确认 Token 有效性（`GET /api/projects/{pid}` 返回 200）
+- 上传后可通过 `GET /api/projects/{pid}/assets` 验证资源列表
+- 验证时按 `linked_entity_type` 分组统计，确认数量与预期一致

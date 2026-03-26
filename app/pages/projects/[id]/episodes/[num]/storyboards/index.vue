@@ -64,6 +64,10 @@ const { data: scenes } = useAsyncData(`scenes-${projectId}`, () =>
   $api<Scene[]>(`/api/projects/${projectId}/scenes`),
 )
 
+const { data: projectAssets } = useAsyncData(`project-assets-${projectId}`, () =>
+  $api<any[]>(`/api/projects/${projectId}/assets`),
+)
+
 const localList = ref<StoryboardWithAssociations[]>([])
 
 const viewMode = ref<'grid' | 'timeline'>('grid')
@@ -342,6 +346,7 @@ function escapeHtml(str: string): string {
               :project-id="projectId"
               :episode-num="episodeNum"
               :comment-count="commentCounts[element.id] || 0"
+              :project-assets="projectAssets ?? undefined"
               @edit="openEdit(element)"
               @delete="openDelete(element)"
               @comment="openComments(element)"
